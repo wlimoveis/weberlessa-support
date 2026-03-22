@@ -416,13 +416,28 @@ function autoInitializeOrphanModule() {
     if (window.location.search.includes('debug=true') || window.location.search.includes('diagnostics=true')) {
         setTimeout(addFloatingOrphanButton, 1500);
         setTimeout(() => {
-            console.log('🔄 Executando diagnóstico automático de órfãos...');
+    console.log('🔄 Executando diagnóstico automático de órfãos...');
+    // Aguardar MediaMigrationChecker estar disponível
+    const waitForChecker = setInterval(() => {
+        if (window.MediaMigrationChecker && typeof window.MediaMigrationChecker.diagnoseOrphanFiles === 'function') {
+            clearInterval(waitForChecker);
             if (window.diagnoseOrphanFiles) {
                 window.diagnoseOrphanFiles();
             }
-        }, 3000);
-    }
-}
+        } else {
+            console.log('⏳ Aguardando MediaMigrationChecker...');
+        }
+    }, 500);
+    
+    // Timeout de segurança
+    setTimeout(() => {
+        clearInterval(waitForChecker);
+        if (window.diagnoseOrphanFiles) {
+            console.log('⚠️ MediaMigrationChecker não disponível, executando diagnóstico embutido');
+            window.diagnoseOrphanFiles();
+        }
+    }, 5000);
+}, 3000);
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', autoInitializeOrphanModule);
