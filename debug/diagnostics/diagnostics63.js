@@ -1,9 +1,61 @@
 // weberlessa-support/debug/diagnostics/diagnostics63.js
-// Versão 6.3.3 - Gestão de Arquivos Órfãos
-console.log('🎯 DIAGNOSTICS63 v6.3.3 CARREGADO');
+// Versão 6.3.4 - Gestão de Arquivos Órfãos com função para listar buckets
+console.log('🎯 DIAGNOSTICS63 v6.3.4 CARREGADO');
 
 window.OrphanManager = {
-    version: '6.3.3',
+    version: '6.3.4',
+    
+    // Função para listar buckets disponíveis
+    async listBuckets() {
+        console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
+        
+        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+        
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            console.error('❌ Credenciais não encontradas');
+            console.groupEnd();
+            return { error: 'missing_credentials' };
+        }
+        
+        try {
+            const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
+            
+            if (response.ok) {
+                const buckets = await response.json();
+                console.log('📦 Buckets encontrados:');
+                console.table(buckets.map(b => ({ 
+                    id: b.id, 
+                    name: b.name, 
+                    public: b.public 
+                })));
+                
+                if (buckets.length === 0) {
+                    console.warn('⚠️ Nenhum bucket encontrado. Crie um bucket no Supabase Storage.');
+                } else {
+                    console.log('💡 Use um dos nomes acima no lugar de "properties"');
+                    console.log('💡 Exemplo: const bucket = "', buckets[0].name, '"');
+                }
+                console.groupEnd();
+                return { success: true, buckets };
+            } else {
+                console.error(`❌ Erro: ${response.status}`);
+                const text = await response.text();
+                console.log('Detalhes:', text);
+                console.groupEnd();
+                return { error: 'list_failed', status: response.status, details: text };
+            }
+        } catch (error) {
+            console.error('❌ Erro na conexão:', error);
+            console.groupEnd();
+            return { error: 'connection_failed', details: error.message };
+        }
+    },
     
     async diagnose() {
         console.group('🔍 DIAGNÓSTICO DE ÓRFÃOS');
@@ -27,21 +79,22 @@ window.OrphanManager = {
         
         console.log(`📊 ${window.properties.length} imóveis, ${usedUrls.size} URLs em uso`);
         
-        // Usar a configuração do Supabase
-        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || 'https://wxdiowpswepsvklumgvx.supabase.co';
-        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTExNzksImV4cCI6MjA4Nzk4NzE3OX0.QsUHE_w5m5-pz3LcwdREuwmwvCiX3Hz8FYv8SAwhD6U';
+        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
         
-        // 🔧 CORREÇÃO: Usar o formato correto da API do Storage
-        const bucket = 'properties';
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            console.error('❌ Credenciais não encontradas');
+            console.groupEnd();
+            return { error: 'missing_credentials' };
+        }
         
-        // Opção 1: Usar a API do Storage via fetch (recomendado)
-        const storageUrl = `${SUPABASE_URL}/storage/v1/object/list/${bucket}`;
+        // 🔧 IMPORTANTE: ALTERE O NOME DO BUCKET CONFORME O RESULTADO DO listBuckets()
+        const BUCKET_NAME = 'properties';  // ← ALTERE AQUI PARA O NOME CORRETO
         
-        console.log('🔗 Conectando ao Storage:', storageUrl);
+        console.log(`🔗 Conectando ao Storage (bucket: ${BUCKET_NAME})...`);
         
         try {
-            const response = await fetch(storageUrl, {
-                method: 'GET',
+            const response = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`, {
                 headers: {
                     'apikey': SUPABASE_KEY,
                     'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -52,36 +105,12 @@ window.OrphanManager = {
                 console.error(`❌ Erro HTTP: ${response.status}`);
                 const errorText = await response.text();
                 console.error('Detalhes:', errorText);
-                
-                // Tentar formato alternativo da API
-                console.log('🔄 Tentando formato alternativo...');
-                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${bucket}/objects/list`;
-                const altResponse = await fetch(altUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`
-                    }
-                });
-                
-                if (!altResponse.ok) {
-                    throw new Error(`Ambos formatos falharam: ${response.status} e ${altResponse.status}`);
-                }
-                
-                const allFiles = await altResponse.json();
-                return processFiles(allFiles, usedUrls);
+                console.log('💡 Execute listSupabaseBuckets() para ver os buckets disponíveis');
+                console.groupEnd();
+                return { error: 'list_failed', status: response.status, details: errorText };
             }
             
             const allFiles = await response.json();
-            return processFiles(allFiles, usedUrls);
-            
-        } catch (error) {
-            console.error('❌ Erro na conexão:', error);
-            console.groupEnd();
-            return { error: 'connection_failed', details: error.message };
-        }
-        
-        function processFiles(allFiles, usedUrls) {
             console.log(`📁 Total no Storage: ${allFiles.length}`);
             
             const orphans = allFiles.filter(file => {
@@ -111,6 +140,11 @@ window.OrphanManager = {
             
             console.groupEnd();
             return report;
+            
+        } catch (error) {
+            console.error('❌ Erro na conexão:', error);
+            console.groupEnd();
+            return { error: 'connection_failed', details: error.message };
         }
     },
     
@@ -148,6 +182,8 @@ window.OrphanManager = {
     }
 };
 
+// Funções globais
+window.listSupabaseBuckets = () => window.OrphanManager.listBuckets();
 window.diagnoseOrphanFiles = () => window.OrphanManager.diagnose().then(r => window.OrphanManager.showPanel(r));
 window.addOrphanButton = () => {
     if (document.getElementById('orphan-float-btn')) return;
@@ -159,58 +195,11 @@ window.addOrphanButton = () => {
     document.body.appendChild(btn);
 };
 
+// Auto-inicialização
 if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
-// Função para listar buckets disponíveis
-window.listSupabaseBuckets = async function() {
-    console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
-    
-    const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
-    const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
-    
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-        console.error('❌ Credenciais não encontradas');
-        console.groupEnd();
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-        });
-        
-        if (response.ok) {
-            const buckets = await response.json();
-            console.log('📦 Buckets encontrados:');
-            console.table(buckets.map(b => ({ 
-                id: b.id, 
-                name: b.name, 
-                public: b.public 
-            })));
-            
-            if (buckets.length === 0) {
-                console.warn('⚠️ Nenhum bucket encontrado. Crie um bucket no Supabase Storage.');
-            } else {
-                console.log('💡 Use um dos nomes acima no lugar de "properties"');
-            }
-        } else {
-            console.error(`❌ Erro: ${response.status}`);
-            const text = await response.text();
-            console.log('Detalhes:', text);
-        }
-    } catch (error) {
-        console.error('❌ Erro na conexão:', error);
-    }
-    
-    console.groupEnd();
-};
-
+console.log('✅ DIAGNOSTICS63 v6.3.4 PRONTO');
 console.log('💡 Use: listSupabaseBuckets() - Listar buckets disponíveis');
-
-console.log('✅ DIAGNOSTICS63 v6.3.3 PRONTO');
 console.log('💡 Use: diagnoseOrphanFiles() - Diagnóstico de órfãos');
