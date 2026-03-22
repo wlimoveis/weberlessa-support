@@ -427,7 +427,8 @@ window.MediaMigrationChecker = {
             
             // 4. Listar arquivos no Storage
             console.log(`🔗 Conectando ao Supabase Storage...`);
-            const listResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+            const bucket = 'properties';
+            const response = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
                 headers: {
                     'Authorization': `Bearer ${SUPABASE_KEY}`,
                     'apikey': SUPABASE_KEY
