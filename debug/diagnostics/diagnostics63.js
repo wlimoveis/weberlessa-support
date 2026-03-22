@@ -1,9 +1,9 @@
 // weberlessa-support/debug/diagnostics/diagnostics63.js
-// Versão 6.3.4 - Gestão de Arquivos Órfãos com função para listar buckets
-console.log('🎯 DIAGNOSTICS63 v6.3.4 CARREGADO');
+// Versão 6.3.5 - Gestão de Arquivos Órfãos com botão para listar buckets
+console.log('🎯 DIAGNOSTICS63 v6.3.5 CARREGADO');
 
 window.OrphanManager = {
-    version: '6.3.4',
+    version: '6.3.5',
     
     // Função para listar buckets disponíveis
     async listBuckets() {
@@ -15,6 +15,7 @@ window.OrphanManager = {
         if (!SUPABASE_URL || !SUPABASE_KEY) {
             console.error('❌ Credenciais não encontradas');
             console.groupEnd();
+            this.showBucketsPanel({ error: 'missing_credentials' });
             return { error: 'missing_credentials' };
         }
         
@@ -41,20 +42,94 @@ window.OrphanManager = {
                     console.log('💡 Use um dos nomes acima no lugar de "properties"');
                     console.log('💡 Exemplo: const bucket = "', buckets[0].name, '"');
                 }
+                
+                // Exibir painel com os buckets encontrados
+                this.showBucketsPanel({ success: true, buckets });
                 console.groupEnd();
                 return { success: true, buckets };
             } else {
                 console.error(`❌ Erro: ${response.status}`);
                 const text = await response.text();
                 console.log('Detalhes:', text);
+                this.showBucketsPanel({ error: 'list_failed', status: response.status, details: text });
                 console.groupEnd();
                 return { error: 'list_failed', status: response.status, details: text };
             }
         } catch (error) {
             console.error('❌ Erro na conexão:', error);
+            this.showBucketsPanel({ error: 'connection_failed', details: error.message });
             console.groupEnd();
             return { error: 'connection_failed', details: error.message };
         }
+    },
+    
+    // Painel para exibir buckets encontrados
+    showBucketsPanel(data) {
+        const existing = document.getElementById('buckets-panel');
+        if (existing) existing.remove();
+        
+        const panel = document.createElement('div');
+        panel.id = 'buckets-panel';
+        
+        let content = '';
+        if (data.error) {
+            content = `
+                <div style="color:#f00;">❌ Erro: ${data.error}</div>
+                <div style="font-size:12px; margin-top:10px;">${data.details || ''}</div>
+            `;
+        } else if (data.success && data.buckets.length === 0) {
+            content = `<div style="color:#fa0;">⚠️ Nenhum bucket encontrado. Crie um bucket no Supabase Storage.</div>`;
+        } else if (data.success) {
+            content = `
+                <div style="margin-bottom:15px;">📦 <strong>Buckets disponíveis:</strong></div>
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr style="background:#00aaff33;">
+                        <th style="padding:8px; text-align:left;">Nome</th>
+                        <th style="padding:8px; text-align:left;">ID</th>
+                        <th style="padding:8px; text-align:left;">Público</th>
+                    </tr>
+                    ${data.buckets.map(b => `
+                        <tr style="border-bottom:1px solid #333;">
+                            <td style="padding:8px;"><code style="color:#0af;">${b.name}</code></td>
+                            <td style="padding:8px; font-size:11px;">${b.id}</td>
+                            <td style="padding:8px;">${b.public ? '✅ Sim' : '❌ Não'}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <div style="margin-top:15px; padding:10px; background:#00aaff22; border-radius:5px;">
+                    💡 <strong>Instruções:</strong> Altere a linha <code>const BUCKET_NAME = 'properties';</code> no arquivo diagnostics63.js para um dos nomes acima.
+                </div>
+                <button id="copy-bucket-name" style="margin-top:10px; background:#0af; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">📋 Copiar nome do primeiro bucket</button>
+            `;
+        }
+        
+        panel.innerHTML = `
+            <div style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); 
+                        background:#0a0a2a; color:#0af; padding:20px; border-radius:10px; 
+                        border:3px solid #0af; z-index:1000001; min-width:450px; 
+                        font-family:monospace; box-shadow:0 0 30px rgba(0,170,255,0.5);">
+                <h3 style="margin:0 0 15px 0;">📦 BUCKETS DO SUPABASE</h3>
+                ${content}
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button id="buckets-refresh" style="background:#0af; padding:8px 16px; border:none; border-radius:5px; cursor:pointer;">🔄 Atualizar</button>
+                    <button id="buckets-close" style="background:#555; padding:8px 16px; border:none; border-radius:5px; cursor:pointer;">Fechar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(panel);
+        
+        document.getElementById('buckets-refresh')?.addEventListener('click', () => {
+            panel.remove();
+            window.OrphanManager.listBuckets();
+        });
+        document.getElementById('buckets-close')?.addEventListener('click', () => panel.remove());
+        
+        document.getElementById('copy-bucket-name')?.addEventListener('click', () => {
+            if (data.buckets && data.buckets.length > 0) {
+                navigator.clipboard.writeText(data.buckets[0].name);
+                alert(`✅ Nome "${data.buckets[0].name}" copiado para a área de transferência!`);
+            }
+        });
     },
     
     async diagnose() {
@@ -66,7 +141,6 @@ window.OrphanManager = {
             return { error: 'no_properties' };
         }
         
-        // Coletar URLs em uso
         const usedUrls = new Set();
         window.properties.forEach(p => {
             if (p.images && p.images !== 'EMPTY') {
@@ -88,7 +162,7 @@ window.OrphanManager = {
             return { error: 'missing_credentials' };
         }
         
-        // 🔧 IMPORTANTE: ALTERE O NOME DO BUCKET CONFORME O RESULTADO DO listBuckets()
+        // 🔧 IMPORTANTE: ALTERE O NOME DO BUCKET CONFORME O RESULTADO DO LISTAR BUCKETS
         const BUCKET_NAME = 'properties';  // ← ALTERE AQUI PARA O NOME CORRETO
         
         console.log(`🔗 Conectando ao Storage (bucket: ${BUCKET_NAME})...`);
@@ -105,7 +179,7 @@ window.OrphanManager = {
                 console.error(`❌ Erro HTTP: ${response.status}`);
                 const errorText = await response.text();
                 console.error('Detalhes:', errorText);
-                console.log('💡 Execute listSupabaseBuckets() para ver os buckets disponíveis');
+                console.log('💡 Clique em "📦 LISTAR BUCKETS" no painel para ver os buckets disponíveis');
                 console.groupEnd();
                 return { error: 'list_failed', status: response.status, details: errorText };
             }
@@ -158,16 +232,17 @@ window.OrphanManager = {
             <div style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); 
                         background:#0a0a2a; color:#0af; padding:20px; border-radius:10px; 
                         border:3px solid ${report.orphan_count > 0 ? '#fa0' : '#0f0'}; 
-                        z-index:1000000; min-width:400px; font-family:monospace;">
-                <h3>🧹 ARQUIVOS ÓRFÃOS</h3>
+                        z-index:1000000; min-width:450px; font-family:monospace;">
+                <h3 style="margin:0 0 15px 0;">🧹 ARQUIVOS ÓRFÃOS</h3>
                 <table style="width:100%; margin:15px 0;">
                     <tr><td>📁 Total Storage:</td><td><b>${report.total_in_storage}</b></td></tr>
                     <tr><td>✅ Em uso:</td><td><b>${report.used_files}</b></td></tr>
                     <tr><td>🗑️ ÓRFÃOS:</td><td><b style="color:#fa0">${report.orphan_count}</b></td></tr>
                     <tr><td>💾 Espaço:</td><td><b>${report.total_size_mb} MB</b></td></tr>
                 </table>
-                <div style="display:flex; gap:10px; margin-top:15px;">
+                <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
                     <button id="orphan-refresh" style="background:#0af; padding:8px 16px; border:none; border-radius:5px; cursor:pointer;">🔍 Atualizar</button>
+                    <button id="orphan-list-buckets" style="background:#e67e22; padding:8px 16px; border:none; border-radius:5px; cursor:pointer;">📦 LISTAR BUCKETS</button>
                     <button id="orphan-close" style="background:#555; padding:8px 16px; border:none; border-radius:5px; cursor:pointer;">Fechar</button>
                 </div>
             </div>
@@ -177,6 +252,9 @@ window.OrphanManager = {
         document.getElementById('orphan-refresh')?.addEventListener('click', () => {
             panel.remove();
             window.OrphanManager.diagnose().then(r => window.OrphanManager.showPanel(r));
+        });
+        document.getElementById('orphan-list-buckets')?.addEventListener('click', () => {
+            window.OrphanManager.listBuckets();
         });
         document.getElementById('orphan-close')?.addEventListener('click', () => panel.remove());
     }
@@ -200,6 +278,7 @@ if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
-console.log('✅ DIAGNOSTICS63 v6.3.4 PRONTO');
+console.log('✅ DIAGNOSTICS63 v6.3.5 PRONTO');
 console.log('💡 Use: listSupabaseBuckets() - Listar buckets disponíveis');
 console.log('💡 Use: diagnoseOrphanFiles() - Diagnóstico de órfãos');
+console.log('💡 Ou clique no botão "📦 LISTAR BUCKETS" dentro do painel de órfãos');
