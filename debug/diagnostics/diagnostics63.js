@@ -163,5 +163,54 @@ if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
+// Função para listar buckets disponíveis
+window.listSupabaseBuckets = async function() {
+    console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
+    
+    const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+    const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+    
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+        console.error('❌ Credenciais não encontradas');
+        console.groupEnd();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        
+        if (response.ok) {
+            const buckets = await response.json();
+            console.log('📦 Buckets encontrados:');
+            console.table(buckets.map(b => ({ 
+                id: b.id, 
+                name: b.name, 
+                public: b.public 
+            })));
+            
+            if (buckets.length === 0) {
+                console.warn('⚠️ Nenhum bucket encontrado. Crie um bucket no Supabase Storage.');
+            } else {
+                console.log('💡 Use um dos nomes acima no lugar de "properties"');
+            }
+        } else {
+            console.error(`❌ Erro: ${response.status}`);
+            const text = await response.text();
+            console.log('Detalhes:', text);
+        }
+    } catch (error) {
+        console.error('❌ Erro na conexão:', error);
+    }
+    
+    console.groupEnd();
+};
+
+console.log('💡 Use: listSupabaseBuckets() - Listar buckets disponíveis');
+
 console.log('✅ DIAGNOSTICS63 v6.3.3 PRONTO');
 console.log('💡 Use: diagnoseOrphanFiles() - Diagnóstico de órfãos');
