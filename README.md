@@ -12,4 +12,4 @@ Repositório para código de suporte, testes e debug do site principal.
 Este repositório contém código NÃO ESSENCIAL para o funcionamento do site principal.
 
 ## Acesso
-GitHub Pages: https://rclessa25-hub.github.io/weberlessa-support/
+GitHub Pages: https://wlimoveis.github.io/weberlessa-support/
