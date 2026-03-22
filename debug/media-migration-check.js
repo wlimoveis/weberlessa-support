@@ -1,10 +1,13 @@
-// weberlessa-support/debug/media-migration-check.js - VERSÃO ATUALIZADA COM VERIFICAÇÃO DE STORAGE
-console.log('🔍 [SUPORTE] media-migration-check.js - Verificação ATUALIZADA (pós-migração + storage cleanup)');
+// weberlessa-support/debug/media-migration-check.js - VERSÃO 2.2.0
+// FUNCIONALIDADES: Migração, Storage Cleanup, Diagnóstico de Órfãos, Limpeza Segura
+console.log('🔍 [SUPORTE] media-migration-check.js v2.2.0 - Sistema completo de diagnóstico e limpeza');
 
 window.MediaMigrationChecker = {
-    version: '2.1.0', // Atualizado para versão com storage verification
+    version: '2.2.0',
     checkDate: new Date().toISOString(),
     migrationStatus: 'completed', // ✅ MIGRAÇÃO JÁ CONCLUÍDA
+    
+    // ==================== FUNÇÕES EXISTENTES (v2.1.0) ====================
     
     /**
      * ✅ VERIFICAÇÃO DO SISTEMA ATUAL (pós-migração)
@@ -27,7 +30,7 @@ window.MediaMigrationChecker = {
             '✅ MediaSystem.updateUI': window.MediaSystem && typeof window.MediaSystem.updateUI === 'function',
             '✅ MediaSystem.resetState': window.MediaSystem && typeof window.MediaSystem.resetState === 'function',
             
-            // ========== FUNÇÕES DE EXCLUSÃO FÍSICA (NOVO) ==========
+            // ========== FUNÇÕES DE EXCLUSÃO FÍSICA ==========
             '✅ MediaSystem.deleteFilesFromStorage': window.MediaSystem && typeof window.MediaSystem.deleteFilesFromStorage === 'function',
             '✅ MediaSystem.deleteFileFromStorage': window.MediaSystem && typeof window.MediaSystem.deleteFileFromStorage === 'function',
             
@@ -131,9 +134,8 @@ window.MediaMigrationChecker = {
     },
     
     /**
-     * ✅ NOVA FUNÇÃO: VERIFICAÇÃO DE LIMPEZA DO STORAGE
+     * ✅ VERIFICAÇÃO DE LIMPEZA DO STORAGE
      * Verifica se as funções de exclusão física estão corretamente implementadas
-     * e se o deleteProperty está chamando a exclusão de storage
      */
     verifyStorageCleanup() {
         console.group('🧪 [SUPORTE] VERIFICAÇÃO DE LIMPEZA DO STORAGE');
@@ -168,7 +170,7 @@ window.MediaMigrationChecker = {
                 results.deleteFileFromStorageAvailable = true;
                 console.log('✅ MediaSystem.deleteFileFromStorage disponível');
             } else {
-                console.warn('⚠️ MediaSystem.deleteFileFromStorage NÃO disponível (função auxiliar)');
+                console.warn('⚠️ MediaSystem.deleteFileFromStorage NÃO disponível');
             }
         }
         
@@ -182,7 +184,6 @@ window.MediaMigrationChecker = {
                 results.deletePropertyUpdated = true;
                 console.log('✅ deleteProperty atualizada com exclusão de storage');
                 
-                // Extrair trecho relevante para confirmação
                 const lines = deletePropertyStr.split('\n');
                 const relevantLines = lines.filter(line => 
                     line.includes('deleteFilesFromStorage') || 
@@ -192,17 +193,8 @@ window.MediaMigrationChecker = {
                 
                 results.deletePropertyContent = relevantLines;
                 console.log(`🔍 Código de exclusão presente: ${relevantLines.length} linhas relevantes`);
-                
-                // Mostrar trecho para debug
-                if (relevantLines.length > 0) {
-                    console.log('📝 Trecho do código de exclusão:');
-                    relevantLines.slice(0, 3).forEach(line => {
-                        console.log(`   ${line.trim()}`);
-                    });
-                }
             } else {
                 console.error('❌ deleteProperty NÃO inclui exclusão de storage');
-                console.log('💡 Dica: Verificar se a função foi atualizada com a chamada a deleteFilesFromStorage');
             }
         } else {
             console.error('❌ deleteProperty NÃO disponível');
@@ -214,56 +206,30 @@ window.MediaMigrationChecker = {
             results.deletePropertyUpdated) {
             results.integrationStatus = 'fully_integrated';
             console.log('🎉 SISTEMA DE EXCLUSÃO FÍSICA 100% INTEGRADO!');
-            console.log('✅ Todas as funções de exclusão estão disponíveis e integradas');
         } 
         else if (results.mediaSystemAvailable && 
                  results.deleteFilesFromStorageAvailable && 
                  !results.deletePropertyUpdated) {
             results.integrationStatus = 'partial_integration';
             console.warn('⚠️ INTEGRAÇÃO PARCIAL: deleteProperty precisa ser atualizada');
-            console.log('🔧 Ação necessária: Atualizar deleteProperty para chamar deleteFilesFromStorage');
         }
         else if (!results.deleteFilesFromStorageAvailable) {
             results.integrationStatus = 'missing_core_function';
             console.error('❌ FUNÇÃO CORE AUSENTE: deleteFilesFromStorage não implementada');
-            console.log('🔧 Ação necessária: Implementar MediaSystem.deleteFilesFromStorage');
-        }
-        else {
-            results.integrationStatus = 'needs_attention';
-            console.error('❌ SISTEMA DE EXCLUSÃO COM MÚLTIPLOS PROBLEMAS');
-        }
-        
-        // ✅ GUIA PARA TESTE MANUAL
-        console.log('\n📋 GUIA PARA TESTE PRÁTICO DE EXCLUSÃO:');
-        console.log('   1. Crie um imóvel com 2-3 imagens no painel admin');
-        console.log('   2. Anote os nomes dos arquivos no Supabase Storage');
-        console.log('   3. Exclua o imóvel através do painel admin');
-        console.log('   4. Verifique se os arquivos sumiram do Storage');
-        console.log('\n💡 Para visualizar URLs dos arquivos antes da exclusão:');
-        console.log('   - Abra o console e execute: MediaSystem.state.files');
-        console.log('   - Cada arquivo terá a propriedade "url" com o caminho completo');
-        
-        // ✅ FUNÇÃO AUXILIAR PARA TESTE RÁPIDO (se disponível)
-        if (results.mediaSystemAvailable && results.deleteFilesFromStorageAvailable) {
-            console.log('\n🧪 FUNÇÃO DE TESTE RÁPIDO DISPONÍVEL:');
-            console.log('   window.MediaMigrationChecker.testStorageDeletion() - Teste simulado');
         }
         
         console.groupEnd();
-        
         return results;
     },
     
     /**
-     * ✅ NOVA FUNÇÃO: TESTE SIMULADO DE EXCLUSÃO DE STORAGE
+     * ✅ TESTE SIMULADO DE EXCLUSÃO DE STORAGE
      * Cria um arquivo de teste temporário e tenta excluí-lo
-     * ATENÇÃO: Esta função é SEGURA e não afeta dados reais
      */
     async testStorageDeletion() {
         console.group('🧪 [SUPORTE] TESTE SIMULADO DE EXCLUSÃO DE STORAGE');
         
         try {
-            // ✅ VERIFICAR PRÉ-REQUISITOS
             if (!window.MediaSystem) {
                 throw new Error('MediaSystem não disponível');
             }
@@ -272,7 +238,6 @@ window.MediaMigrationChecker = {
                 throw new Error('deleteFilesFromStorage não disponível');
             }
             
-            // ✅ CRIAR ARQUIVO DE TESTE (NÃO REAL)
             console.log('📝 Criando arquivo de teste simulado...');
             const testFile = {
                 name: `test_${Date.now()}.jpg`,
@@ -282,8 +247,6 @@ window.MediaMigrationChecker = {
             };
             
             console.log(`🔍 Arquivo de teste: ${testFile.name}`);
-            
-            // ✅ TESTAR EXCLUSÃO SIMULADA
             console.log('🗑️ Executando exclusão simulada...');
             const result = await window.MediaSystem.deleteFilesFromStorage([testFile]);
             
@@ -291,30 +254,19 @@ window.MediaMigrationChecker = {
             
             if (result && result.success) {
                 console.log('✅ Teste simulado concluído com sucesso');
-                console.log('💡 A função deleteFilesFromStorage está funcionando corretamente');
             } else {
                 console.warn('⚠️ Teste simulado retornou resultado inesperado:', result);
             }
             
-            // ✅ INSTRUÇÕES PARA TESTE REAL
-            console.log('\n📋 PARA TESTE REAL (recomendado):');
-            console.log('   1. Crie um imóvel com imagens no painel admin');
-            console.log('   2. Use a função abaixo para capturar URLs:');
-            console.log('      window.MediaMigrationChecker.captureCurrentFileUrls()');
-            console.log('   3. Exclua o imóvel');
-            console.log('   4. Verifique se os arquivos sumiram do Storage');
-            
         } catch (error) {
             console.error('❌ Erro no teste simulado:', error.message);
-            console.log('🔧 Verifique se o MediaSystem está corretamente inicializado');
         }
         
         console.groupEnd();
     },
     
     /**
-     * ✅ NOVA FUNÇÃO: CAPTURAR URLs ATUAIS DOS ARQUIVOS
-     * Útil para testar exclusão real comparando antes/depois
+     * ✅ CAPTURAR URLs ATUAIS DOS ARQUIVOS
      */
     captureCurrentFileUrls() {
         if (!window.MediaSystem || !window.MediaSystem.state) {
@@ -342,15 +294,11 @@ window.MediaMigrationChecker = {
         
         console.group('📸 [SUPORTE] CAPTURA DE URLs ATUAIS');
         console.log(`✅ Capturadas ${allUrls.total} URLs (${files.length} imagens, ${pdfs.length} PDFs)`);
-        console.log('📋 URLs capturadas (para comparar após exclusão):');
-        console.table(allUrls.files.concat(allUrls.pdfs).slice(0, 10)); // Limitar a 10 para não poluir console
+        console.table(allUrls.files.concat(allUrls.pdfs).slice(0, 10));
         
         if (allUrls.total > 10) {
-            console.log(`... e mais ${allUrls.total - 10} arquivos (use copy() para ver todos)`);
-            console.log('💡 Para ver todos: copy(window.MediaMigrationChecker.captureCurrentFileUrls())');
+            console.log(`... e mais ${allUrls.total - 10} arquivos`);
         }
-        
-        console.log('\n💡 Guarde estas URLs para comparar após exclusão do imóvel');
         console.groupEnd();
         
         return allUrls;
@@ -358,7 +306,6 @@ window.MediaMigrationChecker = {
     
     /**
      * ✅ TESTE FUNCIONAL DO SISTEMA ATUAL
-     * Testa as funções reais do MediaSystem unificado
      */
     runFunctionalTest() {
         console.group('🚀 [SUPORTE] TESTE FUNCIONAL DO SISTEMA UNIFICADO');
@@ -371,7 +318,6 @@ window.MediaMigrationChecker = {
         };
         
         try {
-            // ✅ TESTE 1: Reset do sistema
             if (window.MediaSystem && window.MediaSystem.resetState) {
                 window.MediaSystem.resetState();
                 console.log('✅ Teste 1: resetState() executado com sucesso');
@@ -380,45 +326,29 @@ window.MediaMigrationChecker = {
                 console.warn('⚠️ Teste 1: resetState() não disponível');
             }
             
-            // ✅ TESTE 2: Criação de arquivo de teste
             const testBlob = new Blob(['test content'], { type: 'image/jpeg' });
             const testFile = new File([testBlob], 'test_image.jpg', { type: 'image/jpeg' });
             
-            // ✅ TESTE 3: Adição de arquivo ao sistema
             if (window.MediaSystem && window.MediaSystem.addFiles) {
                 const added = window.MediaSystem.addFiles([testFile]);
                 console.log(`✅ Teste 2: addFiles() adicionou ${added} arquivo(s) de teste`);
                 results.addFiles = true;
                 
-                // ✅ TESTE 4: Verificar se UI foi atualizada
                 setTimeout(() => {
                     const preview = document.getElementById('uploadPreview');
                     const hasContent = preview && preview.innerHTML && preview.innerHTML.length > 100;
-                    
                     console.log(`✅ Teste 3: UI atualizada: ${hasContent ? 'SIM' : 'NÃO'}`);
                     results.updateUI = hasContent;
                     
-                    // ✅ TESTE 5: Limpeza final
                     if (window.MediaSystem && window.MediaSystem.resetState) {
                         window.MediaSystem.resetState();
                         console.log('✅ Teste 4: Sistema limpo após teste');
                         results.cleanup = true;
                     }
                     
-                    // ✅ RESUMO DO TESTE FUNCIONAL
                     const functionalScore = Object.values(results).filter(v => v === true).length;
-                    const functionalTotal = Object.keys(results).length;
-                    
-                    console.log(`📊 TESTE FUNCIONAL: ${functionalScore}/${functionalTotal} passaram`);
-                    
-                    if (functionalScore === functionalTotal) {
-                        console.log('🎉 SISTEMA FUNCIONAL COMPROVADO!');
-                    } else {
-                        console.warn('⚠️ SISTEMA COM LIMITAÇÕES FUNCIONAIS');
-                    }
-                    
+                    console.log(`📊 TESTE FUNCIONAL: ${functionalScore}/4 passaram`);
                     console.groupEnd();
-                    
                 }, 300);
             } else {
                 console.error('❌ Teste 2: addFiles() não disponível');
@@ -434,22 +364,339 @@ window.MediaMigrationChecker = {
         return results;
     },
     
+    // ==================== NOVAS FUNÇÕES (v2.2.0) ====================
+    
+    /**
+     * ✅ DIAGNÓSTICO COMPLETO DE ARQUIVOS ÓRFÃOS
+     * Modo apenas leitura - NENHUMA EXCLUSÃO
+     */
+    async diagnoseOrphanFiles() {
+        console.group('🔍 [MediaMigration] DIAGNÓSTICO DE ARQUIVOS ÓRFÃOS');
+        console.log('⚠️ MODO APENAS LEITURA - NENHUMA EXCLUSÃO SERÁ REALIZADA');
+        
+        try {
+            // 1. Verificar imóveis carregados
+            if (!window.properties || window.properties.length === 0) {
+                console.error('❌ Nenhum imóvel carregado');
+                console.groupEnd();
+                return { success: false, reason: 'no_properties' };
+            }
+            
+            console.log(`📊 Total de imóveis carregados: ${window.properties.length}`);
+            
+            // 2. Coletar URLs em uso
+            const usedUrls = new Set();
+            const usedFileNames = new Set();
+            
+            window.properties.forEach(property => {
+                if (property.images && property.images !== 'EMPTY') {
+                    property.images.split(',').forEach(url => {
+                        if (url && url.trim()) {
+                            const cleanUrl = url.trim();
+                            usedUrls.add(cleanUrl);
+                            const fileName = cleanUrl.split('/').pop()?.split('?')[0];
+                            if (fileName) usedFileNames.add(fileName);
+                        }
+                    });
+                }
+                if (property.pdfs && property.pdfs !== 'EMPTY') {
+                    property.pdfs.split(',').forEach(url => {
+                        if (url && url.trim()) {
+                            const cleanUrl = url.trim();
+                            usedUrls.add(cleanUrl);
+                            const fileName = cleanUrl.split('/').pop()?.split('?')[0];
+                            if (fileName) usedFileNames.add(fileName);
+                        }
+                    });
+                }
+            });
+            
+            console.log(`📋 URLs em uso: ${usedUrls.size}`);
+            console.log(`📄 Nomes de arquivos em uso: ${usedFileNames.size}`);
+            
+            // 3. Obter credenciais Supabase
+            const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+            const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+            const bucket = 'properties';
+            
+            if (!SUPABASE_URL || !SUPABASE_KEY) {
+                console.error('❌ Credenciais Supabase não encontradas');
+                console.groupEnd();
+                return { success: false, reason: 'missing_credentials' };
+            }
+            
+            // 4. Listar arquivos no Storage
+            console.log(`🔗 Conectando ao Supabase Storage...`);
+            const listResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'apikey': SUPABASE_KEY
+                }
+            });
+            
+            if (!listResponse.ok) {
+                console.error(`❌ Erro ao listar arquivos: ${listResponse.status}`);
+                console.groupEnd();
+                return { success: false, reason: 'list_failed', status: listResponse.status };
+            }
+            
+            const allFiles = await listResponse.json();
+            console.log(`📁 TOTAL DE ARQUIVOS NO STORAGE: ${allFiles.length}`);
+            
+            // 5. Analisar cada arquivo
+            const orphanFiles = [];
+            const usedFiles = [];
+            
+            for (const file of allFiles) {
+                const fileName = file.name;
+                if (fileName.endsWith('/')) continue;
+                
+                const isUsed = usedFileNames.has(fileName);
+                const fullUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fileName}`;
+                const isUrlUsed = usedUrls.has(fullUrl);
+                
+                if (isUsed || isUrlUsed) {
+                    usedFiles.push(fileName);
+                } else {
+                    const isFromRecentDeletion = fileName.match(/\d{13}/) && 
+                        Date.now() - parseInt(fileName.match(/\d{13}/)[0]) < 86400000;
+                    
+                    orphanFiles.push({
+                        name: fileName,
+                        size: file.metadata?.size || 0,
+                        lastModified: file.metadata?.lastModified,
+                        suspicious: isFromRecentDeletion,
+                        url: fullUrl
+                    });
+                }
+            }
+            
+            // 6. Agrupar por tipo
+            const byType = {
+                images: orphanFiles.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)),
+                videos: orphanFiles.filter(f => f.name.match(/\.(mp4|mov|avi|webm)$/i)),
+                pdfs: orphanFiles.filter(f => f.name.match(/\.pdf$/i)),
+                other: orphanFiles.filter(f => !f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|webm|pdf)$/i))
+            };
+            
+            // 7. Calcular espaço total
+            let totalSize = 0;
+            orphanFiles.forEach(file => { totalSize += file.size; });
+            const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+            
+            // 8. Exibir relatório
+            console.log('\n📊 RELATÓRIO DETALHADO:');
+            console.log('═'.repeat(50));
+            console.log(`✅ Arquivos em uso: ${usedFiles.length}`);
+            console.log(`🗑️ Arquivos órfãos: ${orphanFiles.length}`);
+            console.log(`💾 Espaço ocupado: ${totalSizeMB} MB`);
+            console.log(`\n📂 DISTRIBUIÇÃO POR TIPO:`);
+            console.log(`   🖼️ Imagens: ${byType.images.length}`);
+            console.log(`   🎬 Vídeos: ${byType.videos.length}`);
+            console.log(`   📄 PDFs: ${byType.pdfs.length}`);
+            console.log(`   ❓ Outros: ${byType.other.length}`);
+            
+            if (orphanFiles.length > 0) {
+                console.log('\n📋 AMOSTRA DOS ARQUIVOS ÓRFÃOS (primeiros 20):');
+                orphanFiles.slice(0, 20).forEach((file, index) => {
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    console.log(`${index + 1}. ${file.name} (${sizeKB} KB)`);
+                    if (file.suspicious) console.log(`   ⚠️ Possível arquivo de exclusão recente`);
+                });
+                if (orphanFiles.length > 20) {
+                    console.log(`\n... e mais ${orphanFiles.length - 20} arquivos`);
+                }
+            }
+            
+            const report = {
+                success: true,
+                total_in_storage: allFiles.length,
+                urls_in_use: usedUrls.size,
+                used_files: usedFiles.length,
+                orphan_count: orphanFiles.length,
+                total_size_mb: totalSizeMB,
+                orphans_by_type: {
+                    images: byType.images.length,
+                    videos: byType.videos.length,
+                    pdfs: byType.pdfs.length,
+                    other: byType.other.length
+                },
+                suspicious_count: orphanFiles.filter(f => f.suspicious).length,
+                orphans: orphanFiles
+            };
+            
+            window.orphanFilesReport = report;
+            console.log('\n📦 Relatório salvo em: window.orphanFilesReport');
+            console.groupEnd();
+            
+            return report;
+            
+        } catch (error) {
+            console.error('❌ Erro durante diagnóstico:', error);
+            console.groupEnd();
+            return { success: false, reason: 'error', error: error.message };
+        }
+    },
+    
+    /**
+     * ✅ LIMPEZA SEGURA DE ARQUIVOS ÓRFÃOS
+     * @param {number|null} limit - Se especificado, limpa apenas N arquivos (modo teste)
+     */
+    async safeOrphanCleanup(limit = null) {
+        console.group('🧹 [MediaMigration] LIMPEZA SEGURA DE ARQUIVOS ÓRFÃOS');
+        
+        try {
+            // 1. Executar diagnóstico primeiro
+            const report = await this.diagnoseOrphanFiles();
+            
+            if (!report.success) {
+                console.error('❌ Falha no diagnóstico, abortando limpeza');
+                console.groupEnd();
+                return { success: false, reason: 'diagnostic_failed' };
+            }
+            
+            if (report.orphan_count === 0) {
+                console.log('✅ Nenhum arquivo órfão encontrado!');
+                console.groupEnd();
+                return { success: true, deleted: 0, message: 'No orphan files found' };
+            }
+            
+            // 2. Determinar arquivos a limpar
+            const toClean = limit ? report.orphans.slice(0, limit) : report.orphans;
+            
+            console.log(`⚠️ ${toClean.length} arquivo(s) serão excluídos`);
+            console.log('Arquivos a serem excluídos:');
+            toClean.slice(0, 10).forEach((file, i) => {
+                console.log(`  ${i+1}. ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+            });
+            if (toClean.length > 10) {
+                console.log(`  ... e mais ${toClean.length - 10} arquivos`);
+            }
+            
+            // 3. Confirmação do usuário
+            const confirmMsg = limit 
+                ? `⚠️ TESTE: Excluir APENAS ${limit} arquivo(s) órfão(s)?\n\nIsso é um teste. Os arquivos serão removidos PERMANENTEMENTE.`
+                : `⚠️ Excluir TODOS os ${report.orphan_count} arquivos órfãos?\n\nEspaço estimado: ${report.total_size_mb} MB\n\nIsso é IRREVERSÍVEL.`;
+            
+            if (!confirm(confirmMsg)) {
+                console.log('❌ Limpeza cancelada pelo usuário');
+                console.groupEnd();
+                return { success: false, cancelled: true };
+            }
+            
+            // 4. Executar exclusão
+            const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+            const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+            const bucket = 'properties';
+            
+            let deleted = 0;
+            let failed = 0;
+            const errors = [];
+            
+            for (let i = 0; i < toClean.length; i++) {
+                const file = toClean[i];
+                try {
+                    const deleteUrl = `${SUPABASE_URL}/storage/v1/object/${bucket}/${file.name}`;
+                    const response = await fetch(deleteUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'apikey': SUPABASE_KEY
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        deleted++;
+                        if (deleted % 50 === 0) {
+                            console.log(`✅ Progresso: ${deleted}/${toClean.length} excluídos`);
+                        }
+                    } else {
+                        failed++;
+                        errors.push({ name: file.name, status: response.status });
+                        console.warn(`⚠️ Falha: ${file.name} (${response.status})`);
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                } catch (error) {
+                    failed++;
+                    errors.push({ name: file.name, error: error.message });
+                    console.error(`❌ Erro: ${file.name}`, error.message);
+                }
+            }
+            
+            console.log(`\n📊 RESULTADO DA LIMPEZA:`);
+            console.log(`   ✅ Excluídos: ${deleted}`);
+            console.log(`   ⚠️ Falhas: ${failed}`);
+            console.log(`   📁 Total processados: ${toClean.length}`);
+            
+            alert(`✅ LIMPEZA CONCLUÍDA!\n\n${deleted} arquivos órfãos removidos.\n${failed} falhas.\n\nVerifique o console para detalhes.`);
+            
+            console.groupEnd();
+            
+            return {
+                success: true,
+                deleted,
+                failed,
+                total: toClean.length,
+                errors: errors.length > 0 ? errors : undefined
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro durante limpeza:', error);
+            console.groupEnd();
+            return { success: false, reason: 'error', error: error.message };
+        }
+    },
+    
+    /**
+     * ✅ GERAR RELATÓRIO DE ÓRFÃOS
+     */
+    async generateOrphanReport() {
+        console.group('📊 [MediaMigration] RELATÓRIO DE ARQUIVOS ÓRFÃOS');
+        
+        const report = await this.diagnoseOrphanFiles();
+        
+        if (report.success) {
+            console.log('\n📊 RESUMO EXECUTIVO:');
+            console.log(`   📁 Total no Storage: ${report.total_in_storage}`);
+            console.log(`   📊 URLs em uso: ${report.urls_in_use}`);
+            console.log(`   🗑️ Arquivos órfãos: ${report.orphan_count}`);
+            console.log(`   💾 Espaço ocupado: ${report.total_size_mb} MB`);
+            console.log(`   🖼️ Imagens: ${report.orphans_by_type.images}`);
+            console.log(`   📄 PDFs: ${report.orphans_by_type.pdfs}`);
+            console.log(`   🎬 Vídeos: ${report.orphans_by_type.videos}`);
+            console.log(`   ⚠️ Suspeitos (últimas 24h): ${report.suspicious_count}`);
+            
+            if (report.orphan_count > 0) {
+                console.log('\n💡 PARA EXECUTAR LIMPEZA:');
+                console.log('   // Teste com 1 arquivo:');
+                console.log('   await window.MediaMigrationChecker.safeOrphanCleanup(1)');
+                console.log('   // Limpeza completa:');
+                console.log('   await window.MediaMigrationChecker.safeOrphanCleanup()');
+            }
+        }
+        
+        console.groupEnd();
+        return report;
+    },
+    
     /**
      * ✅ GERAR RELATÓRIO COMPLETO DE MIGRAÇÃO (INCLUINDO STORAGE)
      */
-    generateMigrationReport() {
+    async generateMigrationReport() {
         console.group('📋 [SUPORTE] RELATÓRIO DE MIGRAÇÃO COMPLETO');
         
         const compatibility = this.runPostMigrationChecks();
         const functional = this.runFunctionalTest();
         const storageCleanup = this.verifyStorageCleanup();
+        const orphanReport = await this.diagnoseOrphanFiles();
         
         const report = {
             timestamp: new Date().toISOString(),
-            migrationVersion: 'media-unified-v2.1',
+            migrationVersion: this.version,
             migrationStatus: this.migrationStatus,
             
-            // Resultados
             compatibility: {
                 score: compatibility.score,
                 status: compatibility.systemStatus,
@@ -470,11 +717,14 @@ window.MediaMigrationChecker = {
                 deletePropertyUpdated: storageCleanup.deletePropertyUpdated
             },
             
-            // ✅ RECOMENDAÇÕES BASEADAS NO STATUS
-            recommendations: this.generateRecommendations(compatibility, functional, storageCleanup),
+            orphanFiles: orphanReport.success ? {
+                total: orphanReport.orphan_count,
+                totalSizeMB: orphanReport.total_size_mb,
+                byType: orphanReport.orphans_by_type,
+                suspicious: orphanReport.suspicious_count
+            } : { error: 'Failed to diagnose' },
             
-            // ✅ STATUS GERAL
-            overallStatus: this.calculateOverallStatus(compatibility, functional, storageCleanup)
+            overallStatus: this.calculateOverallStatus(compatibility, functional, storageCleanup, orphanReport)
         };
         
         console.table({
@@ -483,12 +733,8 @@ window.MediaMigrationChecker = {
             'Funções Legacy': compatibility.legacyFunctions,
             'Teste Funcional': functional.resetState ? 'PASSOU' : 'FALHOU',
             'Storage Cleanup': storageCleanup.integrationStatus,
+            'Arquivos Órfãos': report.orphanFiles.total || 'N/A',
             'Status Geral': report.overallStatus
-        });
-        
-        console.log('📝 RECOMENDAÇÕES:');
-        report.recommendations.forEach((rec, index) => {
-            console.log(`  ${index + 1}. ${rec}`);
         });
         
         console.groupEnd();
@@ -496,114 +742,116 @@ window.MediaMigrationChecker = {
     },
     
     /**
-     * ✅ GERAR RECOMENDAÇÕES PERSONALIZADAS (ATUALIZADO COM STORAGE)
+     * ✅ CALCULAR STATUS GERAL
      */
-    generateRecommendations(compatibility, functional, storageCleanup) {
-        const recommendations = [];
-        
-        // ✅ RECOMENDAÇÕES DE MIGRAÇÃO GERAL
-        if (compatibility.score === 100 && compatibility.legacyFunctions === 0) {
-            recommendations.push('✅ Migração 100% concluída - Nenhuma ação necessária');
-            recommendations.push('✅ Sistema pronto para produção em escala');
-        }
-        else if (compatibility.score === 100 && compatibility.legacyFunctions > 0) {
-            recommendations.push('⚠️ Remover funções legacy quando seguro: handleNewMediaFiles, handleNewPdfFiles, etc.');
-            recommendations.push('✅ Sistema funcional, legacy é apenas para compatibilidade');
-        }
-        else if (compatibility.score >= 80) {
-            recommendations.push('🔧 Corrigir os itens falhados na verificação de compatibilidade');
-            recommendations.push('✅ Sistema está majoritariamente funcional');
-        }
-        else {
-            recommendations.push('🚨 Revisar implementação do MediaSystem unificado');
-            recommendations.push('🔧 Verificar se media-unified.js está carregando corretamente');
-        }
-        
-        // ✅ RECOMENDAÇÕES DE STORAGE CLEANUP
-        if (!storageCleanup.deleteFilesFromStorageAvailable) {
-            recommendations.push('🚨 CRÍTICO: Implementar MediaSystem.deleteFilesFromStorage');
-            recommendations.push('🔧 Esta função é essencial para eliminar arquivos órfãos');
-        }
-        
-        if (!storageCleanup.deletePropertyUpdated) {
-            recommendations.push('⚠️ IMPORTANTE: Atualizar deleteProperty para chamar deleteFilesFromStorage');
-            recommendations.push('🔧 Adicionar chamada: await MediaSystem.deleteFilesFromStorage(allFileUrls)');
-        }
-        
-        if (storageCleanup.deleteFilesFromStorageAvailable && storageCleanup.deletePropertyUpdated) {
-            recommendations.push('✅ Sistema de exclusão física 100% integrado');
-            recommendations.push('📋 Recomendado: Executar limpeza dos 1.045 arquivos órfãos existentes');
-        }
-        
-        // ✅ TESTE FUNCIONAL
-        if (!functional.resetState || !functional.addFiles) {
-            recommendations.push('🔧 Teste funcional falhou - Verificar implementação do MediaSystem');
-        }
-        
-        return recommendations;
-    },
-    
-    /**
-     * ✅ CALCULAR STATUS GERAL (ATUALIZADO COM STORAGE)
-     */
-    calculateOverallStatus(compatibility, functional, storageCleanup) {
-        const isFullyMigrated = compatibility.score === 100 && 
-                               compatibility.legacyFunctions === 0;
-        
+    calculateOverallStatus(compatibility, functional, storageCleanup, orphanReport) {
+        const isFullyMigrated = compatibility.score === 100 && compatibility.legacyFunctions === 0;
         const isFunctional = functional.resetState && functional.addFiles;
+        const hasStorageCleanup = storageCleanup.deleteFilesFromStorageAvailable && storageCleanup.deletePropertyUpdated;
+        const hasOrphans = orphanReport.success && orphanReport.orphan_count > 0;
         
-        const hasStorageCleanup = storageCleanup.deleteFilesFromStorageAvailable && 
-                                 storageCleanup.deletePropertyUpdated;
-        
-        if (isFullyMigrated && isFunctional && hasStorageCleanup) {
-            return 'EXCELLENT'; // ✅✅✅ - Tudo perfeito
+        if (isFullyMigrated && isFunctional && hasStorageCleanup && !hasOrphans) {
+            return 'EXCELLENT'; // Tudo perfeito
+        }
+        else if (isFullyMigrated && isFunctional && hasStorageCleanup && hasOrphans) {
+            return 'GOOD_NEEDS_CLEANUP'; // Sistema ok, mas precisa limpar órfãos
         }
         else if (isFullyMigrated && isFunctional && !hasStorageCleanup) {
-            return 'GOOD_BUT_MISSING_STORAGE'; // ✅✅ - Falta storage cleanup
-        }
-        else if (isFullyMigrated && !isFunctional) {
-            return 'PARTIALLY_FUNCTIONAL'; // ✅ - Funcionalidade parcial
+            return 'GOOD_BUT_MISSING_STORAGE'; // Falta storage cleanup
         }
         else if (compatibility.score >= 80) {
-            return 'FAIR'; // ✅ - Migração parcial
+            return 'FAIR';
         }
         else {
-            return 'NEEDS_ATTENTION'; // ⚠️ - Precisa de atenção
+            return 'NEEDS_ATTENTION';
         }
     }
 };
 
-// ✅ NOVAS FUNÇÕES DE ATALHO PARA CONSOLE
+// ==================== FUNÇÕES DE ATALHO ====================
 window.verifyStorageCleanup = () => window.MediaMigrationChecker.verifyStorageCleanup();
 window.testStorageDeletion = () => window.MediaMigrationChecker.testStorageDeletion();
 window.captureCurrentFileUrls = () => window.MediaMigrationChecker.captureCurrentFileUrls();
+window.diagnoseOrphanFiles = () => window.MediaMigrationChecker.diagnoseOrphanFiles();
+window.cleanupOrphanFiles = (limit) => window.MediaMigrationChecker.safeOrphanCleanup(limit);
+window.generateOrphanReport = () => window.MediaMigrationChecker.generateOrphanReport();
 
-// ✅ AUTO-EXECUÇÃO EM MODO DEBUG
-if (window.location.search.includes('debug=true') || 
-    window.location.search.includes('test-migration=true')) {
+// ==================== REGISTRO NO DIAGNOSTIC REGISTRY ====================
+if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.register === 'function') {
+    console.log('📋 [MediaMigration] Registrando funções no DiagnosticRegistry...');
     
-    setTimeout(() => {
-        console.log('🔧 [SUPORTE] Executando verificação automática de migração (pós-migração)...');
-        
-        // Aguardar mais tempo para garantir que MediaSystem carregou
-        setTimeout(() => {
-            window.MediaMigrationChecker.generateMigrationReport();
+    const methods = [
+        { name: 'runPostMigrationChecks', category: 'migration', isSafe: true, isDestructive: false, desc: 'Verifica estado pós-migração do MediaSystem' },
+        { name: 'runFunctionalTest', category: 'media', isSafe: true, isDestructive: false, desc: 'Testa funcionalidades básicas do MediaSystem' },
+        { name: 'verifyStorageCleanup', category: 'media', isSafe: true, isDestructive: false, desc: 'Verifica integração das funções de exclusão física' },
+        { name: 'testStorageDeletion', category: 'media', isSafe: true, isDestructive: false, desc: 'Teste simulado de exclusão de storage' },
+        { name: 'captureCurrentFileUrls', category: 'media', isSafe: true, isDestructive: false, desc: 'Captura URLs atuais dos arquivos' },
+        { name: 'generateMigrationReport', category: 'migration', isSafe: true, isDestructive: false, desc: 'Gera relatório completo de migração' },
+        { name: 'diagnoseOrphanFiles', category: 'migration', isSafe: true, isDestructive: false, desc: 'Diagnostica arquivos órfãos no storage (apenas leitura)' },
+        { name: 'safeOrphanCleanup', category: 'migration', isSafe: false, isDestructive: true, desc: 'Limpa arquivos órfãos com confirmação (DESTRUTIVO)' },
+        { name: 'generateOrphanReport', category: 'migration', isSafe: true, isDestructive: false, desc: 'Gera relatório detalhado de arquivos órfãos' }
+    ];
+    
+    methods.forEach(method => {
+        const fn = window.MediaMigrationChecker[method.name];
+        if (typeof fn === 'function') {
+            const wrappedFn = fn.bind(window.MediaMigrationChecker);
             
-            // Se em modo debug avançado, oferecer funções extras
-            if (window.location.search.includes('test-migration=true')) {
-                console.log('🧪 [SUPORTE] Modo teste ativado - Funções disponíveis:');
-                console.log('   - window.MediaMigrationChecker.runPostMigrationChecks()');
-                console.log('   - window.MediaMigrationChecker.runFunctionalTest()');
-                console.log('   - window.MediaMigrationChecker.verifyStorageCleanup() ⭐ NOVO');
-                console.log('   - window.MediaMigrationChecker.testStorageDeletion() ⭐ NOVO');
-                console.log('   - window.MediaMigrationChecker.captureCurrentFileUrls() ⭐ NOVO');
-                console.log('   - window.debugMediaSystem() (se disponível)');
-            }
-        }, 4000); // 4 segundos para carregamento completo
-        
-    }, 2000);
+            window.DiagnosticRegistry.register(
+                `MediaMigrationChecker.${method.name}`,
+                wrappedFn,
+                method.category,
+                {
+                    description: method.desc,
+                    version: window.MediaMigrationChecker.version,
+                    safety: { isSafe: method.isSafe, isDestructive: method.isDestructive }
+                }
+            );
+        }
+    });
+    
+    console.log('✅ [MediaMigration] Funções registradas no DiagnosticRegistry');
 }
 
-console.log('✅ [SUPORTE] MediaMigrationChecker ATUALIZADO v2.1 - Verificação pós-migração + Storage Cleanup');
-console.log('💡 Use window.MediaMigrationChecker.generateMigrationReport() para relatório completo');
-console.log('💡 NOVAS FUNÇÕES: verifyStorageCleanup(), testStorageDeletion(), captureCurrentFileUrls()');
+// ==================== AUTO-EXECUÇÃO EM MODO DEBUG ====================
+if (window.location.search.includes('debug=true') || 
+    window.location.search.includes('test-migration=true') ||
+    window.location.hostname.includes('localhost')) {
+    
+    setTimeout(() => {
+        console.log('🔧 [SUPORTE] Executando verificação automática de migração...');
+        
+        setTimeout(async () => {
+            const report = await window.MediaMigrationChecker.generateMigrationReport();
+            
+            if (window.location.search.includes('test-migration=true')) {
+                console.log('🧪 [SUPORTE] Modo teste ativado - Funções disponíveis:');
+                console.log('   📋 DIAGNÓSTICO:');
+                console.log('   - window.MediaMigrationChecker.runPostMigrationChecks()');
+                console.log('   - window.MediaMigrationChecker.runFunctionalTest()');
+                console.log('   - window.MediaMigrationChecker.verifyStorageCleanup()');
+                console.log('   - window.MediaMigrationChecker.diagnoseOrphanFiles() ⭐ NOVO');
+                console.log('   🧹 LIMPEZA:');
+                console.log('   - window.MediaMigrationChecker.safeOrphanCleanup(1)  // Teste com 1 arquivo');
+                console.log('   - window.MediaMigrationChecker.safeOrphanCleanup()    // Limpeza completa');
+                console.log('   📊 RELATÓRIOS:');
+                console.log('   - window.MediaMigrationChecker.generateMigrationReport()');
+                console.log('   - window.MediaMigrationChecker.generateOrphanReport() ⭐ NOVO');
+                console.log('   🔧 ATALHOS:');
+                console.log('   - window.diagnoseOrphanFiles()');
+                console.log('   - window.cleanupOrphanFiles(1)  // Teste seguro');
+                
+                if (report.orphanFiles && report.orphanFiles.total > 0) {
+                    console.log(`\n⚠️ ATENÇÃO: ${report.orphanFiles.total} arquivos órfãos detectados!`);
+                    console.log(`💾 Espaço ocupado: ${report.orphanFiles.totalSizeMB} MB`);
+                    console.log('💡 Execute: window.cleanupOrphanFiles(1) para testar limpeza');
+                }
+            }
+        }, 1000);
+        
+    }, 500);
+}
+
+console.log('✅ [SUPORTE] MediaMigrationChecker v2.2.0 carregado');
+console.log('💡 NOVAS FUNÇÕES: diagnoseOrphanFiles(), safeOrphanCleanup(), generateOrphanReport()');
+console.log('💡 Atalhos: window.diagnoseOrphanFiles(), window.cleanupOrphanFiles(1)');
