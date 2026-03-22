@@ -11,7 +11,7 @@ console.log('🎯 MÓDULO DE GESTÃO DE ÓRFÃOS v6.3.0 (DIAGNOSTICS63) CARREGAD
 (function initializeOrphanManagementModule() {
     console.group('🚀 INICIALIZANDO GESTÃO DE ÓRFÃOS v6.3.0');
 
-    // Registrar no painel (fallback seguro) - MESMO PADRÃO DO DIAGNOSTICS57
+    // Registrar no painel (fallback seguro)
     if (typeof window.logToPanel === 'function') {
         window.logToPanel('✅ Módulo de gestão de órfãos v6.3.0 carregado', 'success');
     } else {
@@ -28,7 +28,7 @@ console.log('🎯 MÓDULO DE GESTÃO DE ÓRFÃOS v6.3.0 (DIAGNOSTICS63) CARREGAD
     console.log('✅ Gestão de órfãos v6.3.0 inicializada');
     console.groupEnd();
 
-    // Registrar versão - MESMO PADRÃO DO DIAGNOSTICS57
+    // Registrar versão
     window.DIAGNOSTICS_VERSION = window.DIAGNOSTICS_VERSION || {};
     window.DIAGNOSTICS_VERSION.orphanManagement = '6.3.0';
 })();
@@ -117,7 +117,6 @@ window.testOrphanCleanup = async function() {
         
         if (result.success && result.deleted === 1) {
             window.logToPanel('✅ Teste concluído! 1 arquivo excluído com sucesso', 'success');
-            // Atualizar diagnóstico
             setTimeout(() => window.diagnoseOrphanFiles(), 500);
         } else {
             throw new Error(result.reason || 'Falha no teste');
@@ -142,7 +141,6 @@ window.fullOrphanCleanup = async function() {
     }
 
     try {
-        // Obter diagnóstico atual
         const report = await window.diagnoseOrphanFiles();
         
         if (!report.success) {
@@ -179,7 +177,6 @@ window.fullOrphanCleanup = async function() {
             if (result.failed) {
                 window.logToPanel(`⚠️ ${result.failed} falhas durante a limpeza`, 'warning');
             }
-            // Atualizar diagnóstico
             setTimeout(() => window.diagnoseOrphanFiles(), 500);
         } else {
             throw new Error(result.reason || 'Falha na limpeza');
@@ -199,7 +196,6 @@ window.fullOrphanCleanup = async function() {
 function showOrphanManagementPanel(report) {
     const panelId = 'orphan-management-panel-v6-3-0';
 
-    // Remover painel anterior se existir
     const existingPanel = document.getElementById(panelId);
     if (existingPanel) existingPanel.remove();
 
@@ -212,7 +208,6 @@ function showOrphanManagementPanel(report) {
     const totalStorage = report?.total_in_storage || 0;
     const usedFiles = report?.used_files || 0;
 
-    // Criar novo painel - MESMO ESTILO DO DIAGNOSTICS57
     const panelDiv = document.createElement('div');
     panelDiv.id = panelId;
     panelDiv.style.cssText = `
@@ -235,7 +230,6 @@ function showOrphanManagementPanel(report) {
         backdrop-filter: blur(10px);
     `;
 
-    // Conteúdo do painel
     panelDiv.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
             <div style="font-size: 24px; color: #00aaff; display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -348,43 +342,21 @@ function showOrphanManagementPanel(report) {
 
     document.body.appendChild(panelDiv);
 
-    // Eventos dos botões
     const btnRefresh = document.getElementById('refresh-diagnostic');
     const btnTest = document.getElementById('test-cleanup-btn');
     const btnFull = document.getElementById('full-cleanup-btn');
     const btnClose = document.getElementById('close-panel');
 
-    if (btnRefresh) {
-        btnRefresh.addEventListener('click', () => {
-            panelDiv.remove();
-            window.diagnoseOrphanFiles();
-        });
-    }
-
-    if (btnTest) {
-        btnTest.addEventListener('click', () => {
-            panelDiv.remove();
-            window.testOrphanCleanup();
-        });
-    }
-
-    if (btnFull) {
-        btnFull.addEventListener('click', () => {
-            panelDiv.remove();
-            window.fullOrphanCleanup();
-        });
-    }
-
-    if (btnClose) {
-        btnClose.addEventListener('click', () => panelDiv.remove());
-    }
+    if (btnRefresh) btnRefresh.addEventListener('click', () => { panelDiv.remove(); window.diagnoseOrphanFiles(); });
+    if (btnTest) btnTest.addEventListener('click', () => { panelDiv.remove(); window.testOrphanCleanup(); });
+    if (btnFull) btnFull.addEventListener('click', () => { panelDiv.remove(); window.fullOrphanCleanup(); });
+    if (btnClose) btnClose.addEventListener('click', () => panelDiv.remove());
 
     console.log('✅ Painel de gestão de órfãos v6.3.0 exibido na tela');
 }
 
-// ================== BOTÃO FLUTUANTE (MESMO PADRÃO DO DIAGNOSTICS57) ==================
+// ================== BOTÃO FLUTUANTE ==================
 function addFloatingOrphanButton() {
-    // Evitar duplicação
     if (document.getElementById('orphan-float-btn-v6-3-0')) return;
 
     console.log('🔧 Adicionando botão flutuante de gestão de órfãos...');
@@ -415,9 +387,7 @@ function addFloatingOrphanButton() {
 
     btn.onmouseenter = () => { btn.style.transform = 'scale(1.05)'; btn.style.boxShadow = '0 6px 20px rgba(230,126,34,0.7)'; };
     btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; btn.style.boxShadow = '0 4px 15px rgba(230,126,34,0.5)'; };
-    btn.onclick = () => {
-        if (window.diagnoseOrphanFiles) window.diagnoseOrphanFiles();
-    };
+    btn.onclick = () => { if (window.diagnoseOrphanFiles) window.diagnoseOrphanFiles(); };
 
     document.body.appendChild(btn);
     console.log('✅ Botão flutuante de gestão de órfãos adicionado.');
@@ -434,7 +404,6 @@ console.log('%c• testOrphanCleanup() - Teste seguro (exclui 1 arquivo)', 'colo
 console.log('%c• fullOrphanCleanup() - Limpeza completa (exige confirmação)', 'color: #ffaa88;');
 console.log('%c• addOrphanButton() - Adiciona botão flutuante', 'color: #ffaa88;');
 
-// Aliases
 window.diagnoseOrphans = window.diagnoseOrphanFiles;
 window.testCleanup = window.testOrphanCleanup;
 window.fullCleanup = window.fullOrphanCleanup;
@@ -444,11 +413,8 @@ window.addOrphanButton = addFloatingOrphanButton;
 function autoInitializeOrphanModule() {
     console.log('📄 Inicializando gestão de órfãos v6.3.0...');
 
-    // Adicionar botão flutuante (sempre em modo debug)
     if (window.location.search.includes('debug=true') || window.location.search.includes('diagnostics=true')) {
         setTimeout(addFloatingOrphanButton, 1500);
-
-        // Executar diagnóstico automático após 3s
         setTimeout(() => {
             console.log('🔄 Executando diagnóstico automático de órfãos...');
             if (window.diagnoseOrphanFiles) {
@@ -464,6 +430,5 @@ if (document.readyState === 'loading') {
     autoInitializeOrphanModule();
 }
 
-// Log de confirmação visual no console - MESMO PADRÃO DO DIAGNOSTICS57
 console.log('%c✅ DIAGNOSTICS63 v6.3.0 PRONTO - GESTÃO DE ARQUIVOS ÓRFÃOS', 
             'color: #ffaa88; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px; border-left: 5px solid #e67e22;');
