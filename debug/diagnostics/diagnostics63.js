@@ -269,7 +269,7 @@ window.addOrphanButton = () => {
     btn.id = 'orphan-float-btn';
     btn.innerHTML = '🧹 ÓRFÃOS';
     btn.style.cssText = 'position:fixed; bottom:100px; right:20px; background:#e67e22; color:white; border:none; padding:12px 20px; border-radius:40px; font-weight:bold; cursor:pointer; z-index:1000020;';
-    btn.onclick = () => window.diagnoseOrphanFiles();
+    btn.onclick = () => window.OrphanManager.listBuckets();
     document.body.appendChild(btn);
 };
 
