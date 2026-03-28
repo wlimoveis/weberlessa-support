@@ -63,45 +63,80 @@ window.OrphanManager = {
         }
     },
     
-    // 🆕 NOVA FUNÇÃO: Testar conexão direta com o bucket properties
-    async testBucketConnection() {
-        console.group('🧪 TESTE DIRETO DE CONEXÃO COM BUCKET');
+// 🆕 FUNÇÃO CORRIGIDA: Testar conexão direta com o bucket properties
+async testBucketConnection() {
+    console.group('🧪 TESTE DIRETO DE CONEXÃO COM BUCKET');
+    
+    const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+    const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+    
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+        console.error('❌ Credenciais não encontradas');
+        console.groupEnd();
+        this.showTestResultPanel({ error: 'missing_credentials' });
+        return { error: 'missing_credentials' };
+    }
+    
+    const BUCKET_NAME = 'properties';
+    
+    // 🔧 CORREÇÃO 1: Usar o endpoint correto da API v2 do Supabase Storage
+    const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
+    
+    console.log(`🔗 Testando URL: ${url}`);
+    
+    try {
+        // 🔧 CORREÇÃO 2: Adicionar o cabeçalho Content-Type
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
         
-        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
-        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+        console.log(`📡 Status: ${response.status}`);
         
-        if (!SUPABASE_URL || !SUPABASE_KEY) {
-            console.error('❌ Credenciais não encontradas');
+        if (response.ok) {
+            const files = await response.json();
+            console.log(`✅ ${files.length} arquivos encontrados!`);
+            console.table(files.slice(0, 10).map(f => ({ 
+                name: f.name, 
+                size: f.metadata?.size || 0,
+                lastModified: f.metadata?.lastModified || 'N/A'
+            })));
+            
+            let totalSize = 0;
+            files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+            const totalMB = (totalSize / 1048576).toFixed(2);
+            
+            this.showTestResultPanel({ 
+                success: true, 
+                files: files.slice(0, 20),
+                totalFiles: files.length,
+                totalSizeMB: totalMB
+            });
             console.groupEnd();
-            this.showTestResultPanel({ error: 'missing_credentials' });
-            return { error: 'missing_credentials' };
-        }
-        
-        const BUCKET_NAME = 'properties';
-        const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
-        
-        console.log(`🔗 Testando URL: ${url}`);
-        
-        try {
-            const response = await fetch(url, {
+            return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Erro ${response.status}:`, errorText);
+            
+            // 🔧 CORREÇÃO 3: Tentar formato alternativo da API
+            console.log('🔄 Tentando formato alternativo...');
+            const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
+            const altResponse = await fetch(altUrl, {
+                method: 'GET',
                 headers: {
                     'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
                 }
             });
             
-            console.log(`📡 Status: ${response.status}`);
-            
-            if (response.ok) {
-                const files = await response.json();
-                console.log(`✅ ${files.length} arquivos encontrados!`);
-                console.table(files.slice(0, 10).map(f => ({ 
-                    name: f.name, 
-                    size: f.metadata?.size || 0,
-                    lastModified: f.metadata?.lastModified || 'N/A'
-                })));
-                
-                // Calcular espaço total
+            if (altResponse.ok) {
+                const files = await altResponse.json();
+                console.log(`✅ ${files.length} arquivos encontrados (formato alternativo)!`);
                 let totalSize = 0;
                 files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
                 const totalMB = (totalSize / 1048576).toFixed(2);
@@ -110,28 +145,28 @@ window.OrphanManager = {
                     success: true, 
                     files: files.slice(0, 20),
                     totalFiles: files.length,
-                    totalSizeMB: totalMB
+                    totalSizeMB: totalMB,
+                    altFormat: true
                 });
                 console.groupEnd();
                 return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Erro ${response.status}:`, errorText);
-                this.showTestResultPanel({ 
-                    error: 'list_failed', 
-                    status: response.status, 
-                    details: errorText 
-                });
-                console.groupEnd();
-                return { error: 'list_failed', status: response.status, details: errorText };
             }
-        } catch (error) {
-            console.error('❌ Erro na conexão:', error);
-            this.showTestResultPanel({ error: 'connection_failed', details: error.message });
+            
+            this.showTestResultPanel({ 
+                error: 'list_failed', 
+                status: response.status, 
+                details: errorText 
+            });
             console.groupEnd();
-            return { error: 'connection_failed', details: error.message };
+            return { error: 'list_failed', status: response.status, details: errorText };
         }
-    },
+    } catch (error) {
+        console.error('❌ Erro na conexão:', error);
+        this.showTestResultPanel({ error: 'connection_failed', details: error.message });
+        console.groupEnd();
+        return { error: 'connection_failed', details: error.message };
+    }
+},
     
     // 🆕 Painel para exibir resultado do teste de conexão
     showTestResultPanel(data) {
