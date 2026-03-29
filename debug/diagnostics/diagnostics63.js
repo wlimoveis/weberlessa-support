@@ -215,7 +215,7 @@ window.OrphanManager = {
         }
     },
     
-    // 🆕 FUNÇÃO DE LIMPEZA DE ARQUIVOS ÓRFÃOS
+    // 🆕 FUNÇÃO DE LIMPEZA DE ARQUIVOS ÓRFÃOS (CORRIGIDA - Aceita SIM ou CONFIRMAR)
     async cleanup() {
         if (this.isCleaning) {
             console.warn('⚠️ Limpeza já em andamento. Aguarde...');
@@ -247,16 +247,22 @@ window.OrphanManager = {
             return;
         }
         
-        // Confirmar com o usuário
+        // 🔧 CORREÇÃO: Aceitar "SIM" ou "CONFIRMAR"
         const confirmMessage = `⚠️ LIMPEZA DE ARQUIVOS ÓRFÃOS - AÇÃO IRREVERSÍVEL ⚠️\n\n` +
             `📁 Total de órfãos: ${report.orphan_count} arquivos\n` +
             `💾 Espaço ocupado: ${report.total_size_mb} MB\n\n` +
-            `Deseja realmente excluir PERMANENTEMENTE estes arquivos?\n\n` +
-            `Digite "CONFIRMAR" para prosseguir:`;
+            `Digite "SIM" ou "CONFIRMAR" para prosseguir com a exclusão PERMANENTE:`;
         
         const confirmation = prompt(confirmMessage);
         
-        if (confirmation !== 'CONFIRMAR') {
+        // 🔧 CORREÇÃO: Verificar se digitou SIM ou CONFIRMAR (case insensitive)
+        const isConfirmed = confirmation && 
+            (confirmation.toUpperCase() === 'SIM' || 
+             confirmation.toUpperCase() === 'CONFIRMAR' ||
+             confirmation.toUpperCase() === 'S' ||
+             confirmation.toUpperCase() === 'YES');
+        
+        if (!isConfirmed) {
             console.log('❌ Limpeza cancelada pelo usuário');
             this.showUnifiedPanel({ 
                 cleanupResult: { cancelled: true, message: 'Limpeza cancelada pelo usuário.' },
@@ -336,6 +342,12 @@ window.OrphanManager = {
         console.log(`   ⚠️ Falhas: ${failed}`);
         
         this.isCleaning = false;
+        
+        // Fechar painel de progresso
+        if (this.cleanupProgressPanel) {
+            this.cleanupProgressPanel.remove();
+            this.cleanupProgressPanel = null;
+        }
         
         // Mostrar resultado final
         this.showUnifiedPanel({ 
