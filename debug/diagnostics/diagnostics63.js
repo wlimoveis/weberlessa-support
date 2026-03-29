@@ -5,19 +5,17 @@ console.log('🎯 DIAGNOSTICS63 v6.3.6 CARREGADO');
 window.OrphanManager = {
     version: '6.3.6',
     
-// Função para listar buckets disponíveis (VERSÃO CORRIGIDA)
+// Função para listar buckets disponíveis (USANDO SERVICE_ROLE KEY)
 async listBuckets() {
     console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
     
-    // Usar credenciais fixas do projeto wxdiowpswepsvklumgvx
     const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTExNzksImV4cCI6MjA4Nzk4NzE3OX0.QsUHE_w5m5-pz3LcwdREuwmwvCiX3Hz8FYv8SAwhD6U';
+    // 🔧 USAR SERVICE_ROLE KEY (copiada do dashboard)
+    const SUPABASE_KEY = 'SUA_SERVICE_ROLE_KEY_AQUI';  // ← COLE A KEY AQUI
     
     console.log(`🔗 URL: ${SUPABASE_URL}`);
-    console.log(`🔑 KEY: ${SUPABASE_KEY.substring(0, 20)}...`);
     
     try {
-        // 🔧 CORREÇÃO: Usar o endpoint correto para listar buckets
         const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
             method: 'GET',
             headers: {
@@ -32,11 +30,7 @@ async listBuckets() {
         if (response.ok) {
             const buckets = await response.json();
             console.log(`📦 ${buckets.length} bucket(s) encontrado(s):`);
-            console.table(buckets.map(b => ({ 
-                name: b.name, 
-                id: b.id, 
-                public: b.public 
-            })));
+            console.table(buckets.map(b => ({ name: b.name, id: b.id, public: b.public })));
             
             if (buckets.length === 0) {
                 console.warn('⚠️ Nenhum bucket encontrado.');
