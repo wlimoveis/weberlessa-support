@@ -5,63 +5,61 @@ console.log('🎯 DIAGNOSTICS63 v6.3.6 CARREGADO');
 window.OrphanManager = {
     version: '6.3.6',
     
-    // Função para listar buckets disponíveis
-    async listBuckets() {
-        console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
-        
-        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
-        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
-        
-        if (!SUPABASE_URL || !SUPABASE_KEY) {
-            console.error('❌ Credenciais não encontradas');
-            console.groupEnd();
-            this.showBucketsPanel({ error: 'missing_credentials' });
-            return { error: 'missing_credentials' };
-        }
-        
-        try {
-            const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
-                }
-            });
-            
-            if (response.ok) {
-                const buckets = await response.json();
-                console.log('📦 Buckets encontrados:');
-                console.table(buckets.map(b => ({ 
-                    id: b.id, 
-                    name: b.name, 
-                    public: b.public 
-                })));
-                
-                if (buckets.length === 0) {
-                    console.warn('⚠️ Nenhum bucket encontrado. Crie um bucket no Supabase Storage.');
-                } else {
-                    console.log('💡 Use um dos nomes acima no lugar de "properties"');
-                    console.log('💡 Exemplo: const bucket = "', buckets[0].name, '"');
-                }
-                
-                // Exibir painel com os buckets encontrados
-                this.showBucketsPanel({ success: true, buckets });
-                console.groupEnd();
-                return { success: true, buckets };
-            } else {
-                console.error(`❌ Erro: ${response.status}`);
-                const text = await response.text();
-                console.log('Detalhes:', text);
-                this.showBucketsPanel({ error: 'list_failed', status: response.status, details: text });
-                console.groupEnd();
-                return { error: 'list_failed', status: response.status, details: text };
+// Função para listar buckets disponíveis (VERSÃO CORRIGIDA)
+async listBuckets() {
+    console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
+    
+    // Usar credenciais fixas do projeto wxdiowpswepsvklumgvx
+    const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTExNzksImV4cCI6MjA4Nzk4NzE3OX0.QsUHE_w5m5-pz3LcwdREuwmwvCiX3Hz8FYv8SAwhD6U';
+    
+    console.log(`🔗 URL: ${SUPABASE_URL}`);
+    console.log(`🔑 KEY: ${SUPABASE_KEY.substring(0, 20)}...`);
+    
+    try {
+        // 🔧 CORREÇÃO: Usar o endpoint correto para listar buckets
+        const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
             }
-        } catch (error) {
-            console.error('❌ Erro na conexão:', error);
-            this.showBucketsPanel({ error: 'connection_failed', details: error.message });
+        });
+        
+        console.log(`📡 Status: ${response.status}`);
+        
+        if (response.ok) {
+            const buckets = await response.json();
+            console.log(`📦 ${buckets.length} bucket(s) encontrado(s):`);
+            console.table(buckets.map(b => ({ 
+                name: b.name, 
+                id: b.id, 
+                public: b.public 
+            })));
+            
+            if (buckets.length === 0) {
+                console.warn('⚠️ Nenhum bucket encontrado.');
+                this.showBucketsPanel({ success: true, buckets: [] });
+            } else {
+                this.showBucketsPanel({ success: true, buckets });
+            }
             console.groupEnd();
-            return { error: 'connection_failed', details: error.message };
+            return { success: true, buckets };
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Erro ${response.status}:`, errorText);
+            this.showBucketsPanel({ error: 'list_failed', status: response.status, details: errorText });
+            console.groupEnd();
+            return { error: 'list_failed', status: response.status, details: errorText };
         }
-    },
+    } catch (error) {
+        console.error('❌ Erro na conexão:', error);
+        this.showBucketsPanel({ error: 'connection_failed', details: error.message });
+        console.groupEnd();
+        return { error: 'connection_failed', details: error.message };
+    }
+},
     
 // 🆕 FUNÇÃO CORRIGIDA: Testar conexão direta com o bucket properties
 async testBucketConnection() {
