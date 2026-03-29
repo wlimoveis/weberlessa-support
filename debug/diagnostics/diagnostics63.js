@@ -1,144 +1,120 @@
 // weberlessa-support/debug/diagnostics/diagnostics63.js
-// Versão 6.3.9 - Correção do endpoint do Storage
-console.log('🎯 DIAGNOSTICS63 v6.3.9 CARREGADO');
+// Versão 6.4.0 - Usando cliente Supabase em vez de fetch direto
+console.log('🎯 DIAGNOSTICS63 v6.4.0 CARREGADO');
 
 window.OrphanManager = {
-    version: '6.3.9',
+    version: '6.4.0',
     
     lastReport: null,
+    
+    // Obter cliente Supabase
+    getSupabaseClient() {
+        if (window.supabaseClient) return window.supabaseClient;
+        if (window.supabase) return window.supabase;
+        
+        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTExNzksImV4cCI6MjA4Nzk4NzE3OX0.QsUHE_w5m5-pz3LcwdREuwmwvCiX3Hz8FYv8SAwhD6U';
+        
+        if (typeof supabase !== 'undefined' && supabase.createClient) {
+            return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        return null;
+    },
     
     // Função para listar buckets disponíveis
     async listBuckets() {
         console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
         
-        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
+        const supabase = this.getSupabaseClient();
+        
+        if (!supabase) {
+            console.error('❌ Cliente Supabase não disponível');
+            this.showUnifiedPanel({ error: 'supabase_not_available', activeTab: 'buckets' });
+            console.groupEnd();
+            return { error: 'supabase_not_available' };
+        }
         
         try {
-            const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Usar a API do Storage do Supabase
+            const { data: buckets, error } = await supabase.storage.listBuckets();
             
-            if (response.ok) {
-                const buckets = await response.json();
-                console.log(`📦 ${buckets.length} bucket(s) encontrado(s)`);
-                this.showUnifiedPanel({ buckets, activeTab: 'buckets' });
+            if (error) {
+                console.error('❌ Erro:', error);
+                this.showUnifiedPanel({ error: error.message, details: JSON.stringify(error), activeTab: 'buckets' });
                 console.groupEnd();
-                return { success: true, buckets };
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Erro ${response.status}:`, errorText);
-                this.showUnifiedPanel({ error: 'list_failed', details: errorText });
-                console.groupEnd();
-                return { error: 'list_failed', details: errorText };
+                return { error: error.message };
             }
-        } catch (error) {
-            console.error('❌ Erro na conexão:', error);
-            this.showUnifiedPanel({ error: 'connection_failed', details: error.message });
+            
+            console.log(`📦 ${buckets.length} bucket(s) encontrado(s):`);
+            console.table(buckets.map(b => ({ name: b.name, id: b.id, public: b.public })));
+            
+            this.showUnifiedPanel({ buckets, activeTab: 'buckets' });
             console.groupEnd();
-            return { error: 'connection_failed', details: error.message };
+            return { success: true, buckets };
+            
+        } catch (error) {
+            console.error('❌ Erro:', error);
+            this.showUnifiedPanel({ error: error.message, activeTab: 'buckets' });
+            console.groupEnd();
+            return { error: error.message };
         }
     },
     
-    // Função para testar conexão com o bucket (VERSÃO CORRIGIDA)
+    // Função para testar conexão com o bucket (usando cliente Supabase)
     async testBucketConnection() {
         console.group('🧪 TESTE DE CONEXÃO COM BUCKET');
         
-        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
+        const supabase = this.getSupabaseClient();
         const BUCKET_NAME = 'properties';
         
-        // 🔧 CORREÇÃO: Usar o endpoint correto com prefixo
-        const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
-        
-        console.log(`🔗 URL: ${url}`);
+        if (!supabase) {
+            console.error('❌ Cliente Supabase não disponível');
+            this.showUnifiedPanel({ error: 'supabase_not_available', activeTab: 'test' });
+            console.groupEnd();
+            return { error: 'supabase_not_available' };
+        }
         
         try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Usar a API do Storage do Supabase para listar arquivos
+            const { data: files, error } = await supabase.storage
+                .from(BUCKET_NAME)
+                .list('', { limit: 1000 });
             
-            console.log(`📡 Status: ${response.status}`);
-            
-            if (response.ok) {
-                const files = await response.json();
-                let totalSize = 0;
-                files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
-                const totalMB = (totalSize / 1048576).toFixed(2);
-                
-                console.log(`✅ ${files.length} arquivos, ${totalMB} MB`);
-                
-                this.showUnifiedPanel({ 
-                    testResult: { 
-                        success: true, 
-                        totalFiles: files.length, 
-                        totalSizeMB: totalMB,
-                        files: files.slice(0, 20)
-                    },
-                    activeTab: 'test'
-                });
+            if (error) {
+                console.error('❌ Erro:', error);
+                this.showUnifiedPanel({ error: error.message, details: JSON.stringify(error), activeTab: 'test' });
                 console.groupEnd();
-                return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Erro ${response.status}:`, errorText);
-                
-                // 🔧 TENTATIVA COM ENDPOINT ALTERNATIVO
-                console.log('🔄 Tentando endpoint alternativo...');
-                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
-                const altResponse = await fetch(altUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (altResponse.ok) {
-                    const files = await altResponse.json();
-                    let totalSize = 0;
-                    files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
-                    const totalMB = (totalSize / 1048576).toFixed(2);
-                    
-                    console.log(`✅ ${files.length} arquivos (formato alternativo)!`);
-                    this.showUnifiedPanel({ 
-                        testResult: { 
-                            success: true, 
-                            totalFiles: files.length, 
-                            totalSizeMB: totalMB,
-                            files: files.slice(0, 20),
-                            altFormat: true
-                        },
-                        activeTab: 'test'
-                    });
-                    console.groupEnd();
-                    return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
-                }
-                
-                this.showUnifiedPanel({ error: 'test_failed', details: errorText, activeTab: 'test' });
-                console.groupEnd();
-                return { error: 'test_failed', details: errorText };
+                return { error: error.message };
             }
+            
+            let totalSize = 0;
+            files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+            const totalMB = (totalSize / 1048576).toFixed(2);
+            
+            console.log(`✅ ${files.length} arquivos, ${totalMB} MB`);
+            console.table(files.slice(0, 10).map(f => ({ name: f.name, size: f.metadata?.size || 0 })));
+            
+            this.showUnifiedPanel({ 
+                testResult: { 
+                    success: true, 
+                    totalFiles: files.length, 
+                    totalSizeMB: totalMB,
+                    files: files.slice(0, 20)
+                },
+                activeTab: 'test'
+            });
+            console.groupEnd();
+            return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
+            
         } catch (error) {
             console.error('❌ Erro na conexão:', error);
-            this.showUnifiedPanel({ error: 'connection_failed', details: error.message, activeTab: 'test' });
+            this.showUnifiedPanel({ error: error.message, activeTab: 'test' });
             console.groupEnd();
-            return { error: 'connection_failed', details: error.message };
+            return { error: error.message };
         }
     },
     
-    // Função para diagnosticar arquivos órfãos (VERSÃO CORRIGIDA)
+    // Função para diagnosticar arquivos órfãos (usando cliente Supabase)
     async diagnose() {
         console.group('🔍 DIAGNÓSTICO DE ÓRFÃOS');
         
@@ -151,93 +127,96 @@ window.OrphanManager = {
         
         // Coletar URLs em uso
         const usedUrls = new Set();
+        const usedFileNames = new Set();
+        
         window.properties.forEach(p => {
             if (p.images && p.images !== 'EMPTY') {
-                p.images.split(',').forEach(url => url && usedUrls.add(url.trim()));
+                p.images.split(',').forEach(url => {
+                    if (url && url.trim()) {
+                        const cleanUrl = url.trim();
+                        usedUrls.add(cleanUrl);
+                        const fileName = cleanUrl.split('/').pop()?.split('?')[0];
+                        if (fileName) usedFileNames.add(fileName);
+                    }
+                });
             }
             if (p.pdfs && p.pdfs !== 'EMPTY') {
-                p.pdfs.split(',').forEach(url => url && usedUrls.add(url.trim()));
+                p.pdfs.split(',').forEach(url => {
+                    if (url && url.trim()) {
+                        const cleanUrl = url.trim();
+                        usedUrls.add(cleanUrl);
+                        const fileName = cleanUrl.split('/').pop()?.split('?')[0];
+                        if (fileName) usedFileNames.add(fileName);
+                    }
+                });
             }
         });
         
         console.log(`📊 ${window.properties.length} imóveis, ${usedUrls.size} URLs em uso`);
+        console.log(`📄 ${usedFileNames.size} nomes de arquivos em uso`);
         
-        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
+        const supabase = this.getSupabaseClient();
         const BUCKET_NAME = 'properties';
         
-        // 🔧 CORREÇÃO: Endpoint correto
-        const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
+        if (!supabase) {
+            console.error('❌ Cliente Supabase não disponível');
+            this.showUnifiedPanel({ error: 'supabase_not_available', activeTab: 'diagnose' });
+            console.groupEnd();
+            return { error: 'supabase_not_available' };
+        }
         
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
-                }
-            });
+            // Listar todos os arquivos no bucket
+            const { data: allFiles, error } = await supabase.storage
+                .from(BUCKET_NAME)
+                .list('', { limit: 10000 });
             
-            if (!response.ok) {
-                // Tentar endpoint alternativo
-                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
-                const altResponse = await fetch(altUrl, {
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`
-                    }
-                });
-                
-                if (!altResponse.ok) {
-                    throw new Error(`Ambos endpoints falharam: ${response.status} e ${altResponse.status}`);
-                }
-                
-                const allFiles = await altResponse.json();
-                return this.processFiles(allFiles, usedUrls);
+            if (error) {
+                console.error('❌ Erro:', error);
+                this.showUnifiedPanel({ error: error.message, activeTab: 'diagnose' });
+                console.groupEnd();
+                return { error: error.message };
             }
             
-            const allFiles = await response.json();
-            return this.processFiles(allFiles, usedUrls);
+            console.log(`📁 Total no Storage: ${allFiles.length}`);
+            
+            // Identificar órfãos
+            const orphans = allFiles.filter(file => {
+                if (file.name.endsWith('/')) return false;
+                const fileName = file.name;
+                return !usedFileNames.has(fileName);
+            });
+            
+            let totalSize = 0;
+            orphans.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+            
+            const report = {
+                total_in_storage: allFiles.length,
+                used_files: usedUrls.size,
+                orphan_count: orphans.length,
+                total_size_mb: (totalSize / 1048576).toFixed(2),
+                orphans: orphans.slice(0, 50).map(f => ({ name: f.name, size: f.metadata?.size || 0 }))
+            };
+            
+            this.lastReport = report;
+            console.log(`📊 RESULTADO: ${report.orphan_count} órfãos, ${report.total_size_mb} MB`);
+            
+            this.showUnifiedPanel({ 
+                diagnoseResult: report,
+                activeTab: 'diagnose'
+            });
+            console.groupEnd();
+            return report;
             
         } catch (error) {
             console.error('❌ Erro no diagnóstico:', error);
-            this.showUnifiedPanel({ error: 'diagnose_failed', details: error.message, activeTab: 'diagnose' });
+            this.showUnifiedPanel({ error: error.message, activeTab: 'diagnose' });
             console.groupEnd();
-            return { error: 'diagnose_failed', details: error.message };
+            return { error: error.message };
         }
     },
     
-    processFiles(allFiles, usedUrls) {
-        console.log(`📁 Total no Storage: ${allFiles.length}`);
-        
-        const orphans = allFiles.filter(file => {
-            if (file.name.endsWith('/')) return false;
-            const fileName = file.name.split('/').pop();
-            return !Array.from(usedUrls).some(url => url.includes(fileName));
-        });
-        
-        let totalSize = 0;
-        orphans.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
-        
-        const report = {
-            total_in_storage: allFiles.length,
-            used_files: usedUrls.size,
-            orphan_count: orphans.length,
-            total_size_mb: (totalSize / 1048576).toFixed(2),
-            orphans: orphans.slice(0, 50).map(f => ({ name: f.name, size: f.metadata?.size || 0 }))
-        };
-        
-        this.lastReport = report;
-        console.log(`📊 RESULTADO: ${report.orphan_count} órfãos, ${report.total_size_mb} MB`);
-        
-        this.showUnifiedPanel({ 
-            diagnoseResult: report,
-            activeTab: 'diagnose'
-        });
-        console.groupEnd();
-        return report;
-    },
-    
-    // Painel Unificado com todos os botões
+    // Painel Unificado
     showUnifiedPanel(data) {
         const existing = document.getElementById('orphan-unified-panel');
         if (existing) existing.remove();
@@ -266,7 +245,6 @@ window.OrphanManager = {
         let content = '';
         const activeTab = data.activeTab || 'welcome';
         
-        // Cabeçalho com botões de navegação
         const navButtons = `
             <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; border-bottom: 1px solid #00aaff33; padding-bottom: 15px;">
                 <button id="nav-buckets" style="background: ${activeTab === 'buckets' ? '#00aaff' : '#2c3e66'}; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">📦 LISTAR BUCKETS</button>
@@ -276,7 +254,6 @@ window.OrphanManager = {
             </div>
         `;
         
-        // Conteúdo baseado na aba ativa
         if (activeTab === 'buckets' && data.buckets) {
             content = `
                 <h3 style="margin: 0 0 15px 0;">📦 BUCKETS DO SUPABASE</h3>
@@ -308,7 +285,6 @@ window.OrphanManager = {
                     <div style="color:#0f0; margin-bottom:15px;">✅ CONEXÃO BEM-SUCEDIDA!</div>
                     <div>📁 Total de arquivos: <strong>${data.testResult.totalFiles}</strong></div>
                     <div>💾 Espaço ocupado: <strong>${data.testResult.totalSizeMB} MB</strong></div>
-                    ${data.testResult.altFormat ? '<div style="color:#fa0;">⚠️ Usando formato alternativo de API</div>' : ''}
                 </div>
                 ${data.testResult.files && data.testResult.files.length > 0 ? `
                     <div style="margin-top:15px;">
@@ -316,7 +292,7 @@ window.OrphanManager = {
                         <div style="max-height:300px; overflow-y:auto; background:rgba(0,0,0,0.3); border-radius:5px; padding:10px;">
                             ${data.testResult.files.slice(0,10).map(f => `
                                 <div style="font-size:11px; padding:4px; border-bottom:1px solid #333; color:#ff9999;">
-                                    📄 ${f.name} (${(f.size / 1024).toFixed(1)} KB)
+                                    📄 ${f.name} (${(f.metadata?.size / 1024).toFixed(1)} KB)
                                 </div>
                             `).join('')}
                             ${data.testResult.files.length > 10 ? `<div style="color:#888; font-size:10px; margin-top:5px;">... e mais ${data.testResult.files.length - 10} arquivos</div>` : ''}
@@ -378,7 +354,6 @@ window.OrphanManager = {
         panel.innerHTML = navButtons + content;
         document.body.appendChild(panel);
         
-        // Eventos dos botões
         document.getElementById('nav-buckets')?.addEventListener('click', () => {
             panel.remove();
             window.OrphanManager.listBuckets();
@@ -416,6 +391,6 @@ if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
-console.log('✅ DIAGNOSTICS63 v6.3.9 PRONTO');
+console.log('✅ DIAGNOSTICS63 v6.4.0 PRONTO');
 console.log('💡 Clique no botão "🧹 ÓRFÃOS" no canto inferior direito');
-console.log('💡 Painel unificado com todos os botões: 📦 LISTAR BUCKETS | 🧪 TESTAR BUCKET | 🔍 DIAGNOSTICAR');
+console.log('💡 Agora usando o cliente Supabase em vez de fetch direto');
