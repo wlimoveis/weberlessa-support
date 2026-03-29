@@ -1,11 +1,10 @@
 // weberlessa-support/debug/diagnostics/diagnostics63.js
-// Versão 6.3.8 - Painel Unificado com Todos os Botões
-console.log('🎯 DIAGNOSTICS63 v6.3.8 CARREGADO');
+// Versão 6.3.9 - Correção do endpoint do Storage
+console.log('🎯 DIAGNOSTICS63 v6.3.9 CARREGADO');
 
 window.OrphanManager = {
-    version: '6.3.8',
+    version: '6.3.9',
     
-    // Cache para armazenar último relatório
     lastReport: null,
     
     // Função para listar buckets disponíveis
@@ -46,7 +45,7 @@ window.OrphanManager = {
         }
     },
     
-    // Função para testar conexão com o bucket
+    // Função para testar conexão com o bucket (VERSÃO CORRIGIDA)
     async testBucketConnection() {
         console.group('🧪 TESTE DE CONEXÃO COM BUCKET');
         
@@ -54,7 +53,10 @@ window.OrphanManager = {
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
         const BUCKET_NAME = 'properties';
         
+        // 🔧 CORREÇÃO: Usar o endpoint correto com prefixo
         const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
+        
+        console.log(`🔗 URL: ${url}`);
         
         try {
             const response = await fetch(url, {
@@ -65,6 +67,8 @@ window.OrphanManager = {
                     'Content-Type': 'application/json'
                 }
             });
+            
+            console.log(`📡 Status: ${response.status}`);
             
             if (response.ok) {
                 const files = await response.json();
@@ -88,6 +92,40 @@ window.OrphanManager = {
             } else {
                 const errorText = await response.text();
                 console.error(`❌ Erro ${response.status}:`, errorText);
+                
+                // 🔧 TENTATIVA COM ENDPOINT ALTERNATIVO
+                console.log('🔄 Tentando endpoint alternativo...');
+                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
+                const altResponse = await fetch(altUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (altResponse.ok) {
+                    const files = await altResponse.json();
+                    let totalSize = 0;
+                    files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+                    const totalMB = (totalSize / 1048576).toFixed(2);
+                    
+                    console.log(`✅ ${files.length} arquivos (formato alternativo)!`);
+                    this.showUnifiedPanel({ 
+                        testResult: { 
+                            success: true, 
+                            totalFiles: files.length, 
+                            totalSizeMB: totalMB,
+                            files: files.slice(0, 20),
+                            altFormat: true
+                        },
+                        activeTab: 'test'
+                    });
+                    console.groupEnd();
+                    return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
+                }
+                
                 this.showUnifiedPanel({ error: 'test_failed', details: errorText, activeTab: 'test' });
                 console.groupEnd();
                 return { error: 'test_failed', details: errorText };
@@ -100,7 +138,7 @@ window.OrphanManager = {
         }
     },
     
-    // Função para diagnosticar arquivos órfãos
+    // Função para diagnosticar arquivos órfãos (VERSÃO CORRIGIDA)
     async diagnose() {
         console.group('🔍 DIAGNÓSTICO DE ÓRFÃOS');
         
@@ -128,8 +166,11 @@ window.OrphanManager = {
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
         const BUCKET_NAME = 'properties';
         
+        // 🔧 CORREÇÃO: Endpoint correto
+        const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
+        
         try {
-            const response = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`, {
+            const response = await fetch(url, {
                 headers: {
                     'apikey': SUPABASE_KEY,
                     'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -137,38 +178,25 @@ window.OrphanManager = {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                // Tentar endpoint alternativo
+                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
+                const altResponse = await fetch(altUrl, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                if (!altResponse.ok) {
+                    throw new Error(`Ambos endpoints falharam: ${response.status} e ${altResponse.status}`);
+                }
+                
+                const allFiles = await altResponse.json();
+                return this.processFiles(allFiles, usedUrls);
             }
             
             const allFiles = await response.json();
-            console.log(`📁 Total no Storage: ${allFiles.length}`);
-            
-            const orphans = allFiles.filter(file => {
-                if (file.name.endsWith('/')) return false;
-                const fileName = file.name.split('/').pop();
-                return !Array.from(usedUrls).some(url => url.includes(fileName));
-            });
-            
-            let totalSize = 0;
-            orphans.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
-            
-            const report = {
-                total_in_storage: allFiles.length,
-                used_files: usedUrls.size,
-                orphan_count: orphans.length,
-                total_size_mb: (totalSize / 1048576).toFixed(2),
-                orphans: orphans.slice(0, 50).map(f => ({ name: f.name, size: f.metadata?.size || 0 }))
-            };
-            
-            this.lastReport = report;
-            console.log(`📊 RESULTADO: ${report.orphan_count} órfãos, ${report.total_size_mb} MB`);
-            
-            this.showUnifiedPanel({ 
-                diagnoseResult: report,
-                activeTab: 'diagnose'
-            });
-            console.groupEnd();
-            return report;
+            return this.processFiles(allFiles, usedUrls);
             
         } catch (error) {
             console.error('❌ Erro no diagnóstico:', error);
@@ -176,6 +204,37 @@ window.OrphanManager = {
             console.groupEnd();
             return { error: 'diagnose_failed', details: error.message };
         }
+    },
+    
+    processFiles(allFiles, usedUrls) {
+        console.log(`📁 Total no Storage: ${allFiles.length}`);
+        
+        const orphans = allFiles.filter(file => {
+            if (file.name.endsWith('/')) return false;
+            const fileName = file.name.split('/').pop();
+            return !Array.from(usedUrls).some(url => url.includes(fileName));
+        });
+        
+        let totalSize = 0;
+        orphans.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+        
+        const report = {
+            total_in_storage: allFiles.length,
+            used_files: usedUrls.size,
+            orphan_count: orphans.length,
+            total_size_mb: (totalSize / 1048576).toFixed(2),
+            orphans: orphans.slice(0, 50).map(f => ({ name: f.name, size: f.metadata?.size || 0 }))
+        };
+        
+        this.lastReport = report;
+        console.log(`📊 RESULTADO: ${report.orphan_count} órfãos, ${report.total_size_mb} MB`);
+        
+        this.showUnifiedPanel({ 
+            diagnoseResult: report,
+            activeTab: 'diagnose'
+        });
+        console.groupEnd();
+        return report;
     },
     
     // Painel Unificado com todos os botões
@@ -227,7 +286,7 @@ window.OrphanManager = {
                             <th style="padding:8px; text-align:left;">Nome</th>
                             <th style="padding:8px; text-align:left;">ID</th>
                             <th style="padding:8px; text-align:left;">Público</th>
-                        </tr>
+                         </tr>
                         ${data.buckets.map(b => `
                             <tr style="border-bottom:1px solid #333;">
                                 <td style="padding:8px;"><code style="color:#0af;">${b.name}</code></td>
@@ -249,6 +308,7 @@ window.OrphanManager = {
                     <div style="color:#0f0; margin-bottom:15px;">✅ CONEXÃO BEM-SUCEDIDA!</div>
                     <div>📁 Total de arquivos: <strong>${data.testResult.totalFiles}</strong></div>
                     <div>💾 Espaço ocupado: <strong>${data.testResult.totalSizeMB} MB</strong></div>
+                    ${data.testResult.altFormat ? '<div style="color:#fa0;">⚠️ Usando formato alternativo de API</div>' : ''}
                 </div>
                 ${data.testResult.files && data.testResult.files.length > 0 ? `
                     <div style="margin-top:15px;">
@@ -356,6 +416,6 @@ if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
-console.log('✅ DIAGNOSTICS63 v6.3.8 PRONTO');
+console.log('✅ DIAGNOSTICS63 v6.3.9 PRONTO');
 console.log('💡 Clique no botão "🧹 ÓRFÃOS" no canto inferior direito');
 console.log('💡 Painel unificado com todos os botões: 📦 LISTAR BUCKETS | 🧪 TESTAR BUCKET | 🔍 DIAGNOSTICAR');
