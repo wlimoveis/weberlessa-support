@@ -1,123 +1,22 @@
 // weberlessa-support/debug/diagnostics/diagnostics63.js
-// Versão 6.3.6 - Gestão de Arquivos Órfãos com teste direto de conexão
-console.log('🎯 DIAGNOSTICS63 v6.3.6 CARREGADO');
+// Versão 6.3.7 - Gestão de Arquivos Órfãos com Service Role Key
+console.log('🎯 DIAGNOSTICS63 v6.3.7 CARREGADO');
 
 window.OrphanManager = {
-    version: '6.3.6',
+    version: '6.3.7',
     
-// Função para listar buckets disponíveis (USANDO SERVICE_ROLE KEY)
-async listBuckets() {
-    console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
-    
-    const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
-    // 🔧 USAR SERVICE_ROLE KEY (copiada do dashboard)
-    const SUPABASE_KEY = 'SUA_SERVICE_ROLE_KEY_AQUI';  // ← COLE A KEY AQUI
-    
-    console.log(`🔗 URL: ${SUPABASE_URL}`);
-    
-    try {
-        const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
+    // Função para listar buckets disponíveis (USANDO SERVICE_ROLE KEY)
+    async listBuckets() {
+        console.group('🔍 LISTANDO BUCKETS DO SUPABASE');
         
-        console.log(`📡 Status: ${response.status}`);
+        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
+        // 🔧 SERVICE_ROLE KEY (copiada do dashboard)
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
         
-        if (response.ok) {
-            const buckets = await response.json();
-            console.log(`📦 ${buckets.length} bucket(s) encontrado(s):`);
-            console.table(buckets.map(b => ({ name: b.name, id: b.id, public: b.public })));
-            
-            if (buckets.length === 0) {
-                console.warn('⚠️ Nenhum bucket encontrado.');
-                this.showBucketsPanel({ success: true, buckets: [] });
-            } else {
-                this.showBucketsPanel({ success: true, buckets });
-            }
-            console.groupEnd();
-            return { success: true, buckets };
-        } else {
-            const errorText = await response.text();
-            console.error(`❌ Erro ${response.status}:`, errorText);
-            this.showBucketsPanel({ error: 'list_failed', status: response.status, details: errorText });
-            console.groupEnd();
-            return { error: 'list_failed', status: response.status, details: errorText };
-        }
-    } catch (error) {
-        console.error('❌ Erro na conexão:', error);
-        this.showBucketsPanel({ error: 'connection_failed', details: error.message });
-        console.groupEnd();
-        return { error: 'connection_failed', details: error.message };
-    }
-},
-    
-// 🆕 FUNÇÃO CORRIGIDA: Testar conexão direta com o bucket properties
-async testBucketConnection() {
-    console.group('🧪 TESTE DIRETO DE CONEXÃO COM BUCKET');
-    
-    const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
-    const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
-    
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-        console.error('❌ Credenciais não encontradas');
-        console.groupEnd();
-        this.showTestResultPanel({ error: 'missing_credentials' });
-        return { error: 'missing_credentials' };
-    }
-    
-    const BUCKET_NAME = 'properties';
-    
-    // 🔧 CORREÇÃO 1: Usar o endpoint correto da API v2 do Supabase Storage
-    const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
-    
-    console.log(`🔗 Testando URL: ${url}`);
-    
-    try {
-        // 🔧 CORREÇÃO 2: Adicionar o cabeçalho Content-Type
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        console.log(`🔗 URL: ${SUPABASE_URL}`);
         
-        console.log(`📡 Status: ${response.status}`);
-        
-        if (response.ok) {
-            const files = await response.json();
-            console.log(`✅ ${files.length} arquivos encontrados!`);
-            console.table(files.slice(0, 10).map(f => ({ 
-                name: f.name, 
-                size: f.metadata?.size || 0,
-                lastModified: f.metadata?.lastModified || 'N/A'
-            })));
-            
-            let totalSize = 0;
-            files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
-            const totalMB = (totalSize / 1048576).toFixed(2);
-            
-            this.showTestResultPanel({ 
-                success: true, 
-                files: files.slice(0, 20),
-                totalFiles: files.length,
-                totalSizeMB: totalMB
-            });
-            console.groupEnd();
-            return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
-        } else {
-            const errorText = await response.text();
-            console.error(`❌ Erro ${response.status}:`, errorText);
-            
-            // 🔧 CORREÇÃO 3: Tentar formato alternativo da API
-            console.log('🔄 Tentando formato alternativo...');
-            const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
-            const altResponse = await fetch(altUrl, {
+        try {
+            const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
                 method: 'GET',
                 headers: {
                     'apikey': SUPABASE_KEY,
@@ -126,9 +25,80 @@ async testBucketConnection() {
                 }
             });
             
-            if (altResponse.ok) {
-                const files = await altResponse.json();
-                console.log(`✅ ${files.length} arquivos encontrados (formato alternativo)!`);
+            console.log(`📡 Status: ${response.status}`);
+            
+            if (response.ok) {
+                const buckets = await response.json();
+                console.log(`📦 ${buckets.length} bucket(s) encontrado(s):`);
+                console.table(buckets.map(b => ({ name: b.name, id: b.id, public: b.public })));
+                
+                if (buckets.length === 0) {
+                    console.warn('⚠️ Nenhum bucket encontrado.');
+                    this.showBucketsPanel({ success: true, buckets: [] });
+                } else {
+                    this.showBucketsPanel({ success: true, buckets });
+                }
+                console.groupEnd();
+                return { success: true, buckets };
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Erro ${response.status}:`, errorText);
+                this.showBucketsPanel({ error: 'list_failed', status: response.status, details: errorText });
+                console.groupEnd();
+                return { error: 'list_failed', status: response.status, details: errorText };
+            }
+        } catch (error) {
+            console.error('❌ Erro na conexão:', error);
+            this.showBucketsPanel({ error: 'connection_failed', details: error.message });
+            console.groupEnd();
+            return { error: 'connection_failed', details: error.message };
+        }
+    },
+    
+    // 🆕 FUNÇÃO CORRIGIDA: Testar conexão direta com o bucket properties
+    async testBucketConnection() {
+        console.group('🧪 TESTE DIRETO DE CONEXÃO COM BUCKET');
+        
+        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
+        // 🔧 SERVICE_ROLE KEY para teste
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
+        
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            console.error('❌ Credenciais não encontradas');
+            console.groupEnd();
+            this.showTestResultPanel({ error: 'missing_credentials' });
+            return { error: 'missing_credentials' };
+        }
+        
+        const BUCKET_NAME = 'properties';
+        
+        // 🔧 CORREÇÃO 1: Usar o endpoint correto da API v2 do Supabase Storage
+        const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET_NAME}`;
+        
+        console.log(`🔗 Testando URL: ${url}`);
+        
+        try {
+            // 🔧 CORREÇÃO 2: Adicionar o cabeçalho Content-Type
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log(`📡 Status: ${response.status}`);
+            
+            if (response.ok) {
+                const files = await response.json();
+                console.log(`✅ ${files.length} arquivos encontrados!`);
+                console.table(files.slice(0, 10).map(f => ({ 
+                    name: f.name, 
+                    size: f.metadata?.size || 0,
+                    lastModified: f.metadata?.lastModified || 'N/A'
+                })));
+                
                 let totalSize = 0;
                 files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
                 const totalMB = (totalSize / 1048576).toFixed(2);
@@ -137,28 +107,59 @@ async testBucketConnection() {
                     success: true, 
                     files: files.slice(0, 20),
                     totalFiles: files.length,
-                    totalSizeMB: totalMB,
-                    altFormat: true
+                    totalSizeMB: totalMB
                 });
                 console.groupEnd();
                 return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Erro ${response.status}:`, errorText);
+                
+                // 🔧 CORREÇÃO 3: Tentar formato alternativo da API
+                console.log('🔄 Tentando formato alternativo...');
+                const altUrl = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET_NAME}/objects/list`;
+                const altResponse = await fetch(altUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (altResponse.ok) {
+                    const files = await altResponse.json();
+                    console.log(`✅ ${files.length} arquivos encontrados (formato alternativo)!`);
+                    let totalSize = 0;
+                    files.forEach(f => { if (f.metadata?.size) totalSize += f.metadata.size; });
+                    const totalMB = (totalSize / 1048576).toFixed(2);
+                    
+                    this.showTestResultPanel({ 
+                        success: true, 
+                        files: files.slice(0, 20),
+                        totalFiles: files.length,
+                        totalSizeMB: totalMB,
+                        altFormat: true
+                    });
+                    console.groupEnd();
+                    return { success: true, files, totalFiles: files.length, totalSizeMB: totalMB };
+                }
+                
+                this.showTestResultPanel({ 
+                    error: 'list_failed', 
+                    status: response.status, 
+                    details: errorText 
+                });
+                console.groupEnd();
+                return { error: 'list_failed', status: response.status, details: errorText };
             }
-            
-            this.showTestResultPanel({ 
-                error: 'list_failed', 
-                status: response.status, 
-                details: errorText 
-            });
+        } catch (error) {
+            console.error('❌ Erro na conexão:', error);
+            this.showTestResultPanel({ error: 'connection_failed', details: error.message });
             console.groupEnd();
-            return { error: 'list_failed', status: response.status, details: errorText };
+            return { error: 'connection_failed', details: error.message };
         }
-    } catch (error) {
-        console.error('❌ Erro na conexão:', error);
-        this.showTestResultPanel({ error: 'connection_failed', details: error.message });
-        console.groupEnd();
-        return { error: 'connection_failed', details: error.message };
-    }
-},
+    },
     
     // 🆕 Painel para exibir resultado do teste de conexão
     showTestResultPanel(data) {
@@ -316,8 +317,8 @@ async testBucketConnection() {
         
         console.log(`📊 ${window.properties.length} imóveis, ${usedUrls.size} URLs em uso`);
         
-        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
-        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+        const SUPABASE_URL = 'https://wxdiowpswepsvklumgvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQxMTE3OSwiZXhwIjoyMDg3OTg3MTc5fQ.JIVIyK5Z2QVL9Mug2Dut-aP4AIj0v2bCROUJjBeD7Es';
         
         if (!SUPABASE_URL || !SUPABASE_KEY) {
             console.error('❌ Credenciais não encontradas');
@@ -446,7 +447,7 @@ if (window.location.search.includes('debug=true')) {
     setTimeout(window.addOrphanButton, 2000);
 }
 
-console.log('✅ DIAGNOSTICS63 v6.3.6 PRONTO');
+console.log('✅ DIAGNOSTICS63 v6.3.7 PRONTO');
 console.log('💡 Use: listSupabaseBuckets() - Listar buckets disponíveis');
 console.log('💡 Use: testBucketConnection() - Testar conexão com bucket "properties"');
 console.log('💡 Use: diagnoseOrphanFiles() - Diagnóstico de órfãos');
