@@ -1,11 +1,14 @@
 // debug/utils/core-utilities.js
 // Módulo utilitário para funções de formatação e validação migradas do Core System
 // ✅ Este módulo é OPCIONAL e NÃO ESSENCIAL para o Core System funcionar
+// VERSÃO: 2.0.1 - Adicionado log detalhado de carregamento
 
-console.log('🔧 [SUPPORT] Carregando core-utilities.js');
+console.log('🔧 [SUPPORT] Carregando core-utilities.js - VERSÃO 2.0.1');
 
 // ========== FUNÇÕES DE FEATURES E VIDEO ==========
 window.SupportCoreUtils = {
+    version: '2.0.1',
+    
     /**
      * Formata features para exibição
      * @param {string|array} features - Features a serem formatadas
@@ -21,7 +24,7 @@ window.SupportCoreUtils = {
             }
             return features.toString().replace(/[\[\]"]/g, '').replace(/\s*,\s*/g, ', ');
         } catch (error) {
-            console.warn('⚠️ Erro ao formatar features:', error);
+            console.warn('⚠️ [core-utilities] Erro ao formatar features:', error);
             return '';
         }
     },
@@ -42,7 +45,7 @@ window.SupportCoreUtils = {
             const featuresArray = value.split(',').map(f => f.trim()).filter(f => f);
             return JSON.stringify(featuresArray);
         } catch (error) {
-            console.error('❌ Erro ao parsear features:', error);
+            console.error('❌ [core-utilities] Erro ao parsear features:', error);
             return '[]';
         }
     },
@@ -62,14 +65,85 @@ window.SupportCoreUtils = {
         }
         if (typeof videoValue === 'number') return videoValue === 1;
         return Boolean(videoValue);
+    },
+    
+    /**
+     * Verifica se o módulo está funcionando corretamente
+     * @returns {object} Status do módulo
+     */
+    healthCheck: function() {
+        const testFeatures = '["Teste1", "Teste2"]';
+        const formatted = this.formatFeaturesForDisplay(testFeatures);
+        const parsed = this.parseFeaturesForStorage('Teste1, Teste2');
+        
+        return {
+            version: this.version,
+            status: 'healthy',
+            functions: {
+                formatFeaturesForDisplay: typeof this.formatFeaturesForDisplay === 'function',
+                parseFeaturesForStorage: typeof this.parseFeaturesForStorage === 'function',
+                ensureBooleanVideo: typeof this.ensureBooleanVideo === 'function'
+            },
+            testResults: {
+                formatFeaturesForDisplay: formatted === 'Teste1, Teste2',
+                parseFeaturesForStorage: parsed === '["Teste1","Teste2"]'
+            }
+        };
     }
 };
 
 // Registrar no DiagnosticRegistry (se disponível)
-if (window.DiagnosticRegistry) {
-    window.DiagnosticRegistry.register('formatFeaturesForDisplay', window.SupportCoreUtils.formatFeaturesForDisplay, 'utils', { isSafe: true, hasFallback: true });
-    window.DiagnosticRegistry.register('parseFeaturesForStorage', window.SupportCoreUtils.parseFeaturesForStorage, 'utils', { isSafe: true, hasFallback: true });
-    window.DiagnosticRegistry.register('ensureBooleanVideo', window.SupportCoreUtils.ensureBooleanVideo, 'utils', { isSafe: true, hasFallback: true });
+if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.register === 'function') {
+    try {
+        window.DiagnosticRegistry.register('formatFeaturesForDisplay', window.SupportCoreUtils.formatFeaturesForDisplay, 'utils', { 
+            isSafe: true, 
+            hasFallback: true,
+            version: window.SupportCoreUtils.version,
+            description: 'Formata features para exibição (array ou JSON → string)'
+        });
+        window.DiagnosticRegistry.register('parseFeaturesForStorage', window.SupportCoreUtils.parseFeaturesForStorage, 'utils', { 
+            isSafe: true, 
+            hasFallback: true,
+            version: window.SupportCoreUtils.version,
+            description: 'Converte features para formato de armazenamento (string → JSON)'
+        });
+        window.DiagnosticRegistry.register('ensureBooleanVideo', window.SupportCoreUtils.ensureBooleanVideo, 'utils', { 
+            isSafe: true, 
+            hasFallback: true,
+            version: window.SupportCoreUtils.version,
+            description: 'Converte valor de vídeo para booleano'
+        });
+        console.log('📋 [core-utilities] Funções registradas no DiagnosticRegistry');
+    } catch (e) {
+        console.warn('⚠️ [core-utilities] Erro ao registrar no DiagnosticRegistry:', e.message);
+    }
 }
 
-console.log('✅ [SUPPORT] core-utilities.js carregado com funções de features e vídeo');
+// Exibir relatório de carregamento detalhado
+console.log('✅ [SUPPORT] core-utilities.js v2.0.1 carregado com sucesso!');
+console.log('📦 Funções disponíveis no SupportCoreUtils:');
+console.log('   🔧 formatFeaturesForDisplay:', typeof window.SupportCoreUtils.formatFeaturesForDisplay);
+console.log('   🔧 parseFeaturesForStorage:', typeof window.SupportCoreUtils.parseFeaturesForStorage);
+console.log('   🔧 ensureBooleanVideo:', typeof window.SupportCoreUtils.ensureBooleanVideo);
+console.log('   🔧 healthCheck:', typeof window.SupportCoreUtils.healthCheck);
+
+// Executar health check automático em modo debug
+if (window.location.search.includes('debug=true') || window.location.search.includes('test-utils=true')) {
+    console.log('🧪 [core-utilities] Executando health check automático...');
+    const health = window.SupportCoreUtils.healthCheck();
+    console.table(health.functions);
+    console.log('📊 Resultados dos testes:', health.testResults);
+    
+    if (health.testResults.formatFeaturesForDisplay && health.testResults.parseFeaturesForStorage) {
+        console.log('✅ [core-utilities] Todos os testes passaram!');
+    } else {
+        console.warn('⚠️ [core-utilities] Alguns testes falharam. Verifique a implementação.');
+    }
+}
+
+// Exportar para uso global (garantir compatibilidade)
+if (typeof window.SharedCore === 'undefined') {
+    console.log('ℹ️ [core-utilities] SharedCore não detectado - módulo em modo standalone');
+} else {
+    console.log('🔗 [core-utilities] Conectado ao SharedCore - funções disponíveis via proxy');
+}
