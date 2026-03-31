@@ -1,15 +1,22 @@
 // ============================================================
 // ARQUIVO: debug/diagnostics/diagnostics56.js
-// VERSÃO: 5.6 FINAL - CORREÇÃO DE INICIALIZAÇÃO E PAINEL
+// VERSÃO: 5.6.1 - CORREÇÃO DE INICIALIZAÇÃO E PAINEL
 // PROPÓSITO: Módulo de diagnóstico e compatibilidade.
 //            CORRIGIDO: Painel agora aparece com ?debug=true&diagnostics=true
 //            CORRIGIDO: Referências quebradas removidas
 //            CORRIGIDO: Delegação correta para PdfSystem/MediaSystem
+//            CORRIGIDO: showCompatibilityControlPanel definida antes do uso
 // ============================================================
-console.log('✅ [DIAGNOSTICS v5.6 FINAL] Carregado. Modo: DIAGNÓSTICO ATIVO.');
+console.log('✅ [DIAGNOSTICS v5.6.1] Carregado. Modo: DIAGNÓSTICO ATIVO.');
 
 // ============================================================
-// BLOCO 1: INICIALIZAÇÃO CRÍTICA (EXECUTA IMEDIATAMENTE)
+// BLOCO 1: DECLARAÇÃO ANTECIPADA DA FUNÇÃO PRINCIPAL
+// ============================================================
+// Declarar a função antes de qualquer chamada para evitar erro de referência
+window.showCompatibilityControlPanel = null; // Placeholder
+
+// ============================================================
+// BLOCO 2: INICIALIZAÇÃO CRÍTICA (EXECUTA IMEDIATAMENTE)
 // ============================================================
 (function initializeDiagnosticsPanel() {
     // Verificar parâmetros de URL
@@ -17,16 +24,31 @@ console.log('✅ [DIAGNOSTICS v5.6 FINAL] Carregado. Modo: DIAGNÓSTICO ATIVO.')
     const shouldShowPanel = urlParams.has('debug') && urlParams.has('diagnostics');
     
     if (shouldShowPanel) {
-        console.log('🟢 [DIAGNOSTICS v5.6] Parâmetros detectados. Painel será exibido automaticamente.');
+        console.log('🟢 [DIAGNOSTICS v5.6.1] Parâmetros detectados. Painel será exibido automaticamente.');
         
         // Agendar a exibição do painel após o carregamento completo
+        // Usar um timeout maior para garantir que a função seja definida
         if (document.readyState === 'complete') {
-            setTimeout(showCompatibilityControlPanel, 500);
+            setTimeout(() => {
+                if (typeof window.showCompatibilityControlPanel === 'function') {
+                    window.showCompatibilityControlPanel();
+                } else {
+                    console.warn('⚠️ [DIAGNOSTICS v5.6.1] showCompatibilityControlPanel ainda não definida');
+                }
+            }, 500);
         } else {
-            window.addEventListener('load', () => setTimeout(showCompatibilityControlPanel, 500));
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    if (typeof window.showCompatibilityControlPanel === 'function') {
+                        window.showCompatibilityControlPanel();
+                    } else {
+                        console.warn('⚠️ [DIAGNOSTICS v5.6.1] showCompatibilityControlPanel ainda não definida');
+                    }
+                }, 500);
+            });
         }
     } else {
-        console.log('⚪ [DIAGNOSTICS v5.6] Modo silencioso. Adicione ?debug=true&diagnostics=true para ativar o painel.');
+        console.log('⚪ [DIAGNOSTICS v5.6.1] Modo silencioso. Adicione ?debug=true&diagnostics=true para ativar o painel.');
     }
 
     // Remover TODOS os placeholders e funções obsoletas que poluem o console
@@ -40,17 +62,17 @@ console.log('✅ [DIAGNOSTICS v5.6 FINAL] Carregado. Modo: DIAGNÓSTICO ATIVO.')
     
     obsoleteFunctions.forEach(funcName => {
         if (window[funcName] !== undefined) {
-            console.log(`🧹 [DIAGNOSTICS v5.6] Removendo placeholder obsoleto: ${funcName}`);
+            console.log(`🧹 [DIAGNOSTICS v5.6.1] Removendo placeholder obsoleto: ${funcName}`);
             try { delete window[funcName]; } catch(e) { window[funcName] = undefined; }
         }
     });
 })();
 
 // ============================================================
-// BLOCO 2: DIAGNÓSTICO DE FUNÇÕES DO CORE
+// BLOCO 3: DIAGNÓSTICO DE FUNÇÕES DO CORE
 // ============================================================
 window.diagnoseExistingFunctions = function() {
-    console.group('🔍 [DIAGNOSTICS v5.6] Verificação de Funções Críticas');
+    console.group('🔍 [DIAGNOSTICS v5.6.1] Verificação de Funções Críticas');
     
     const coreFunctions = [
         // Sistemas Principais (objetos)
@@ -110,7 +132,7 @@ window.diagnoseExistingFunctions = function() {
         missing: [],
         warnings: [],
         timestamp: new Date().toISOString(),
-        version: '5.6'
+        version: '5.6.1'
     };
 
     coreFunctions.forEach(funcName => {
@@ -169,15 +191,15 @@ window.diagnoseExistingFunctions = function() {
 };
 
 // ============================================================
-// BLOCO 3: CORREÇÃO AUTOMÁTICA DE FUNÇÕES FALTANTES
+// BLOCO 4: CORREÇÃO AUTOMÁTICA DE FUNÇÕES FALTANTES
 // ============================================================
 window.autoFixMissingFunctions = function() {
-    console.group('🛠️ [DIAGNOSTICS v5.6] Correção Automática de Funções');
+    console.group('🛠️ [DIAGNOSTICS v5.6.1] Correção Automática de Funções');
     
     const fixes = [];
     const errors = [];
 
-    // --- 3.1 DELEGAÇÃO PARA PdfSystem (NÃO CRIA DUPLICAÇÕES) ---
+    // --- 4.1 DELEGAÇÃO PARA PdfSystem (NÃO CRIA DUPLICAÇÕES) ---
     if (typeof window.showPdfModal !== 'function' && window.PdfSystem && typeof window.PdfSystem.showModal === 'function') {
         window.showPdfModal = function(propertyId) {
             console.log(`📄 showPdfModal(${propertyId}) → delegado para PdfSystem.showModal`);
@@ -189,7 +211,7 @@ window.autoFixMissingFunctions = function() {
     
     if (typeof window.testPdfSystem !== 'function') {
         window.testPdfSystem = function(propertyId = 101) {
-            console.log(`🧪 testPdfSystem(${propertyId}) - v5.6`);
+            console.log(`🧪 testPdfSystem(${propertyId}) - v5.6.1`);
             if (window.PdfSystem && typeof window.PdfSystem.showModal === 'function') {
                 return window.PdfSystem.showModal(propertyId);
             }
@@ -203,7 +225,7 @@ window.autoFixMissingFunctions = function() {
         console.log('✅ testPdfSystem criada');
     }
 
-    // --- 3.2 DELEGAÇÃO PARA MediaSystem ---
+    // --- 4.2 DELEGAÇÃO PARA MediaSystem ---
     if (typeof window.processAndSavePdfs !== 'function' && window.MediaSystem && typeof window.MediaSystem.processAndSavePdfs === 'function') {
         window.processAndSavePdfs = function(propertyId, propertyTitle) {
             console.log(`📤 processAndSavePdfs → delegado para MediaSystem`);
@@ -231,7 +253,7 @@ window.autoFixMissingFunctions = function() {
         console.log('✅ loadExistingPdfsForEdit criada via delegação');
     }
 
-    // --- 3.3 DELEGAÇÃO PARA SharedCore ---
+    // --- 4.3 DELEGAÇÃO PARA SharedCore ---
     if (typeof window.formatPriceForInput !== 'function' && window.SharedCore && window.SharedCore.PriceFormatter && typeof window.SharedCore.PriceFormatter.formatForInput === 'function') {
         window.formatPriceForInput = function(value) {
             return window.SharedCore.PriceFormatter.formatForInput(value);
@@ -253,10 +275,10 @@ window.autoFixMissingFunctions = function() {
         fixes.push('formatFeaturesForDisplay (delegado para SharedCore)');
     }
 
-    // --- 3.4 FUNÇÕES INTERATIVAS (criar apenas se não existirem) ---
+    // --- 4.4 FUNÇÕES INTERATIVAS (criar apenas se não existirem) ---
     if (typeof window.interactivePdfTest !== 'function') {
         window.interactivePdfTest = function() {
-            console.log('🎮 interactivePdfTest() - v5.6');
+            console.log('🎮 interactivePdfTest() - v5.6.1');
             return window.showCompatibilityControlPanel ? window.showCompatibilityControlPanel() : false;
         };
         fixes.push('interactivePdfTest');
@@ -277,15 +299,15 @@ window.autoFixMissingFunctions = function() {
         fixesApplied: fixes,
         errors: errors,
         timestamp: new Date().toISOString(),
-        version: '5.6'
+        version: '5.6.1'
     };
 };
 
 // ============================================================
-// BLOCO 4: DETECÇÃO DE REFERÊNCIAS QUEBRADAS
+// BLOCO 5: DETECÇÃO DE REFERÊNCIAS QUEBRADAS
 // ============================================================
 window.detectAndRemoveBrokenReferences = function() {
-    console.group('🔗 [DIAGNOSTICS v5.6] Detectando Referências Quebradas');
+    console.group('🔗 [DIAGNOSTICS v5.6.1] Detectando Referências Quebradas');
     
     const brokenRefs = [];
     const recommendations = [];
@@ -348,18 +370,18 @@ window.detectAndRemoveBrokenReferences = function() {
         brokenRefs: brokenRefs,
         recommendations: recommendations,
         timestamp: new Date().toISOString(),
-        version: '5.6'
+        version: '5.6.1'
     };
 };
 
 // ============================================================
-// BLOCO 5: PAINEL DE CONTROLE DE COMPATIBILIDADE (CORRIGIDO)
+// BLOCO 6: PAINEL DE CONTROLE DE COMPATIBILIDADE (CORRIGIDO)
 // ============================================================
 window.showCompatibilityControlPanel = function() {
-    console.log('🎛️ [DIAGNOSTICS v5.6] Exibindo painel de controle...');
+    console.log('🎛️ [DIAGNOSTICS v5.6.1] Exibindo painel de controle...');
     
     // Remover painel anterior se existir
-    const existingPanel = document.getElementById('compatibility-control-panel-v5-6');
+    const existingPanel = document.getElementById('compatibility-control-panel-v5-6-1');
     if (existingPanel) {
         existingPanel.remove();
     }
@@ -375,7 +397,7 @@ window.showCompatibilityControlPanel = function() {
     
     // CRIAR PAINEL COM CSS INLINE (GARANTIDO)
     const panel = document.createElement('div');
-    panel.id = 'compatibility-control-panel-v5-6';
+    panel.id = 'compatibility-control-panel-v5-6-1';
     panel.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -402,7 +424,7 @@ window.showCompatibilityControlPanel = function() {
     panel.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #3388ff; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold; color: #88ddff;">
-                🔧 DIAGNÓSTICO v5.6
+                🔧 DIAGNÓSTICO v5.6.1
             </span>
             <span style="background: ${statusColor}; color: #000; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 12px;">
                 ${systemStatus}
@@ -511,7 +533,7 @@ window.showCompatibilityControlPanel = function() {
         <!-- RODAPÉ -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 10px; color: #88aaff;">
-                ${new Date().toLocaleTimeString()} | v5.6 FINAL
+                ${new Date().toLocaleTimeString()} | v5.6.1 FINAL
             </span>
             <button id="diag-btn-close" style="
                 background: #aa4455;
@@ -632,15 +654,15 @@ window.showCompatibilityControlPanel = function() {
         };
     }
     
-    console.log('✅ [DIAGNOSTICS v5.6] Painel de controle exibido com sucesso');
+    console.log('✅ [DIAGNOSTICS v5.6.1] Painel de controle exibido com sucesso');
     return panel;
 };
 
 // ============================================================
-// BLOCO 6: INICIALIZAÇÃO SEGURA
+// BLOCO 7: INICIALIZAÇÃO SEGURA
 // ============================================================
 window.safeInitDiagnostics = function() {
-    console.group('🚀 [DIAGNOSTICS v5.6] Inicialização Segura');
+    console.group('🚀 [DIAGNOSTICS v5.6.1] Inicialização Segura');
     
     try {
         // 1. Diagnosticar funções existentes
@@ -659,7 +681,11 @@ window.safeInitDiagnostics = function() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('debug') && urlParams.has('diagnostics')) {
             setTimeout(() => {
-                window.showCompatibilityControlPanel ? window.showCompatibilityControlPanel() : null;
+                if (typeof window.showCompatibilityControlPanel === 'function') {
+                    window.showCompatibilityControlPanel();
+                } else {
+                    console.warn('⚠️ showCompatibilityControlPanel não disponível após inicialização');
+                }
             }, 1000);
         }
         
@@ -674,15 +700,15 @@ window.safeInitDiagnostics = function() {
     return {
         success: true,
         timestamp: new Date().toISOString(),
-        version: '5.6'
+        version: '5.6.1'
     };
 };
 
 // ============================================================
-// BLOCO 7: INTEGRAÇÃO COM SISTEMA EXISTENTE
+// BLOCO 8: INTEGRAÇÃO COM SISTEMA EXISTENTE
 // ============================================================
 (function integrateCompatibilityModule() {
-    console.log('🔗 [DIAGNOSTICS v5.6] Integrando módulo de compatibilidade...');
+    console.log('🔗 [DIAGNOSTICS v5.6.1] Integrando módulo de compatibilidade...');
     
     // Adicionar ao objeto diag se existir
     if (window.diag) {
@@ -698,7 +724,7 @@ window.safeInitDiagnostics = function() {
     // Adicionar ao console.diag se existir
     if (console.diag) {
         console.diag.compat = console.diag.compat || {};
-        console.diag.compat.v56 = {
+        console.diag.compat.v561 = {
             diagnose: window.diagnoseExistingFunctions,
             fix: window.autoFixMissingFunctions,
             detect: window.detectAndRemoveBrokenReferences,
@@ -708,7 +734,7 @@ window.safeInitDiagnostics = function() {
 })();
 
 // ============================================================
-// BLOCO 8: EXECUÇÃO AUTOMÁTICA
+// BLOCO 9: EXECUÇÃO AUTOMÁTICA
 // ============================================================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -721,7 +747,7 @@ if (document.readyState === 'loading') {
 // ============================================================
 // EXPORTAÇÃO DE COMANDOS PARA CONSOLE
 // ============================================================
-console.log('✅ [DIAGNOSTICS v5.6 FINAL] Comandos disponíveis:');
+console.log('✅ [DIAGNOSTICS v5.6.1 FINAL] Comandos disponíveis:');
 console.log('   🔍 window.diagnoseExistingFunctions() - Diagnosticar funções');
 console.log('   🛠️  window.autoFixMissingFunctions() - Corrigir funções ausentes');
 console.log('   🔗 window.detectAndRemoveBrokenReferences() - Detectar referências quebradas');
@@ -730,5 +756,5 @@ console.log('   🚀 window.safeInitDiagnostics() - Inicialização segura compl
 console.log('   📋 window.diag.compat - Acesso via objeto diag');
 
 // ============================================================
-// FIM DO ARQUIVO diagnostics56.js v5.6 FINAL
+// FIM DO ARQUIVO diagnostics56.js v5.6.1 FINAL
 // ============================================================
