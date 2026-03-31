@@ -618,7 +618,7 @@ console.log('✅ Properties.js configurado para usar SharedCore');
         } else if (globalFuncExists && !sharedCoreFuncExists) {
             console.warn(\`⚠️  \${funcName}() existe globalmente mas não no SharedCore\`);
         } else if (!globalFuncExists && sharedCoreFuncExists) {
-            console.log(\`ℹ️  \${funcName}() disponível apenas via SharedCore\`);
+            console.log(\`ℹ️ \${funcName}() disponível apenas via SharedCore\`);
         }
     });
     
@@ -2529,11 +2529,19 @@ if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
 // ================== MÓDULO DE VALIDAÇÃO DE MIGRAÇÃO ==================
 // Adicionado em: 31/03/2026
 // Finalidade: Validar a migração das funções utilitárias para o Support System
+// CORREÇÃO: Aguardar SharedCoreMigration ser definido antes de tentar estender
 
-console.log('🧪 [DIAGNOSTICS62] Adicionando validador de migração de utilitários...');
+console.log('🧪 [DIAGNOSTICS62] Preparando validador de migração de utilitários...');
 
-// Estender o objeto SharedCoreMigration existente com funcionalidade de validação
-if (window.SharedCoreMigration) {
+// ✅ AGUARDAR SharedCoreMigration SER DEFINIDO
+function initializeMigrationValidator() {
+    if (!window.SharedCoreMigration) {
+        console.log('⏳ [DIAGNOSTICS62] Aguardando SharedCoreMigration ser definido...');
+        setTimeout(initializeMigrationValidator, 100);
+        return;
+    }
+    
+    console.log('✅ [DIAGNOSTICS62] SharedCoreMigration encontrado, integrando validador...');
     
     /**
      * Validador de migração das funções utilitárias
@@ -2877,15 +2885,24 @@ if (window.SharedCoreMigration) {
     
     console.log('✅ [DIAGNOSTICS62] Validador de migração integrado');
     console.log('💡 Execute validateMigration() ou SharedCoreMigration.validator.runAllTests() para validar');
-    
-} else {
-    console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não encontrado. Validador não integrado.');
 }
 
+// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO
+setTimeout(initializeMigrationValidator, 500);
+
 // Executar validação automática em modo debug após 3 segundos
-if (window.location.search.includes('debug=true') && window.SharedCoreMigration?.validator) {
+if (window.location.search.includes('debug=true')) {
     setTimeout(() => {
-        console.log('🔍 [DIAGNOSTICS62] Executando validação automática pós-migração...');
-        window.SharedCoreMigration.validator.runAllTests();
+        if (window.SharedCoreMigration?.validator) {
+            console.log('🔍 [DIAGNOSTICS62] Executando validação automática pós-migração...');
+            window.SharedCoreMigration.validator.runAllTests();
+        } else {
+            console.log('⏳ [DIAGNOSTICS62] Validador ainda não pronto, aguardando...');
+            setTimeout(() => {
+                if (window.SharedCoreMigration?.validator) {
+                    window.SharedCoreMigration.validator.runAllTests();
+                }
+            }, 2000);
+        }
     }, 3000);
 }
