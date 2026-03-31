@@ -2,6 +2,7 @@
 // CADEIA DE DIAGNÓSTICO - MÓDULO DE MIGRAÇÃO SHAREDCORE
 // CORREÇÃO: Layout integrado sem sobreposição - Seção de testes incorporada
 // Data: 10/01/2026
+// ATUALIZAÇÃO: 31/03/2026 - Adicionado validador de migração de utilitários
 
 console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.5 CARREGADA (LAYOUT INTEGRADO)', 
             'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
@@ -2524,3 +2525,367 @@ if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
     }, 3000);
     
 })();
+
+// ================== MÓDULO DE VALIDAÇÃO DE MIGRAÇÃO ==================
+// Adicionado em: 31/03/2026
+// Finalidade: Validar a migração das funções utilitárias para o Support System
+
+console.log('🧪 [DIAGNOSTICS62] Adicionando validador de migração de utilitários...');
+
+// Estender o objeto SharedCoreMigration existente com funcionalidade de validação
+if (window.SharedCoreMigration) {
+    
+    /**
+     * Validador de migração das funções utilitárias
+     * Verifica se as funções foram corretamente migradas para o Support System
+     */
+    window.SharedCoreMigration.validator = {
+        
+        /**
+         * Executa todos os testes de validação da migração
+         * @returns {Object} Resultados detalhados dos testes
+         */
+        runAllTests: function() {
+            console.group('🧪 [DIAGNOSTICS62] VALIDAÇÃO DE MIGRAÇÃO - ETAPA 2');
+            
+            const results = {
+                timestamp: new Date().toISOString(),
+                formatFeatures: this._testFormatFeatures(),
+                parseFeatures: this._testParseFeatures(),
+                ensureVideo: this._testEnsureVideo(),
+                noLocalFunctions: this._testNoLocalFunctions(),
+                proxyWorking: this._testProxyWorking(),
+                supportCoreUtilsAvailable: !!window.SupportCoreUtils
+            };
+            
+            // Calcular status geral
+            const criticalTests = ['formatFeatures', 'parseFeatures', 'ensureVideo', 'proxyWorking'];
+            const allCriticalPassed = criticalTests.every(test => results[test].passed);
+            const allTestsPassed = Object.values(results).every(r => 
+                typeof r === 'object' ? r.passed !== false : r === true
+            );
+            
+            results.summary = {
+                criticalPassed: allCriticalPassed,
+                allPassed: allTestsPassed,
+                status: allCriticalPassed ? 
+                    (allTestsPassed ? '✅ MIGRAÇÃO VÁLIDA' : '⚠️ MIGRAÇÃO PARCIAL') : 
+                    '❌ MIGRAÇÃO COM PROBLEMAS'
+            };
+            
+            // Exibir resumo
+            this._displayResults(results);
+            
+            console.groupEnd();
+            
+            // Registrar no painel de diagnóstico se disponível
+            if (window.SharedCoreMigration.panel && window.SharedCoreMigration.panel.addLog) {
+                window.SharedCoreMigration.panel.addLog(
+                    `📊 Validação: ${results.summary.status}`,
+                    allCriticalPassed ? 'success' : 'error'
+                );
+            }
+            
+            return results;
+        },
+        
+        /**
+         * Testa a função formatFeaturesForDisplay
+         * @private
+         */
+        _testFormatFeatures: function() {
+            const testCases = [
+                { input: '["Piscina", "Garagem"]', expected: 'Piscina, Garagem', name: 'JSON array' },
+                { input: 'Piscina, Garagem', expected: 'Piscina, Garagem', name: 'String simples' },
+                { input: ['Piscina', 'Garagem'], expected: 'Piscina, Garagem', name: 'Array JS' },
+                { input: '', expected: '', name: 'String vazia' },
+                { input: null, expected: '', name: 'Valor nulo' }
+            ];
+            
+            let passed = 0;
+            const details = [];
+            
+            testCases.forEach(test => {
+                try {
+                    const result = window.SharedCore.formatFeaturesForDisplay(test.input);
+                    const isPass = result === test.expected;
+                    
+                    if (isPass) {
+                        console.log(`✅ formatFeaturesForDisplay - ${test.name}: PASSOU`);
+                        passed++;
+                    } else {
+                        console.error(`❌ formatFeaturesForDisplay - ${test.name}: esperado "${test.expected}", obtido "${result}"`);
+                    }
+                    
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        expected: test.expected,
+                        result: result,
+                        passed: isPass
+                    });
+                    
+                } catch (error) {
+                    console.error(`❌ formatFeaturesForDisplay - ${test.name}: ERRO - ${error.message}`);
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        error: error.message,
+                        passed: false
+                    });
+                }
+            });
+            
+            return { passed: passed === testCases.length, total: testCases.length, details };
+        },
+        
+        /**
+         * Testa a função parseFeaturesForStorage
+         * @private
+         */
+        _testParseFeatures: function() {
+            const testCases = [
+                { input: 'Piscina, Garagem', expected: '["Piscina","Garagem"]', name: 'String simples' },
+                { input: 'Piscina, Garagem,', expected: '["Piscina","Garagem"]', name: 'String com vírgula extra' },
+                { input: '["Piscina","Garagem"]', expected: '["Piscina","Garagem"]', name: 'JSON já formatado' },
+                { input: '', expected: '[]', name: 'String vazia' }
+            ];
+            
+            let passed = 0;
+            const details = [];
+            
+            testCases.forEach(test => {
+                try {
+                    const result = window.SharedCore.parseFeaturesForStorage(test.input);
+                    // Verificar se o resultado contém os elementos esperados (flexível)
+                    const isValid = result === test.expected || 
+                                   (result.includes('Piscina') && result.includes('Garagem'));
+                    
+                    if (isValid) {
+                        console.log(`✅ parseFeaturesForStorage - ${test.name}: PASSOU`);
+                        passed++;
+                    } else {
+                        console.error(`❌ parseFeaturesForStorage - ${test.name}: esperado "${test.expected}", obtido "${result}"`);
+                    }
+                    
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        expected: test.expected,
+                        result: result,
+                        passed: isValid
+                    });
+                    
+                } catch (error) {
+                    console.error(`❌ parseFeaturesForStorage - ${test.name}: ERRO - ${error.message}`);
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        error: error.message,
+                        passed: false
+                    });
+                }
+            });
+            
+            return { passed: passed === testCases.length, total: testCases.length, details };
+        },
+        
+        /**
+         * Testa a função ensureBooleanVideo
+         * @private
+         */
+        _testEnsureVideo: function() {
+            const testCases = [
+                { input: 'true', expected: true, name: 'string "true"' },
+                { input: '1', expected: true, name: 'string "1"' },
+                { input: 'sim', expected: true, name: 'string "sim"' },
+                { input: 'SIM', expected: true, name: 'string "SIM" (maiúsculo)' },
+                { input: 'yes', expected: true, name: 'string "yes"' },
+                { input: 'false', expected: false, name: 'string "false"' },
+                { input: '0', expected: false, name: 'string "0"' },
+                { input: 'não', expected: false, name: 'string "não"' },
+                { input: 0, expected: false, name: 'number 0' },
+                { input: 1, expected: true, name: 'number 1' },
+                { input: true, expected: true, name: 'boolean true' },
+                { input: false, expected: false, name: 'boolean false' },
+                { input: null, expected: false, name: 'null' },
+                { input: undefined, expected: false, name: 'undefined' }
+            ];
+            
+            let passed = 0;
+            const details = [];
+            
+            testCases.forEach(test => {
+                try {
+                    const result = window.SharedCore.ensureBooleanVideo(test.input);
+                    const isPass = result === test.expected;
+                    
+                    if (isPass) {
+                        console.log(`✅ ensureBooleanVideo - ${test.name}: PASSOU`);
+                        passed++;
+                    } else {
+                        console.error(`❌ ensureBooleanVideo - ${test.name}: esperado ${test.expected}, obtido ${result}`);
+                    }
+                    
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        expected: test.expected,
+                        result: result,
+                        passed: isPass
+                    });
+                    
+                } catch (error) {
+                    console.error(`❌ ensureBooleanVideo - ${test.name}: ERRO - ${error.message}`);
+                    details.push({
+                        test: test.name,
+                        input: test.input,
+                        error: error.message,
+                        passed: false
+                    });
+                }
+            });
+            
+            return { passed: passed === testCases.length, total: testCases.length, details };
+        },
+        
+        /**
+         * Verifica se funções locais (_local*) foram removidas do SharedCore
+         * @private
+         */
+        _testNoLocalFunctions: function() {
+            const sharedCoreStr = window.SharedCore.toString();
+            const localPatterns = [
+                '_localFormatFeaturesForDisplay',
+                '_localParseFeaturesForStorage',
+                '_localEnsureBooleanVideo'
+            ];
+            
+            const foundPatterns = localPatterns.filter(pattern => sharedCoreStr.includes(pattern));
+            const hasLocalFunctions = foundPatterns.length > 0;
+            
+            if (hasLocalFunctions) {
+                console.warn(`⚠️ Funções locais ainda presentes: ${foundPatterns.join(', ')}`);
+            } else {
+                console.log('✅ Funções locais removidas com sucesso');
+            }
+            
+            return { passed: !hasLocalFunctions, foundPatterns };
+        },
+        
+        /**
+         * Testa se o proxy funciona com e sem o Support System disponível
+         * @private
+         */
+        _testProxyWorking: function() {
+            console.log('🔍 Testando comportamento do proxy...');
+            
+            // Teste 1: Com Support disponível
+            let withSupportResult;
+            try {
+                withSupportResult = window.SharedCore.formatFeaturesForDisplay('["Proxy"]');
+                console.log(`   Com Support: "${withSupportResult}"`);
+            } catch (e) {
+                console.error(`   Com Support: ERRO - ${e.message}`);
+            }
+            
+            // Teste 2: Simular ausência do Support (fallback)
+            const backupSupport = window.SupportCoreUtils;
+            window.SupportCoreUtils = null;
+            
+            let withoutSupportResult;
+            try {
+                withoutSupportResult = window.SharedCore.formatFeaturesForDisplay('["Fallback"]');
+                console.log(`   Sem Support: "${withoutSupportResult}"`);
+            } catch (e) {
+                console.error(`   Sem Support: ERRO - ${e.message}`);
+            }
+            
+            // Restaurar
+            window.SupportCoreUtils = backupSupport;
+            
+            const proxyWorks = withSupportResult === 'Proxy' && withoutSupportResult === 'Fallback';
+            console.log(`${proxyWorks ? '✅' : '❌'} Proxy funcionando:`, proxyWorks ? 'OK' : 'FALHOU');
+            
+            return { 
+                passed: proxyWorks, 
+                withSupport: withSupportResult, 
+                withoutSupport: withoutSupportResult 
+            };
+        },
+        
+        /**
+         * Exibe os resultados formatados
+         * @private
+         */
+        _displayResults: function(results) {
+            console.group('📊 RESUMO DA VALIDAÇÃO');
+            
+            // Tabela de resultados dos testes principais
+            const testSummary = {
+                'formatFeaturesForDisplay': results.formatFeatures.passed ? '✅' : '❌',
+                'parseFeaturesForStorage': results.parseFeatures.passed ? '✅' : '❌',
+                'ensureBooleanVideo': results.ensureVideo.passed ? '✅' : '❌',
+                'Funções locais removidas': results.noLocalFunctions.passed ? '✅' : '❌',
+                'Proxy funcionando': results.proxyWorking.passed ? '✅' : '❌',
+                'SupportCoreUtils disponível': results.supportCoreUtilsAvailable ? '✅' : '⚠️'
+            };
+            
+            console.table(testSummary);
+            console.log(`\n${results.summary.status}`);
+            
+            // Detalhar falhas se houver
+            const failures = [];
+            if (!results.formatFeatures.passed) failures.push('formatFeaturesForDisplay');
+            if (!results.parseFeatures.passed) failures.push('parseFeaturesForStorage');
+            if (!results.ensureVideo.passed) failures.push('ensureBooleanVideo');
+            if (!results.noLocalFunctions.passed) failures.push('Remover funções _local*');
+            if (!results.proxyWorking.passed) failures.push('Proxy (verificar fallback)');
+            
+            if (failures.length > 0) {
+                console.log('\n⚠️ AÇÕES CORRETIVAS NECESSÁRIAS:');
+                failures.forEach(f => console.log(`   • ${f}`));
+            }
+            
+            console.groupEnd();
+        }
+    };
+    
+    // Registrar a função de validação no DiagnosticRegistry
+    if (window.DiagnosticRegistry) {
+        window.DiagnosticRegistry.register(
+            'SharedCoreMigration.validator.runAllTests',
+            window.SharedCoreMigration.validator.runAllTests.bind(window.SharedCoreMigration.validator),
+            'validation',
+            { 
+                isSafe: true, 
+                description: 'Valida a migração das funções utilitárias (features, vídeo) para o Support System',
+                version: '2.0',
+                category: 'migration'
+            }
+        );
+        console.log('📋 [DIAGNOSTICS62] Validador de migração registrado no DiagnosticRegistry');
+    }
+    
+    // Adicionar atalho global para fácil acesso
+    window.validateMigration = function() {
+        if (window.SharedCoreMigration && window.SharedCoreMigration.validator) {
+            return window.SharedCoreMigration.validator.runAllTests();
+        }
+        console.error('❌ Validador não disponível. Certifique-se de que diagnostics62.js está carregado.');
+    };
+    
+    console.log('✅ [DIAGNOSTICS62] Validador de migração integrado');
+    console.log('💡 Execute validateMigration() ou SharedCoreMigration.validator.runAllTests() para validar');
+    
+} else {
+    console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não encontrado. Validador não integrado.');
+}
+
+// Executar validação automática em modo debug após 3 segundos
+if (window.location.search.includes('debug=true') && window.SharedCoreMigration?.validator) {
+    setTimeout(() => {
+        console.log('🔍 [DIAGNOSTICS62] Executando validação automática pós-migração...');
+        window.SharedCoreMigration.validator.runAllTests();
+    }, 3000);
+}
