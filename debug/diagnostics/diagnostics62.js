@@ -3,6 +3,7 @@
 // CORREÇÃO: Layout integrado sem sobreposição - Seção de testes incorporada
 // Data: 10/01/2026
 // ATUALIZAÇÃO: 31/03/2026 - Adicionado validador de migração de utilitários
+// CORREÇÃO v2: Adicionado limite de tentativas para evitar loop infinito
 
 console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.5 CARREGADA (LAYOUT INTEGRADO)', 
             'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
@@ -2529,17 +2530,52 @@ if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
 // ================== MÓDULO DE VALIDAÇÃO DE MIGRAÇÃO ==================
 // Adicionado em: 31/03/2026
 // Finalidade: Validar a migração das funções utilitárias para o Support System
-// CORREÇÃO: Aguardar SharedCoreMigration ser definido antes de tentar estender
+// CORREÇÃO v2: Aguardar SharedCoreMigration ser definido com limite de tentativas
 
 console.log('🧪 [DIAGNOSTICS62] Preparando validador de migração de utilitários...');
 
-// ✅ AGUARDAR SharedCoreMigration SER DEFINIDO
+// Variáveis de controle para evitar loop infinito
+let _validationInitialized = false;
+let _validationAttempts = 0;
+const MAX_VALIDATION_ATTEMPTS = 10; // Máximo de 10 tentativas (1 segundo)
+const VALIDATION_RETRY_DELAY = 100; // 100ms entre tentativas
+
+// ✅ AGUARDAR SharedCoreMigration SER DEFINIDO (COM LIMITE DE TENTATIVAS)
 function initializeMigrationValidator() {
-    if (!window.SharedCoreMigration) {
-        console.log('⏳ [DIAGNOSTICS62] Aguardando SharedCoreMigration ser definido...');
-        setTimeout(initializeMigrationValidator, 100);
+    // Verificar se já foi inicializado
+    if (_validationInitialized) {
+        console.log('✅ [DIAGNOSTICS62] Validador já inicializado anteriormente, ignorando nova tentativa.');
         return;
     }
+    
+    // Incrementar contador de tentativas
+    _validationAttempts++;
+    
+    // Verificar se excedeu o limite máximo
+    if (_validationAttempts > MAX_VALIDATION_ATTEMPTS) {
+        console.warn(`⚠️ [DIAGNOSTICS62] Validador não integrado após ${MAX_VALIDATION_ATTEMPTS} tentativas.`);
+        console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não foi definido. Verifique a inicialização do módulo.');
+        
+        // Tentar criar um fallback manual
+        if (!window.SharedCoreMigration && window.SharedCore) {
+            console.log('🔄 [DIAGNOSTICS62] Criando fallback para SharedCoreMigration...');
+            window.SharedCoreMigration = {
+                validator: null,
+                panel: null,
+                tests: {}
+            };
+        }
+        return;
+    }
+    
+    if (!window.SharedCoreMigration) {
+        console.log(`⏳ [DIAGNOSTICS62] Aguardando SharedCoreMigration ser definido... (tentativa ${_validationAttempts}/${MAX_VALIDATION_ATTEMPTS})`);
+        setTimeout(initializeMigrationValidator, VALIDATION_RETRY_DELAY);
+        return;
+    }
+    
+    // Marcar como inicializado para evitar novas tentativas
+    _validationInitialized = true;
     
     console.log('✅ [DIAGNOSTICS62] SharedCoreMigration encontrado, integrando validador...');
     
@@ -2762,7 +2798,7 @@ function initializeMigrationValidator() {
          * @private
          */
         _testNoLocalFunctions: function() {
-            const sharedCoreStr = window.SharedCore.toString();
+            const sharedCoreStr = window.SharedCore ? window.SharedCore.toString() : '';
             const localPatterns = [
                 '_localFormatFeaturesForDisplay',
                 '_localParseFeaturesForStorage',
@@ -2795,6 +2831,7 @@ function initializeMigrationValidator() {
                 console.log(`   Com Support: "${withSupportResult}"`);
             } catch (e) {
                 console.error(`   Com Support: ERRO - ${e.message}`);
+                withSupportResult = 'ERROR';
             }
             
             // Teste 2: Simular ausência do Support (fallback)
@@ -2807,6 +2844,7 @@ function initializeMigrationValidator() {
                 console.log(`   Sem Support: "${withoutSupportResult}"`);
             } catch (e) {
                 console.error(`   Sem Support: ERRO - ${e.message}`);
+                withoutSupportResult = 'ERROR';
             }
             
             // Restaurar
@@ -2887,22 +2925,31 @@ function initializeMigrationValidator() {
     console.log('💡 Execute validateMigration() ou SharedCoreMigration.validator.runAllTests() para validar');
 }
 
-// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO
-setTimeout(initializeMigrationValidator, 500);
+// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO (COM DELAY INICIAL MAIOR)
+setTimeout(initializeMigrationValidator, 1000);
 
-// Executar validação automática em modo debug após 3 segundos
+// Executar validação automática em modo debug após 5 segundos (apenas uma vez)
+let autoValidationExecuted = false;
+
 if (window.location.search.includes('debug=true')) {
     setTimeout(() => {
+        if (autoValidationExecuted) return;
+        autoValidationExecuted = true;
+        
         if (window.SharedCoreMigration?.validator) {
             console.log('🔍 [DIAGNOSTICS62] Executando validação automática pós-migração...');
             window.SharedCoreMigration.validator.runAllTests();
-        } else {
+        } else if (!_validationInitialized && _validationAttempts < MAX_VALIDATION_ATTEMPTS) {
             console.log('⏳ [DIAGNOSTICS62] Validador ainda não pronto, aguardando...');
             setTimeout(() => {
                 if (window.SharedCoreMigration?.validator) {
                     window.SharedCoreMigration.validator.runAllTests();
+                } else {
+                    console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível após aguardar.');
                 }
             }, 2000);
+        } else {
+            console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível.');
         }
-    }, 3000);
+    }, 5000);
 }
