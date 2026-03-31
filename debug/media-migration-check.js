@@ -1,9 +1,10 @@
-// weberlessa-support/debug/media-migration-check.js - VERSÃO 2.2.0
+// weberlessa-support/debug/media-migration-check.js - VERSÃO 2.2.1
 // FUNCIONALIDADES: Migração, Storage Cleanup, Diagnóstico de Órfãos, Limpeza Segura
-console.log('🔍 [SUPORTE] media-migration-check.js v2.2.0 - Sistema completo de diagnóstico e limpeza');
+// CORREÇÃO: Variável listResponse renomeada para response (linha 535)
+console.log('🔍 [SUPORTE] media-migration-check.js v2.2.1 - Sistema completo de diagnóstico e limpeza');
 
 window.MediaMigrationChecker = {
-    version: '2.2.0',
+    version: '2.2.1',
     checkDate: new Date().toISOString(),
     migrationStatus: 'completed', // ✅ MIGRAÇÃO JÁ CONCLUÍDA
     
@@ -364,7 +365,7 @@ window.MediaMigrationChecker = {
         return results;
     },
     
-    // ==================== NOVAS FUNÇÕES (v2.2.0) ====================
+    // ==================== NOVAS FUNÇÕES (v2.2.1) ====================
     
     /**
      * ✅ DIAGNÓSTICO COMPLETO DE ARQUIVOS ÓRFÃOS
@@ -434,13 +435,14 @@ window.MediaMigrationChecker = {
                 }
             });
             
-            if (!listResponse.ok) {
-                console.error(`❌ Erro ao listar arquivos: ${listResponse.status}`);
+            // CORREÇÃO: Usar 'response' em vez de 'listResponse' (variável não declarada)
+            if (!response.ok) {
+                console.error(`❌ Erro ao listar arquivos: ${response.status}`);
                 console.groupEnd();
-                return { success: false, reason: 'list_failed', status: listResponse.status };
+                return { success: false, reason: 'list_failed', status: response.status };
             }
             
-            const allFiles = await listResponse.json();
+            const allFiles = await response.json();
             console.log(`📁 TOTAL DE ARQUIVOS NO STORAGE: ${allFiles.length}`);
             
             // 5. Analisar cada arquivo
@@ -852,6 +854,6 @@ if (window.location.search.includes('debug=true') ||
     }, 500);
 }
 
-console.log('✅ [SUPORTE] MediaMigrationChecker v2.2.0 carregado');
+console.log('✅ [SUPORTE] MediaMigrationChecker v2.2.1 carregado');
 console.log('💡 NOVAS FUNÇÕES: diagnoseOrphanFiles(), safeOrphanCleanup(), generateOrphanReport()');
 console.log('💡 Atalhos: window.diagnoseOrphanFiles(), window.cleanupOrphanFiles(1)');
