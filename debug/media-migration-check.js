@@ -1,10 +1,10 @@
-// weberlessa-support/debug/media-migration-check.js - VERSÃO 2.2.1
+// weberlessa-support/debug/media-migration-check.js - VERSÃO 2.2.2
 // FUNCIONALIDADES: Migração, Storage Cleanup, Diagnóstico de Órfãos, Limpeza Segura
-// CORREÇÃO: Variável listResponse renomeada para response (linha 535)
-console.log('🔍 [SUPORTE] media-migration-check.js v2.2.1 - Sistema completo de diagnóstico e limpeza');
+// CORREÇÃO v2.2.2: API de listagem do Supabase - GET corrigido para POST com body
+console.log('🔍 [SUPORTE] media-migration-check.js v2.2.2 - Sistema completo de diagnóstico e limpeza');
 
 window.MediaMigrationChecker = {
-    version: '2.2.1',
+    version: '2.2.2',
     checkDate: new Date().toISOString(),
     migrationStatus: 'completed', // ✅ MIGRAÇÃO JÁ CONCLUÍDA
     
@@ -365,7 +365,7 @@ window.MediaMigrationChecker = {
         return results;
     },
     
-    // ==================== NOVAS FUNÇÕES (v2.2.1) ====================
+    // ==================== NOVAS FUNÇÕES (v2.2.2) ====================
     
     /**
      * ✅ DIAGNÓSTICO COMPLETO DE ARQUIVOS ÓRFÃOS
@@ -426,20 +426,32 @@ window.MediaMigrationChecker = {
                 return { success: false, reason: 'missing_credentials' };
             }
             
-            // 4. Listar arquivos no Storage
+            // 4. Listar arquivos no Storage - CORREÇÃO v2.2.2: Usar POST com body para listagem
             console.log(`🔗 Conectando ao Supabase Storage...`);
             const response = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+                method: 'POST',  // CORREÇÃO: Deve ser POST, não GET
                 headers: {
                     'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'apikey': SUPABASE_KEY
-                }
+                    'apikey': SUPABASE_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    prefix: '', 
+                    limit: 1000,  // Aumentar limite para pegar mais arquivos
+                    offset: 0 
+                })
             });
             
-            // CORREÇÃO: Usar 'response' em vez de 'listResponse' (variável não declarada)
             if (!response.ok) {
                 console.error(`❌ Erro ao listar arquivos: ${response.status}`);
+                let errorDetail = '';
+                try {
+                    const errorBody = await response.text();
+                    errorDetail = errorBody;
+                    console.error(`📋 Detalhe do erro: ${errorBody.substring(0, 200)}`);
+                } catch(e) {}
                 console.groupEnd();
-                return { success: false, reason: 'list_failed', status: response.status };
+                return { success: false, reason: 'list_failed', status: response.status, error: errorDetail };
             }
             
             const allFiles = await response.json();
@@ -854,6 +866,7 @@ if (window.location.search.includes('debug=true') ||
     }, 500);
 }
 
-console.log('✅ [SUPORTE] MediaMigrationChecker v2.2.1 carregado');
+console.log('✅ [SUPORTE] MediaMigrationChecker v2.2.2 carregado');
+console.log('💡 CORREÇÃO v2.2.2: API de listagem do Supabase corrigida (POST com body)');
 console.log('💡 NOVAS FUNÇÕES: diagnoseOrphanFiles(), safeOrphanCleanup(), generateOrphanReport()');
 console.log('💡 Atalhos: window.diagnoseOrphanFiles(), window.cleanupOrphanFiles(1)');
