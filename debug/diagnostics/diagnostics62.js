@@ -1,11 +1,11 @@
-// ================== diagnostics62.js - VERSÃO 6.2.5 ==================
+// ================== diagnostics62.js - VERSÃO 6.2.6 ==================
 // CADEIA DE DIAGNÓSTICO - MÓDULO DE MIGRAÇÃO SHAREDCORE
 // CORREÇÃO: Layout integrado sem sobreposição - Seção de testes incorporada
 // Data: 10/01/2026
 // ATUALIZAÇÃO: 31/03/2026 - Adicionado validador de migração de utilitários
-// CORREÇÃO v2: Adicionado limite de tentativas para evitar loop infinito
+// CORREÇÃO v3: Garantir que SharedCoreMigration existe globalmente antes de tentar estender
 
-console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.5 CARREGADA (LAYOUT INTEGRADO)', 
+console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.6 CARREGADA (LAYOUT INTEGRADO)', 
             'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
 
 // ================== FUNÇÃO GLOBAL DE VERIFICAÇÃO DE PAINÉIS ==================
@@ -1067,7 +1067,7 @@ setTimeout(() => {
             
             if (typeof PanelManager !== 'undefined' && PanelManager.createPanel) {
                 const panelConfig = {
-                    title: '🚀 MIGRAÇÃO SHAREDCORE (v6.2.5)',
+                    title: '🚀 MIGRAÇÃO SHAREDCORE (v6.2.6)',
                     category: 'migration',
                     maxTests: 8,
                     position: { top: topPosition + 'px', left: leftPosition + 'px' },
@@ -1322,7 +1322,7 @@ setTimeout(() => {
                             user-select: none;">
                     
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="color: #ff6464; font-weight: bold; font-size: 16px;">🚀 MIGRAÇÃO SHAREDCORE v6.2.5</span>
+                        <span style="color: #ff6464; font-weight: bold; font-size: 16px;">🚀 MIGRAÇÃO SHAREDCORE v6.2.6</span>
                         <span style="background: #ff6464;
                                     color: #2a0a0a;
                                     padding: 3px 10px;
@@ -1422,7 +1422,7 @@ setTimeout(() => {
                                 🧪 TESTES DO SHAREDCORE (INTEGRADO)
                             </span>
                             <span style="color: #ff8888; font-size: 10px; background: #442222; padding: 2px 8px; border-radius: 10px;">
-                                v6.2.5
+                                v6.2.6
                             </span>
                         </div>
                         
@@ -1516,7 +1516,7 @@ setTimeout(() => {
                             font-size: 11px;">
                     
                     <div style="color: #ffaaaa;">
-                        <span>v6.2.5 - LAYOUT INTEGRADO | Z-INDEX ${zIndex}</span>
+                        <span>v6.2.6 - LAYOUT INTEGRADO | Z-INDEX ${zIndex}</span>
                     </div>
                     
                     <div style="color: #ff6464; font-weight: bold;">
@@ -1945,7 +1945,7 @@ setTimeout(() => {
             const floatBtn = document.createElement('button');
             floatBtn.id = 'scm-float-button';
             floatBtn.innerHTML = '🚀';
-            floatBtn.title = 'Migração Crítica SharedCore v6.2.5';
+            floatBtn.title = 'Migração Crítica SharedCore v6.2.6';
             floatBtn.style.cssText = `
                 position: fixed;
                 bottom: 340px;
@@ -1990,7 +1990,7 @@ setTimeout(() => {
         
         initializeAutoDisplay();
         
-        console.log('%c🚀 DIAGNOSTICS62.JS v6.2.5 - LAYOUT INTEGRADO', 
+        console.log('%c🚀 DIAGNOSTICS62.JS v6.2.6 - LAYOUT INTEGRADO', 
                     'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
         console.log('📋 Comandos disponíveis:');
         console.log('• SCMigration.panel() - Criar painel de migração');
@@ -2006,7 +2006,7 @@ setTimeout(() => {
     }
 }, 2000);
 
-console.log('%c✅ DIAGNOSTICS62.JS v6.2.5 CARREGADO COM SUCESSO - Layout integrado', 
+console.log('%c✅ DIAGNOSTICS62.JS v6.2.6 CARREGADO COM SUCESSO - Layout integrado', 
             'color: #00ff00; font-weight: bold;');
 
 if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
@@ -2530,17 +2530,17 @@ if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
 // ================== MÓDULO DE VALIDAÇÃO DE MIGRAÇÃO ==================
 // Adicionado em: 31/03/2026
 // Finalidade: Validar a migração das funções utilitárias para o Support System
-// CORREÇÃO v2: Aguardar SharedCoreMigration ser definido com limite de tentativas
+// CORREÇÃO v3: Garantir que SharedCoreMigration existe globalmente antes de tentar estender
 
 console.log('🧪 [DIAGNOSTICS62] Preparando validador de migração de utilitários...');
 
 // Variáveis de controle para evitar loop infinito
 let _validationInitialized = false;
 let _validationAttempts = 0;
-const MAX_VALIDATION_ATTEMPTS = 10; // Máximo de 10 tentativas (1 segundo)
-const VALIDATION_RETRY_DELAY = 100; // 100ms entre tentativas
+const MAX_VALIDATION_ATTEMPTS = 20; // Aumentado para 20 tentativas (4 segundos)
+const VALIDATION_RETRY_DELAY = 200; // 200ms entre tentativas
 
-// ✅ AGUARDAR SharedCoreMigration SER DEFINIDO (COM LIMITE DE TENTATIVAS)
+// ✅ FUNÇÃO QUE VERIFICA E CRIA O VALIDADOR
 function initializeMigrationValidator() {
     // Verificar se já foi inicializado
     if (_validationInitialized) {
@@ -2554,23 +2554,37 @@ function initializeMigrationValidator() {
     // Verificar se excedeu o limite máximo
     if (_validationAttempts > MAX_VALIDATION_ATTEMPTS) {
         console.warn(`⚠️ [DIAGNOSTICS62] Validador não integrado após ${MAX_VALIDATION_ATTEMPTS} tentativas.`);
-        console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não foi definido. Verifique a inicialização do módulo.');
+        console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não foi definido. Verifique se diagnostics62.js está carregando corretamente.');
         
-        // Tentar criar um fallback manual
-        if (!window.SharedCoreMigration && window.SharedCore) {
-            console.log('🔄 [DIAGNOSTICS62] Criando fallback para SharedCoreMigration...');
+        // Tentativa final: criar SharedCoreMigration manualmente se existir SharedCore
+        if (window.SharedCore && !window.SharedCoreMigration) {
+            console.log('🔄 [DIAGNOSTICS62] Criando SharedCoreMigration manualmente...');
             window.SharedCoreMigration = {
                 validator: null,
                 panel: null,
-                tests: {}
+                tests: {},
+                _isFallback: true
             };
+            console.log('✅ [DIAGNOSTICS62] SharedCoreMigration criado como fallback, tentando integrar novamente...');
+            _validationAttempts = MAX_VALIDATION_ATTEMPTS - 1; // Reduzir para tentar novamente
+            setTimeout(initializeMigrationValidator, VALIDATION_RETRY_DELAY);
         }
         return;
     }
     
+    // CRÍTICO: Verificar se SharedCoreMigration existe
+    // Se não existir, pode ser que ainda não foi definido pelo módulo principal
     if (!window.SharedCoreMigration) {
         console.log(`⏳ [DIAGNOSTICS62] Aguardando SharedCoreMigration ser definido... (tentativa ${_validationAttempts}/${MAX_VALIDATION_ATTEMPTS})`);
         setTimeout(initializeMigrationValidator, VALIDATION_RETRY_DELAY);
+        return;
+    }
+    
+    // Se chegou aqui, SharedCoreMigration existe
+    // Verificar se o validador já foi adicionado
+    if (window.SharedCoreMigration.validator) {
+        console.log('✅ [DIAGNOSTICS62] Validador já existe em SharedCoreMigration');
+        _validationInitialized = true;
         return;
     }
     
@@ -2923,12 +2937,30 @@ function initializeMigrationValidator() {
     
     console.log('✅ [DIAGNOSTICS62] Validador de migração integrado');
     console.log('💡 Execute validateMigration() ou SharedCoreMigration.validator.runAllTests() para validar');
+    
+    // Notificar que o validador está pronto
+    if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('SharedCoreMigrationValidatorReady', {
+            detail: { timestamp: new Date().toISOString() }
+        }));
+    }
 }
 
-// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO (COM DELAY INICIAL MAIOR)
-setTimeout(initializeMigrationValidator, 1000);
+// ✅ EXPOR SharedCoreMigration GLOBALMENTE IMEDIATAMENTE (se ainda não existe)
+// Isso garante que o validador tenha algo para acessar
+if (typeof window.SharedCoreMigration === 'undefined') {
+    console.log('📦 [DIAGNOSTICS62] Criando estrutura SharedCoreMigration para o validador...');
+    window.SharedCoreMigration = {
+        validator: null,
+        panel: null,
+        tests: {}
+    };
+}
 
-// Executar validação automática em modo debug após 5 segundos (apenas uma vez)
+// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO (COM DELAY MAIOR)
+setTimeout(initializeMigrationValidator, 2000);
+
+// Executar validação automática em modo debug após 6 segundos (apenas uma vez)
 let autoValidationExecuted = false;
 
 if (window.location.search.includes('debug=true')) {
@@ -2947,9 +2979,9 @@ if (window.location.search.includes('debug=true')) {
                 } else {
                     console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível após aguardar.');
                 }
-            }, 2000);
+            }, 3000);
         } else {
             console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível.');
         }
-    }, 5000);
+    }, 6000);
 }
