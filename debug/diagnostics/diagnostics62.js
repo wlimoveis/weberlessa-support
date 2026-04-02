@@ -1,11 +1,9 @@
-// ================== diagnostics62.js - VERSÃO 6.2.6 ==================
+// ================== diagnostics62.js - VERSÃO 6.2.5 ==================
 // CADEIA DE DIAGNÓSTICO - MÓDULO DE MIGRAÇÃO SHAREDCORE
 // CORREÇÃO: Layout integrado sem sobreposição - Seção de testes incorporada
 // Data: 10/01/2026
-// ATUALIZAÇÃO: 31/03/2026 - Adicionado validador de migração de utilitários
-// CORREÇÃO v3: Garantir que SharedCoreMigration existe globalmente antes de tentar estender
 
-console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.6 CARREGADA (LAYOUT INTEGRADO)', 
+console.log('%c🔧 DIAGNOSTICS62.JS - VERSÃO 6.2.5 CARREGADA (LAYOUT INTEGRADO)', 
             'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
 
 // ================== FUNÇÃO GLOBAL DE VERIFICAÇÃO DE PAINÉIS ==================
@@ -619,7 +617,7 @@ console.log('✅ Properties.js configurado para usar SharedCore');
         } else if (globalFuncExists && !sharedCoreFuncExists) {
             console.warn(\`⚠️  \${funcName}() existe globalmente mas não no SharedCore\`);
         } else if (!globalFuncExists && sharedCoreFuncExists) {
-            console.log(\`ℹ️ \${funcName}() disponível apenas via SharedCore\`);
+            console.log(\`ℹ️  \${funcName}() disponível apenas via SharedCore\`);
         }
     });
     
@@ -1067,7 +1065,7 @@ setTimeout(() => {
             
             if (typeof PanelManager !== 'undefined' && PanelManager.createPanel) {
                 const panelConfig = {
-                    title: '🚀 MIGRAÇÃO SHAREDCORE (v6.2.6)',
+                    title: '🚀 MIGRAÇÃO SHAREDCORE (v6.2.5)',
                     category: 'migration',
                     maxTests: 8,
                     position: { top: topPosition + 'px', left: leftPosition + 'px' },
@@ -1322,7 +1320,7 @@ setTimeout(() => {
                             user-select: none;">
                     
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="color: #ff6464; font-weight: bold; font-size: 16px;">🚀 MIGRAÇÃO SHAREDCORE v6.2.6</span>
+                        <span style="color: #ff6464; font-weight: bold; font-size: 16px;">🚀 MIGRAÇÃO SHAREDCORE v6.2.5</span>
                         <span style="background: #ff6464;
                                     color: #2a0a0a;
                                     padding: 3px 10px;
@@ -1422,7 +1420,7 @@ setTimeout(() => {
                                 🧪 TESTES DO SHAREDCORE (INTEGRADO)
                             </span>
                             <span style="color: #ff8888; font-size: 10px; background: #442222; padding: 2px 8px; border-radius: 10px;">
-                                v6.2.6
+                                v6.2.5
                             </span>
                         </div>
                         
@@ -1516,7 +1514,7 @@ setTimeout(() => {
                             font-size: 11px;">
                     
                     <div style="color: #ffaaaa;">
-                        <span>v6.2.6 - LAYOUT INTEGRADO | Z-INDEX ${zIndex}</span>
+                        <span>v6.2.5 - LAYOUT INTEGRADO | Z-INDEX ${zIndex}</span>
                     </div>
                     
                     <div style="color: #ff6464; font-weight: bold;">
@@ -1945,7 +1943,7 @@ setTimeout(() => {
             const floatBtn = document.createElement('button');
             floatBtn.id = 'scm-float-button';
             floatBtn.innerHTML = '🚀';
-            floatBtn.title = 'Migração Crítica SharedCore v6.2.6';
+            floatBtn.title = 'Migração Crítica SharedCore v6.2.5';
             floatBtn.style.cssText = `
                 position: fixed;
                 bottom: 340px;
@@ -1990,7 +1988,7 @@ setTimeout(() => {
         
         initializeAutoDisplay();
         
-        console.log('%c🚀 DIAGNOSTICS62.JS v6.2.6 - LAYOUT INTEGRADO', 
+        console.log('%c🚀 DIAGNOSTICS62.JS v6.2.5 - LAYOUT INTEGRADO', 
                     'color: #ff6464; font-weight: bold; font-size: 14px; background: #2a0a0a; padding: 5px;');
         console.log('📋 Comandos disponíveis:');
         console.log('• SCMigration.panel() - Criar painel de migração');
@@ -2006,7 +2004,7 @@ setTimeout(() => {
     }
 }, 2000);
 
-console.log('%c✅ DIAGNOSTICS62.JS v6.2.6 CARREGADO COM SUCESSO - Layout integrado', 
+console.log('%c✅ DIAGNOSTICS62.JS v6.2.5 CARREGADO COM SUCESSO - Layout integrado', 
             'color: #00ff00; font-weight: bold;');
 
 if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
@@ -2526,462 +2524,3 @@ if (typeof SharedCoreMigration !== 'undefined' && SharedCoreMigration.tests) {
     }, 3000);
     
 })();
-
-// ================== MÓDULO DE VALIDAÇÃO DE MIGRAÇÃO ==================
-// Adicionado em: 31/03/2026
-// Finalidade: Validar a migração das funções utilitárias para o Support System
-// CORREÇÃO v3: Garantir que SharedCoreMigration existe globalmente antes de tentar estender
-
-console.log('🧪 [DIAGNOSTICS62] Preparando validador de migração de utilitários...');
-
-// Variáveis de controle para evitar loop infinito
-let _validationInitialized = false;
-let _validationAttempts = 0;
-const MAX_VALIDATION_ATTEMPTS = 20; // Aumentado para 20 tentativas (4 segundos)
-const VALIDATION_RETRY_DELAY = 200; // 200ms entre tentativas
-
-// ✅ FUNÇÃO QUE VERIFICA E CRIA O VALIDADOR
-function initializeMigrationValidator() {
-    // Verificar se já foi inicializado
-    if (_validationInitialized) {
-        console.log('✅ [DIAGNOSTICS62] Validador já inicializado anteriormente, ignorando nova tentativa.');
-        return;
-    }
-    
-    // Incrementar contador de tentativas
-    _validationAttempts++;
-    
-    // Verificar se excedeu o limite máximo
-    if (_validationAttempts > MAX_VALIDATION_ATTEMPTS) {
-        console.warn(`⚠️ [DIAGNOSTICS62] Validador não integrado após ${MAX_VALIDATION_ATTEMPTS} tentativas.`);
-        console.warn('⚠️ [DIAGNOSTICS62] SharedCoreMigration não foi definido. Verifique se diagnostics62.js está carregando corretamente.');
-        
-        // Tentativa final: criar SharedCoreMigration manualmente se existir SharedCore
-        if (window.SharedCore && !window.SharedCoreMigration) {
-            console.log('🔄 [DIAGNOSTICS62] Criando SharedCoreMigration manualmente...');
-            window.SharedCoreMigration = {
-                validator: null,
-                panel: null,
-                tests: {},
-                _isFallback: true
-            };
-            console.log('✅ [DIAGNOSTICS62] SharedCoreMigration criado como fallback, tentando integrar novamente...');
-            _validationAttempts = MAX_VALIDATION_ATTEMPTS - 1; // Reduzir para tentar novamente
-            setTimeout(initializeMigrationValidator, VALIDATION_RETRY_DELAY);
-        }
-        return;
-    }
-    
-    // CRÍTICO: Verificar se SharedCoreMigration existe
-    // Se não existir, pode ser que ainda não foi definido pelo módulo principal
-    if (!window.SharedCoreMigration) {
-        console.log(`⏳ [DIAGNOSTICS62] Aguardando SharedCoreMigration ser definido... (tentativa ${_validationAttempts}/${MAX_VALIDATION_ATTEMPTS})`);
-        setTimeout(initializeMigrationValidator, VALIDATION_RETRY_DELAY);
-        return;
-    }
-    
-    // Se chegou aqui, SharedCoreMigration existe
-    // Verificar se o validador já foi adicionado
-    if (window.SharedCoreMigration.validator) {
-        console.log('✅ [DIAGNOSTICS62] Validador já existe em SharedCoreMigration');
-        _validationInitialized = true;
-        return;
-    }
-    
-    // Marcar como inicializado para evitar novas tentativas
-    _validationInitialized = true;
-    
-    console.log('✅ [DIAGNOSTICS62] SharedCoreMigration encontrado, integrando validador...');
-    
-    /**
-     * Validador de migração das funções utilitárias
-     * Verifica se as funções foram corretamente migradas para o Support System
-     */
-    window.SharedCoreMigration.validator = {
-        
-        /**
-         * Executa todos os testes de validação da migração
-         * @returns {Object} Resultados detalhados dos testes
-         */
-        runAllTests: function() {
-            console.group('🧪 [DIAGNOSTICS62] VALIDAÇÃO DE MIGRAÇÃO - ETAPA 2');
-            
-            const results = {
-                timestamp: new Date().toISOString(),
-                formatFeatures: this._testFormatFeatures(),
-                parseFeatures: this._testParseFeatures(),
-                ensureVideo: this._testEnsureVideo(),
-                noLocalFunctions: this._testNoLocalFunctions(),
-                proxyWorking: this._testProxyWorking(),
-                supportCoreUtilsAvailable: !!window.SupportCoreUtils
-            };
-            
-            // Calcular status geral
-            const criticalTests = ['formatFeatures', 'parseFeatures', 'ensureVideo', 'proxyWorking'];
-            const allCriticalPassed = criticalTests.every(test => results[test].passed);
-            const allTestsPassed = Object.values(results).every(r => 
-                typeof r === 'object' ? r.passed !== false : r === true
-            );
-            
-            results.summary = {
-                criticalPassed: allCriticalPassed,
-                allPassed: allTestsPassed,
-                status: allCriticalPassed ? 
-                    (allTestsPassed ? '✅ MIGRAÇÃO VÁLIDA' : '⚠️ MIGRAÇÃO PARCIAL') : 
-                    '❌ MIGRAÇÃO COM PROBLEMAS'
-            };
-            
-            // Exibir resumo
-            this._displayResults(results);
-            
-            console.groupEnd();
-            
-            // Registrar no painel de diagnóstico se disponível
-            if (window.SharedCoreMigration.panel && window.SharedCoreMigration.panel.addLog) {
-                window.SharedCoreMigration.panel.addLog(
-                    `📊 Validação: ${results.summary.status}`,
-                    allCriticalPassed ? 'success' : 'error'
-                );
-            }
-            
-            return results;
-        },
-        
-        /**
-         * Testa a função formatFeaturesForDisplay
-         * @private
-         */
-        _testFormatFeatures: function() {
-            const testCases = [
-                { input: '["Piscina", "Garagem"]', expected: 'Piscina, Garagem', name: 'JSON array' },
-                { input: 'Piscina, Garagem', expected: 'Piscina, Garagem', name: 'String simples' },
-                { input: ['Piscina', 'Garagem'], expected: 'Piscina, Garagem', name: 'Array JS' },
-                { input: '', expected: '', name: 'String vazia' },
-                { input: null, expected: '', name: 'Valor nulo' }
-            ];
-            
-            let passed = 0;
-            const details = [];
-            
-            testCases.forEach(test => {
-                try {
-                    const result = window.SharedCore.formatFeaturesForDisplay(test.input);
-                    const isPass = result === test.expected;
-                    
-                    if (isPass) {
-                        console.log(`✅ formatFeaturesForDisplay - ${test.name}: PASSOU`);
-                        passed++;
-                    } else {
-                        console.error(`❌ formatFeaturesForDisplay - ${test.name}: esperado "${test.expected}", obtido "${result}"`);
-                    }
-                    
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        expected: test.expected,
-                        result: result,
-                        passed: isPass
-                    });
-                    
-                } catch (error) {
-                    console.error(`❌ formatFeaturesForDisplay - ${test.name}: ERRO - ${error.message}`);
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        error: error.message,
-                        passed: false
-                    });
-                }
-            });
-            
-            return { passed: passed === testCases.length, total: testCases.length, details };
-        },
-        
-        /**
-         * Testa a função parseFeaturesForStorage
-         * @private
-         */
-        _testParseFeatures: function() {
-            const testCases = [
-                { input: 'Piscina, Garagem', expected: '["Piscina","Garagem"]', name: 'String simples' },
-                { input: 'Piscina, Garagem,', expected: '["Piscina","Garagem"]', name: 'String com vírgula extra' },
-                { input: '["Piscina","Garagem"]', expected: '["Piscina","Garagem"]', name: 'JSON já formatado' },
-                { input: '', expected: '[]', name: 'String vazia' }
-            ];
-            
-            let passed = 0;
-            const details = [];
-            
-            testCases.forEach(test => {
-                try {
-                    const result = window.SharedCore.parseFeaturesForStorage(test.input);
-                    // Verificar se o resultado contém os elementos esperados (flexível)
-                    const isValid = result === test.expected || 
-                                   (result.includes('Piscina') && result.includes('Garagem'));
-                    
-                    if (isValid) {
-                        console.log(`✅ parseFeaturesForStorage - ${test.name}: PASSOU`);
-                        passed++;
-                    } else {
-                        console.error(`❌ parseFeaturesForStorage - ${test.name}: esperado "${test.expected}", obtido "${result}"`);
-                    }
-                    
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        expected: test.expected,
-                        result: result,
-                        passed: isValid
-                    });
-                    
-                } catch (error) {
-                    console.error(`❌ parseFeaturesForStorage - ${test.name}: ERRO - ${error.message}`);
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        error: error.message,
-                        passed: false
-                    });
-                }
-            });
-            
-            return { passed: passed === testCases.length, total: testCases.length, details };
-        },
-        
-        /**
-         * Testa a função ensureBooleanVideo
-         * @private
-         */
-        _testEnsureVideo: function() {
-            const testCases = [
-                { input: 'true', expected: true, name: 'string "true"' },
-                { input: '1', expected: true, name: 'string "1"' },
-                { input: 'sim', expected: true, name: 'string "sim"' },
-                { input: 'SIM', expected: true, name: 'string "SIM" (maiúsculo)' },
-                { input: 'yes', expected: true, name: 'string "yes"' },
-                { input: 'false', expected: false, name: 'string "false"' },
-                { input: '0', expected: false, name: 'string "0"' },
-                { input: 'não', expected: false, name: 'string "não"' },
-                { input: 0, expected: false, name: 'number 0' },
-                { input: 1, expected: true, name: 'number 1' },
-                { input: true, expected: true, name: 'boolean true' },
-                { input: false, expected: false, name: 'boolean false' },
-                { input: null, expected: false, name: 'null' },
-                { input: undefined, expected: false, name: 'undefined' }
-            ];
-            
-            let passed = 0;
-            const details = [];
-            
-            testCases.forEach(test => {
-                try {
-                    const result = window.SharedCore.ensureBooleanVideo(test.input);
-                    const isPass = result === test.expected;
-                    
-                    if (isPass) {
-                        console.log(`✅ ensureBooleanVideo - ${test.name}: PASSOU`);
-                        passed++;
-                    } else {
-                        console.error(`❌ ensureBooleanVideo - ${test.name}: esperado ${test.expected}, obtido ${result}`);
-                    }
-                    
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        expected: test.expected,
-                        result: result,
-                        passed: isPass
-                    });
-                    
-                } catch (error) {
-                    console.error(`❌ ensureBooleanVideo - ${test.name}: ERRO - ${error.message}`);
-                    details.push({
-                        test: test.name,
-                        input: test.input,
-                        error: error.message,
-                        passed: false
-                    });
-                }
-            });
-            
-            return { passed: passed === testCases.length, total: testCases.length, details };
-        },
-        
-        /**
-         * Verifica se funções locais (_local*) foram removidas do SharedCore
-         * @private
-         */
-        _testNoLocalFunctions: function() {
-            const sharedCoreStr = window.SharedCore ? window.SharedCore.toString() : '';
-            const localPatterns = [
-                '_localFormatFeaturesForDisplay',
-                '_localParseFeaturesForStorage',
-                '_localEnsureBooleanVideo'
-            ];
-            
-            const foundPatterns = localPatterns.filter(pattern => sharedCoreStr.includes(pattern));
-            const hasLocalFunctions = foundPatterns.length > 0;
-            
-            if (hasLocalFunctions) {
-                console.warn(`⚠️ Funções locais ainda presentes: ${foundPatterns.join(', ')}`);
-            } else {
-                console.log('✅ Funções locais removidas com sucesso');
-            }
-            
-            return { passed: !hasLocalFunctions, foundPatterns };
-        },
-        
-        /**
-         * Testa se o proxy funciona com e sem o Support System disponível
-         * @private
-         */
-        _testProxyWorking: function() {
-            console.log('🔍 Testando comportamento do proxy...');
-            
-            // Teste 1: Com Support disponível
-            let withSupportResult;
-            try {
-                withSupportResult = window.SharedCore.formatFeaturesForDisplay('["Proxy"]');
-                console.log(`   Com Support: "${withSupportResult}"`);
-            } catch (e) {
-                console.error(`   Com Support: ERRO - ${e.message}`);
-                withSupportResult = 'ERROR';
-            }
-            
-            // Teste 2: Simular ausência do Support (fallback)
-            const backupSupport = window.SupportCoreUtils;
-            window.SupportCoreUtils = null;
-            
-            let withoutSupportResult;
-            try {
-                withoutSupportResult = window.SharedCore.formatFeaturesForDisplay('["Fallback"]');
-                console.log(`   Sem Support: "${withoutSupportResult}"`);
-            } catch (e) {
-                console.error(`   Sem Support: ERRO - ${e.message}`);
-                withoutSupportResult = 'ERROR';
-            }
-            
-            // Restaurar
-            window.SupportCoreUtils = backupSupport;
-            
-            const proxyWorks = withSupportResult === 'Proxy' && withoutSupportResult === 'Fallback';
-            console.log(`${proxyWorks ? '✅' : '❌'} Proxy funcionando:`, proxyWorks ? 'OK' : 'FALHOU');
-            
-            return { 
-                passed: proxyWorks, 
-                withSupport: withSupportResult, 
-                withoutSupport: withoutSupportResult 
-            };
-        },
-        
-        /**
-         * Exibe os resultados formatados
-         * @private
-         */
-        _displayResults: function(results) {
-            console.group('📊 RESUMO DA VALIDAÇÃO');
-            
-            // Tabela de resultados dos testes principais
-            const testSummary = {
-                'formatFeaturesForDisplay': results.formatFeatures.passed ? '✅' : '❌',
-                'parseFeaturesForStorage': results.parseFeatures.passed ? '✅' : '❌',
-                'ensureBooleanVideo': results.ensureVideo.passed ? '✅' : '❌',
-                'Funções locais removidas': results.noLocalFunctions.passed ? '✅' : '❌',
-                'Proxy funcionando': results.proxyWorking.passed ? '✅' : '❌',
-                'SupportCoreUtils disponível': results.supportCoreUtilsAvailable ? '✅' : '⚠️'
-            };
-            
-            console.table(testSummary);
-            console.log(`\n${results.summary.status}`);
-            
-            // Detalhar falhas se houver
-            const failures = [];
-            if (!results.formatFeatures.passed) failures.push('formatFeaturesForDisplay');
-            if (!results.parseFeatures.passed) failures.push('parseFeaturesForStorage');
-            if (!results.ensureVideo.passed) failures.push('ensureBooleanVideo');
-            if (!results.noLocalFunctions.passed) failures.push('Remover funções _local*');
-            if (!results.proxyWorking.passed) failures.push('Proxy (verificar fallback)');
-            
-            if (failures.length > 0) {
-                console.log('\n⚠️ AÇÕES CORRETIVAS NECESSÁRIAS:');
-                failures.forEach(f => console.log(`   • ${f}`));
-            }
-            
-            console.groupEnd();
-        }
-    };
-    
-    // Registrar a função de validação no DiagnosticRegistry
-    if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register(
-            'SharedCoreMigration.validator.runAllTests',
-            window.SharedCoreMigration.validator.runAllTests.bind(window.SharedCoreMigration.validator),
-            'validation',
-            { 
-                isSafe: true, 
-                description: 'Valida a migração das funções utilitárias (features, vídeo) para o Support System',
-                version: '2.0',
-                category: 'migration'
-            }
-        );
-        console.log('📋 [DIAGNOSTICS62] Validador de migração registrado no DiagnosticRegistry');
-    }
-    
-    // Adicionar atalho global para fácil acesso
-    window.validateMigration = function() {
-        if (window.SharedCoreMigration && window.SharedCoreMigration.validator) {
-            return window.SharedCoreMigration.validator.runAllTests();
-        }
-        console.error('❌ Validador não disponível. Certifique-se de que diagnostics62.js está carregado.');
-    };
-    
-    console.log('✅ [DIAGNOSTICS62] Validador de migração integrado');
-    console.log('💡 Execute validateMigration() ou SharedCoreMigration.validator.runAllTests() para validar');
-    
-    // Notificar que o validador está pronto
-    if (window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('SharedCoreMigrationValidatorReady', {
-            detail: { timestamp: new Date().toISOString() }
-        }));
-    }
-}
-
-// ✅ EXPOR SharedCoreMigration GLOBALMENTE IMEDIATAMENTE (se ainda não existe)
-// Isso garante que o validador tenha algo para acessar
-if (typeof window.SharedCoreMigration === 'undefined') {
-    console.log('📦 [DIAGNOSTICS62] Criando estrutura SharedCoreMigration para o validador...');
-    window.SharedCoreMigration = {
-        validator: null,
-        panel: null,
-        tests: {}
-    };
-}
-
-// ✅ INICIAR A INTEGRAÇÃO APÓS O CARREGAMENTO (COM DELAY MAIOR)
-setTimeout(initializeMigrationValidator, 2000);
-
-// Executar validação automática em modo debug após 6 segundos (apenas uma vez)
-let autoValidationExecuted = false;
-
-if (window.location.search.includes('debug=true')) {
-    setTimeout(() => {
-        if (autoValidationExecuted) return;
-        autoValidationExecuted = true;
-        
-        if (window.SharedCoreMigration?.validator) {
-            console.log('🔍 [DIAGNOSTICS62] Executando validação automática pós-migração...');
-            window.SharedCoreMigration.validator.runAllTests();
-        } else if (!_validationInitialized && _validationAttempts < MAX_VALIDATION_ATTEMPTS) {
-            console.log('⏳ [DIAGNOSTICS62] Validador ainda não pronto, aguardando...');
-            setTimeout(() => {
-                if (window.SharedCoreMigration?.validator) {
-                    window.SharedCoreMigration.validator.runAllTests();
-                } else {
-                    console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível após aguardar.');
-                }
-            }, 3000);
-        } else {
-            console.warn('⚠️ [DIAGNOSTICS62] Validação automática não disponível.');
-        }
-    }, 6000);
-}
