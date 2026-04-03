@@ -1,13 +1,13 @@
 // debug/utils/core-utilities.js
 // Módulo utilitário para funções de formatação e validação migradas do Core System
 // ✅ Este módulo é OPCIONAL e NÃO ESSENCIAL para o Core System funcionar
-// VERSÃO: 2.0.1 - Adicionado log detalhado de carregamento
+// VERSÃO: 2.1.0 - Adicionado validateIdForSupabase e manageEditingState
 
-console.log('🔧 [SUPPORT] Carregando core-utilities.js - VERSÃO 2.0.1');
+console.log('🔧 [SUPPORT] Carregando core-utilities.js - VERSÃO 2.1.0');
 
 // ========== FUNÇÕES DE FEATURES E VIDEO ==========
 window.SupportCoreUtils = {
-    version: '2.0.1',
+    version: '2.1.0',
     
     /**
      * Formata features para exibição
@@ -68,6 +68,51 @@ window.SupportCoreUtils = {
     },
     
     /**
+     * Gerencia o estado global de edição de propriedade.
+     * @param {string|number|null} id - O ID da propriedade em edição ou null para limpar.
+     * @returns {string|number|null} O ID atual após a operação.
+     */
+    manageEditingState: function(id = null) {
+        if (id === null) {
+            window.editingPropertyId = null;
+            console.log('🧹 [core-utils] Estado de edição limpo.');
+            return null;
+        }
+        // Garante que o ID seja armazenado como número, se possível, para consistência.
+        const numericId = this.validateIdForSupabase(id);
+        window.editingPropertyId = numericId !== null ? numericId : id;
+        console.log(`✏️ [core-utils] Estado de edição definido para: ${window.editingPropertyId}`);
+        return window.editingPropertyId;
+    },
+
+    /**
+     * Valida e sanitiza um ID de propriedade para uso com o Supabase.
+     * @param {string|number} id - O ID bruto a ser validado.
+     * @returns {number|null} O ID numérico válido ou null se inválido.
+     */
+    validateIdForSupabase: function(id) {
+        if (id === undefined || id === null || id === 'null' || id === 'undefined') {
+            console.warn('⚠️ [core-utils] ID inválido fornecido:', id);
+            return null;
+        }
+        if (typeof id === 'number' && !isNaN(id) && id > 0) {
+            return id;
+        }
+        if (typeof id === 'string') {
+            // Tenta extrair números da string (ex: "temp_123" -> 123)
+            const numericMatch = id.match(/\d+/);
+            if (numericMatch) {
+                const numericId = parseInt(numericMatch[0], 10);
+                if (!isNaN(numericId) && numericId > 0) {
+                    return numericId;
+                }
+            }
+        }
+        console.warn('⚠️ [core-utils] Não foi possível validar o ID:', id);
+        return null;
+    },
+    
+    /**
      * Verifica se o módulo está funcionando corretamente
      * @returns {object} Status do módulo
      */
@@ -82,7 +127,9 @@ window.SupportCoreUtils = {
             functions: {
                 formatFeaturesForDisplay: typeof this.formatFeaturesForDisplay === 'function',
                 parseFeaturesForStorage: typeof this.parseFeaturesForStorage === 'function',
-                ensureBooleanVideo: typeof this.ensureBooleanVideo === 'function'
+                ensureBooleanVideo: typeof this.ensureBooleanVideo === 'function',
+                manageEditingState: typeof this.manageEditingState === 'function',
+                validateIdForSupabase: typeof this.validateIdForSupabase === 'function'
             },
             testResults: {
                 formatFeaturesForDisplay: formatted === 'Teste1, Teste2',
@@ -113,18 +160,40 @@ if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.register === '
             version: window.SupportCoreUtils.version,
             description: 'Converte valor de vídeo para booleano'
         });
+        window.DiagnosticRegistry.register('validateIdForSupabase', window.SupportCoreUtils.validateIdForSupabase, 'utils', { 
+            isSafe: true, 
+            hasFallback: true,
+            version: window.SupportCoreUtils.version,
+            description: 'Valida e sanitiza ID para uso com Supabase'
+        });
+        window.DiagnosticRegistry.register('manageEditingState', window.SupportCoreUtils.manageEditingState, 'utils', { 
+            isSafe: true, 
+            hasFallback: true,
+            version: window.SupportCoreUtils.version,
+            description: 'Gerencia estado global de edição de propriedade'
+        });
         console.log('📋 [core-utilities] Funções registradas no DiagnosticRegistry');
     } catch (e) {
         console.warn('⚠️ [core-utilities] Erro ao registrar no DiagnosticRegistry:', e.message);
     }
 }
 
+// Expor funções globalmente para compatibilidade com código legado
+if (typeof window.validateIdForSupabase === 'undefined') {
+    window.validateIdForSupabase = window.SupportCoreUtils.validateIdForSupabase.bind(window.SupportCoreUtils);
+}
+if (typeof window.manageEditingState === 'undefined') {
+    window.manageEditingState = window.SupportCoreUtils.manageEditingState.bind(window.SupportCoreUtils);
+}
+
 // Exibir relatório de carregamento detalhado
-console.log('✅ [SUPPORT] core-utilities.js v2.0.1 carregado com sucesso!');
+console.log('✅ [SUPPORT] core-utilities.js v2.1.0 carregado com sucesso!');
 console.log('📦 Funções disponíveis no SupportCoreUtils:');
 console.log('   🔧 formatFeaturesForDisplay:', typeof window.SupportCoreUtils.formatFeaturesForDisplay);
 console.log('   🔧 parseFeaturesForStorage:', typeof window.SupportCoreUtils.parseFeaturesForStorage);
 console.log('   🔧 ensureBooleanVideo:', typeof window.SupportCoreUtils.ensureBooleanVideo);
+console.log('   🔧 validateIdForSupabase:', typeof window.SupportCoreUtils.validateIdForSupabase);
+console.log('   🔧 manageEditingState:', typeof window.SupportCoreUtils.manageEditingState);
 console.log('   🔧 healthCheck:', typeof window.SupportCoreUtils.healthCheck);
 
 // Executar health check automático em modo debug
