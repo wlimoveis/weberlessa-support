@@ -169,7 +169,7 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
                 <!-- Botão de acesso a PDFs -->
                 ${hasPdfs ? `
                     <button class="pdf-access" onclick="event.stopPropagation(); if(window.PdfSystem) window.PdfSystem.showModal(${property.id})" 
-                            style="position: absolute; bottom: 10px; right: 45px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #1a5276; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                            style="position: absolute; bottom: 2px; right: 35px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #1a5276; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                         <i class="fas fa-file-pdf"></i>
                     </button>
                 ` : ''}
