@@ -249,7 +249,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 6. CORREÇÃO DE EMERGÊNCIA PARA GALERIA (NOVO - 05/04/2026)
+    // 6. CORREÇÃO DE EMERGÊNCIA PARA GALERIA
     // =========================================================================
     /**
      * Diagnóstico completo da função createPropertyGallery
@@ -524,6 +524,51 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         return status;
     };
 
+    /**
+     * EXECUÇÃO AUTOMÁTICA COMPLETA - Diagnóstico e Correção
+     * Esta função executa todo o fluxo de diagnóstico e correção automaticamente
+     */
+    window.galleryDebug.runAutoDiagnosticAndFix = function() {
+        console.log('🚀 [gallery-diagnostics] Iniciando diagnóstico e correção automática da galeria...');
+        
+        // Verificar se SupportTemplates existe
+        console.log('📋 SupportTemplates disponível:', !!window.SupportTemplates);
+        console.log('📋 PropertyTemplateEngine:', !!window.SupportTemplates?.PropertyTemplateEngine);
+        
+        // Verificar se createPropertyGallery existe
+        if (typeof window.createPropertyGallery !== 'function') {
+            console.error('❌ createPropertyGallery NÃO é uma função! gallery.js pode não ter carregado.');
+            return { success: false, error: 'createPropertyGallery_not_available' };
+        }
+        
+        // Executar diagnóstico
+        const diagnosis = window.galleryDebug.diagnoseCreatePropertyGallery();
+        
+        // Se houver problemas, aplicar correção
+        if (diagnosis.possibleIssues && diagnosis.possibleIssues.length > 0) {
+            console.log('⚠️ Problemas detectados, aplicando correção de emergência...');
+            const fixResult = window.galleryDebug.applyGalleryFix();
+            
+            // Forçar re-renderização
+            setTimeout(() => {
+                if (typeof window.renderProperties === 'function') {
+                    window.renderProperties('todos', true);
+                    console.log('🔄 Re-renderização forçada após correção');
+                }
+                
+                // Verificar status final
+                setTimeout(() => {
+                    window.galleryDebug.checkGalleryFixStatus();
+                }, 500);
+            }, 500);
+            
+            return { success: true, diagnosis, fixResult };
+        } else {
+            console.log('✅ Nenhum problema detectado, galeria já está funcionando corretamente');
+            return { success: true, diagnosis, message: 'no_issues_found' };
+        }
+    };
+
     // Registrar no DiagnosticRegistry
     if (window.DiagnosticRegistry) {
         window.DiagnosticRegistry.register('galleryDebug.diagnoseCreatePropertyGallery', window.galleryDebug.diagnoseCreatePropertyGallery, 'gallery', {
@@ -539,37 +584,84 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
             isSafe: true,
             description: 'Verifica o status da correção da galeria'
         });
-    }
-
-    // Auto-execução em modo debug com parâmetro específico
-    if (window.location.search.includes('fix-gallery=true')) {
-        setTimeout(() => {
-            console.log('🔧 [gallery-diagnostics] Auto-aplicação da correção de galeria ativada');
-            window.galleryDebug.applyGalleryFix();
-            setTimeout(() => {
-                window.galleryDebug.checkGalleryFixStatus();
-            }, 1000);
-        }, 2000);
+        window.DiagnosticRegistry.register('galleryDebug.runAutoDiagnosticAndFix', window.galleryDebug.runAutoDiagnosticAndFix, 'gallery', {
+            isSafe: false,
+            isDestructive: false,
+            description: 'Executa diagnóstico e correção automática completa da galeria'
+        });
     }
 
     console.log('✅ [gallery-diagnostics] Correção de emergência para galeria disponível');
-    console.log('📝 Comandos: galleryDebug.diagnoseCreatePropertyGallery(), galleryDebug.applyGalleryFix(), galleryDebug.checkGalleryFixStatus()');
+    console.log('📝 Comandos disponíveis:');
+    console.log('   • galleryDebug.diagnoseCreatePropertyGallery() - Diagnosticar problema');
+    console.log('   • galleryDebug.applyGalleryFix() - Aplicar correção');
+    console.log('   • galleryDebug.checkGalleryFixStatus() - Verificar status');
+    console.log('   • galleryDebug.runAutoDiagnosticAndFix() - Executar diagnóstico e correção automática');
 
     // =========================================================================
-    // 7. INICIALIZAÇÃO AUTOMÁTICA EM MODO DEBUG
+    // 7. EXECUÇÃO AUTOMÁTICA EM MODO DEBUG OU COM PARÂMETROS ESPECÍFICOS
     // =========================================================================
+    
+    // Executar diagnóstico automático quando debug=true ou fix-gallery=true
+    const shouldRunAutoDiagnostic = window.location.search.includes('debug=true') || 
+                                     window.location.search.includes('fix-gallery=true') ||
+                                     window.location.search.includes('auto-fix-gallery=true');
+    
+    if (shouldRunAutoDiagnostic) {
+        // Aguardar o carregamento completo da página e dos dados
+        const startAutoDiagnostic = function() {
+            console.log('🔧 [gallery-diagnostics] Execução automática de diagnóstico e correção ativada');
+            
+            // Aguardar window.properties estar disponível
+            let checkInterval = 0;
+            const maxChecks = 20; // 10 segundos máximo (20 * 500ms)
+            
+            const checkProperties = setInterval(() => {
+                checkInterval++;
+                
+                if (window.properties && window.properties.length > 0) {
+                    clearInterval(checkProperties);
+                    console.log('✅ [gallery-diagnostics] Dados dos imóveis carregados, executando diagnóstico...');
+                    window.galleryDebug.runAutoDiagnosticAndFix();
+                } else if (checkInterval >= maxChecks) {
+                    clearInterval(checkProperties);
+                    console.warn('⚠️ [gallery-diagnostics] Timeout aguardando window.properties');
+                    
+                    // Mesmo sem properties, verificar se createPropertyGallery existe
+                    if (typeof window.createPropertyGallery === 'function') {
+                        console.log('🔄 [gallery-diagnostics] createPropertyGallery disponível, mas sem dados. Tentando diagnóstico parcial...');
+                        window.galleryDebug.diagnoseCreatePropertyGallery();
+                    } else {
+                        console.error('❌ [gallery-diagnostics] createPropertyGallery NÃO disponível!');
+                    }
+                }
+            }, 500);
+        };
+        
+        // Iniciar após o DOM estar pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startAutoDiagnostic);
+        } else {
+            startAutoDiagnostic();
+        }
+    }
+    
+    // Executar verificação do container de propriedades quando debug=true
     if (window.location.search.includes('debug=true')) {
         setTimeout(() => {
             console.log('🔄 [SUPORTE] Executando verificação automática da galeria...');
             
-            // Registrar no DiagnosticRegistry (se disponível)
-            setTimeout(() => {
-                if (window.DiagnosticRegistry && typeof window.waitForAllPropertyImages === 'function') {
-                    window.DiagnosticRegistry.register('waitForAllPropertyImages', window.waitForAllPropertyImages, 'gallery', {
-                        description: 'Aguarda carregamento de todas as imagens dos imóveis'
-                    });
+            // Verificar o container atual
+            const container = document.getElementById('properties-container');
+            if (container) {
+                const firstCard = container.querySelector('.property-card');
+                if (firstCard) {
+                    console.log('📋 Primeiro card atual (primeiros 500 chars):', firstCard.outerHTML.substring(0, 500));
+                    console.log('📋 Card contém property-gallery-container?', firstCard.innerHTML.includes('property-gallery-container'));
+                } else {
+                    console.log('⚠️ Nenhum card encontrado no container');
                 }
-            }, 1000);
+            }
             
             // Verificar sistema após 3 segundos
             setTimeout(() => {
@@ -588,8 +680,60 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
             console.log('  - galleryDebug.diagnoseCreatePropertyGallery() - Diagnosticar problema da galeria');
             console.log('  - galleryDebug.applyGalleryFix() - Aplicar correção de emergência');
             console.log('  - galleryDebug.checkGalleryFixStatus() - Verificar status da correção');
+            console.log('  - galleryDebug.runAutoDiagnosticAndFix() - Executar diagnóstico e correção automática');
             
         }, 1000);
     }
+
+    // =========================================================================
+    // 8. CORREÇÃO TEMPORÁRIA PARA FORÇAR GALERIA A APARECER (EMBARCADA)
+    // =========================================================================
+    // Esta correção é ativada automaticamente se detectar que a galeria não está funcionando
+    setTimeout(function() {
+        console.log('🔧 [gallery-diagnostics] Verificando necessidade de correção temporária da galeria...');
+        
+        // Verificar se a função existe
+        if (typeof window.createPropertyGallery !== 'function') {
+            console.error('❌ [gallery-diagnostics] createPropertyGallery não encontrada!');
+            return;
+        }
+        
+        // Verificar se há imóveis carregados
+        if (!window.properties || window.properties.length === 0) {
+            console.log('⏳ [gallery-diagnostics] Aguardando carregamento dos imóveis...');
+            return;
+        }
+        
+        // Testar com o primeiro imóvel
+        const testProperty = window.properties[0];
+        if (testProperty && testProperty.images && testProperty.images !== 'EMPTY') {
+            const testHtml = window.createPropertyGallery(testProperty);
+            
+            const hasExpectedElements = testHtml.includes('gallery-view-counter') || 
+                                       testHtml.includes('gallery-nav-arrow') || 
+                                       testHtml.includes('gallery-dot');
+            
+            console.log('📊 [gallery-diagnostics] Verificação de elementos esperados:', {
+                'gallery-view-counter': testHtml.includes('gallery-view-counter'),
+                'gallery-nav-arrow': testHtml.includes('gallery-nav-arrow'),
+                'gallery-dot': testHtml.includes('gallery-dot'),
+                'video-indicator': testHtml.includes('video-indicator')
+            });
+            
+            // Se não encontrar os elementos esperados, aplicar correção automaticamente
+            if (!hasExpectedElements) {
+                console.warn('⚠️ [gallery-diagnostics] Elementos da galeria não encontrados! Aplicando correção automática...');
+                window.galleryDebug.applyGalleryFix();
+            } else {
+                console.log('✅ [gallery-diagnostics] Galeria parece estar funcionando corretamente');
+            }
+        }
+        
+        // Forçar re-renderização para garantir
+        if (typeof window.renderProperties === 'function') {
+            window.renderProperties('todos', true);
+            console.log('✅ [gallery-diagnostics] Re-renderização forçada');
+        }
+    }, 3000);
 
 })();
