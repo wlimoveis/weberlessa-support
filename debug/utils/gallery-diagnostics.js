@@ -24,16 +24,57 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 2. VERIFICAÇÃO DO SISTEMA DE GALERIA
+    // 2. VERIFICAÇÃO DO SISTEMA DE GALERIA (VERSÃO MELHORADA)
     // =========================================================================
     /**
      * Verifica se o sistema de galeria está funcionando corretamente
+     * Agora inclui verificação profunda do CSS
      */
     window.checkGallerySystem = function() {
         console.group('🔍 [SUPORTE] VERIFICAÇÃO DO SISTEMA DE GALERIA');
         
+        // Verificação CSS aprimorada
+        let galleryCssStatus = {
+            found: false,
+            href: null,
+            rulesCount: 0,
+            canReadRules: false,
+            error: null
+        };
+        
+        try {
+            const sheets = document.styleSheets;
+            for (let i = 0; i < sheets.length; i++) {
+                const sheet = sheets[i];
+                if (sheet.href && sheet.href.includes('gallery.css')) {
+                    galleryCssStatus.found = true;
+                    galleryCssStatus.href = sheet.href;
+                    try {
+                        const rules = sheet.cssRules || sheet.rules;
+                        galleryCssStatus.rulesCount = rules ? rules.length : 0;
+                        galleryCssStatus.canReadRules = true;
+                    } catch(e) {
+                        galleryCssStatus.canReadRules = false;
+                        galleryCssStatus.error = e.message;
+                    }
+                    break;
+                }
+            }
+        } catch(e) {
+            galleryCssStatus.error = e.message;
+        }
+        
+        // Verificar também se o link existe no DOM (fallback)
+        const cssLinkExists = !!document.querySelector('link[href*="gallery.css"]');
+        
         const results = {
-            'CSS carregado': !!document.querySelector('link[href*="gallery.css"]'),
+            'CSS da galeria': {
+                'link no DOM': cssLinkExists ? '✅' : '❌',
+                'arquivo carregado': galleryCssStatus.found ? '✅' : '❌',
+                'URL': galleryCssStatus.href || 'não encontrado',
+                'regras CSS': galleryCssStatus.rulesCount > 0 ? `${galleryCssStatus.rulesCount} regras` : (galleryCssStatus.found ? '⚠️ (CORS - não pode ler)' : '❌'),
+                'CORS bloqueio': !galleryCssStatus.canReadRules && galleryCssStatus.found ? '⚠️ Sim' : '✅'
+            },
             'Funções essenciais': {
                 'createPropertyGallery': typeof window.createPropertyGallery === 'function' ? '✅' : '❌',
                 'openGallery': typeof window.openGallery === 'function' ? '✅' : '❌',
@@ -54,7 +95,16 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         };
         
         console.log('📊 RESULTADOS:');
-        console.log(`- CSS da galeria: ${results['CSS carregado'] ? '✅' : '❌'}`);
+        console.log('\n🎨 CSS DA GALERIA:');
+        Object.entries(results['CSS da galeria']).forEach(([nome, valor]) => {
+            console.log(`  - ${nome}: ${valor}`);
+        });
+        
+        if (galleryCssStatus.found && !galleryCssStatus.canReadRules) {
+            console.log('\n⚠️ ATENÇÃO: O CSS foi carregado mas está bloqueado por CORS!');
+            console.log('   Isso pode impedir que as regras CSS sejam aplicadas corretamente.');
+            console.log('   Solução: Servir o CSS do mesmo domínio ou configurar CORS corretamente.');
+        }
         
         console.log('\n📋 FUNÇÕES:');
         Object.entries(results['Funções essenciais']).forEach(([nome, status]) => {
@@ -90,8 +140,11 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         const allFunctionsOk = Object.values(results['Funções essenciais'])
             .every(v => v === '✅');
         
-        if (allFunctionsOk) {
+        if (allFunctionsOk && galleryCssStatus.found) {
             console.log('\n✅✅✅ SISTEMA DE GALERIA OPERACIONAL!');
+        } else if (!galleryCssStatus.found) {
+            console.log('\n⚠️⚠️⚠️ CSS DA GALERIA NÃO CARREGADO!');
+            console.log('   Verifique se o arquivo gallery.css existe e o caminho está correto.');
         } else {
             console.log('\n⚠️⚠️⚠️ SISTEMA DE GALERIA COM PROBLEMAS!');
         }
@@ -102,7 +155,120 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 3. TESTE DE NAVEGAÇÃO DA GALERIA
+    // 3. VERIFICAÇÃO DEDICADA DO CSS DA GALERIA (NOVA FUNÇÃO)
+    // =========================================================================
+    /**
+     * Verifica especificamente se o CSS da galeria foi carregado corretamente
+     * Útil para diagnosticar problemas de estilo
+     */
+    window.checkGalleryCSS = function() {
+        console.group('🎨 [SUPORTE] VERIFICAÇÃO DEDICADA DO CSS DA GALERIA');
+        
+        const result = {
+            cssLinkInDOM: false,
+            cssLoaded: false,
+            cssUrl: null,
+            rulesCount: 0,
+            canAccessRules: false,
+            corsIssue: false,
+            criticalSelectors: {},
+            error: null
+        };
+        
+        // Verificar link no DOM
+        const cssLink = document.querySelector('link[href*="gallery.css"]');
+        result.cssLinkInDOM = !!cssLink;
+        if (cssLink) {
+            result.cssUrl = cssLink.href;
+            console.log(`📄 Link encontrado: ${result.cssUrl}`);
+        } else {
+            console.log('❌ Nenhum link para gallery.css encontrado no DOM');
+        }
+        
+        // Verificar se o CSS foi realmente carregado
+        try {
+            const sheets = document.styleSheets;
+            for (let i = 0; i < sheets.length; i++) {
+                const sheet = sheets[i];
+                if (sheet.href && sheet.href.includes('gallery.css')) {
+                    result.cssLoaded = true;
+                    result.cssUrl = sheet.href;
+                    
+                    try {
+                        const rules = sheet.cssRules || sheet.rules;
+                        result.rulesCount = rules ? rules.length : 0;
+                        result.canAccessRules = true;
+                        
+                        // Verificar seletores críticos
+                        const criticalSelectors = [
+                            '.gallery-modal',
+                            '.gallery-container',
+                            '.gallery-nav-arrow',
+                            '.gallery-dot',
+                            '.gallery-view-counter',
+                            '.video-indicator',
+                            '.property-image'
+                        ];
+                        
+                        console.log('\n📊 VERIFICANDO SELETORES CRÍTICOS:');
+                        for (const selector of criticalSelectors) {
+                            let found = false;
+                            for (let j = 0; j < rules.length; j++) {
+                                const rule = rules[j];
+                                if (rule.selectorText && rule.selectorText.includes(selector)) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            result.criticalSelectors[selector] = found;
+                            console.log(`  - ${selector}: ${found ? '✅' : '❌'}`);
+                        }
+                        
+                    } catch(e) {
+                        result.canAccessRules = false;
+                        result.corsIssue = true;
+                        result.error = e.message;
+                        console.log(`⚠️ Não foi possível ler as regras CSS (CORS): ${e.message}`);
+                    }
+                    break;
+                }
+            }
+        } catch(e) {
+            result.error = e.message;
+            console.log(`❌ Erro ao acessar styleSheets: ${e.message}`);
+        }
+        
+        if (!result.cssLoaded && result.cssLinkInDOM) {
+            console.log('\n⚠️ O link do CSS existe mas o arquivo não foi carregado!');
+            console.log('   Possíveis causas:');
+            console.log('   - Caminho do arquivo incorreto');
+            console.log('   - Servidor não está servindo o arquivo');
+            console.log('   - Rede bloqueando o download');
+        }
+        
+        if (result.corsIssue) {
+            console.log('\n⚠️⚠️⚠️ PROBLEMA DE CORS DETECTADO!');
+            console.log('   O CSS foi carregado de um domínio diferente e não pode ser lido.');
+            console.log('   Isso pode impedir a aplicação correta dos estilos.');
+            console.log('   Solução:');
+            console.log('   1. Servir o CSS do mesmo domínio que a página');
+            console.log('   2. Ou configurar CORS no servidor que hospeda o CSS');
+        }
+        
+        console.log('\n📋 RESUMO:');
+        console.log(`   - Link no DOM: ${result.cssLinkInDOM ? '✅' : '❌'}`);
+        console.log(`   - CSS carregado: ${result.cssLoaded ? '✅' : '❌'}`);
+        console.log(`   - Pode ler regras: ${result.canAccessRules ? '✅' : '❌'}`);
+        console.log(`   - Problema CORS: ${result.corsIssue ? '⚠️ Sim' : '✅ Não'}`);
+        console.log(`   - Regras CSS: ${result.rulesCount}`);
+        
+        console.groupEnd();
+        
+        return result;
+    };
+
+    // =========================================================================
+    // 4. TESTE DE NAVEGAÇÃO DA GALERIA
     // =========================================================================
     /**
      * Testa a navegação da galeria com um imóvel de exemplo
@@ -157,7 +323,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 4. DIAGNÓSTICO DE TOUCH EVENTS
+    // 5. DIAGNÓSTICO DE TOUCH EVENTS
     // =========================================================================
     /**
      * Verifica se os eventos de touch estão configurados
@@ -198,7 +364,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 5. AGUARDAR CARREGAMENTO DE IMAGENS DOS IMÓVEIS
+    // 6. AGUARDAR CARREGAMENTO DE IMAGENS DOS IMÓVEIS
     // =========================================================================
     /**
      * Aguarda todas as imagens dos imóveis carregarem
@@ -249,7 +415,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     };
 
     // =========================================================================
-    // 6. CORREÇÃO DE EMERGÊNCIA PARA GALERIA
+    // 7. CORREÇÃO DE EMERGÊNCIA PARA GALERIA
     // =========================================================================
     /**
      * Diagnóstico completo da função createPropertyGallery
@@ -518,6 +684,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         console.log('   • window.galleryDebug.diagnoseCreatePropertyGallery() - Diagnosticar problema');
         console.log('   • window.galleryDebug.applyGalleryFix() - Aplicar correção');
         console.log('   • window.galleryDebug.checkGalleryFixStatus() - Verificar status');
+        console.log('   • window.checkGalleryCSS() - Verificar CSS da galeria');
         
         console.groupEnd();
         
@@ -531,6 +698,9 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     window.galleryDebug.runAutoDiagnosticAndFix = function() {
         console.log('🚀 [gallery-diagnostics] Iniciando diagnóstico e correção automática da galeria...');
         
+        // Verificar CSS primeiro
+        const cssStatus = window.checkGalleryCSS();
+        
         // Verificar se SupportTemplates existe
         console.log('📋 SupportTemplates disponível:', !!window.SupportTemplates);
         console.log('📋 PropertyTemplateEngine:', !!window.SupportTemplates?.PropertyTemplateEngine);
@@ -538,7 +708,7 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         // Verificar se createPropertyGallery existe
         if (typeof window.createPropertyGallery !== 'function') {
             console.error('❌ createPropertyGallery NÃO é uma função! gallery.js pode não ter carregado.');
-            return { success: false, error: 'createPropertyGallery_not_available' };
+            return { success: false, error: 'createPropertyGallery_not_available', cssStatus };
         }
         
         // Executar diagnóstico
@@ -562,10 +732,10 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
                 }, 500);
             }, 500);
             
-            return { success: true, diagnosis, fixResult };
+            return { success: true, diagnosis, fixResult, cssStatus };
         } else {
             console.log('✅ Nenhum problema detectado, galeria já está funcionando corretamente');
-            return { success: true, diagnosis, message: 'no_issues_found' };
+            return { success: true, diagnosis, message: 'no_issues_found', cssStatus };
         }
     };
 
@@ -589,6 +759,10 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
             isDestructive: false,
             description: 'Executa diagnóstico e correção automática completa da galeria'
         });
+        window.DiagnosticRegistry.register('checkGalleryCSS', window.checkGalleryCSS, 'gallery', {
+            isSafe: true,
+            description: 'Verifica se o CSS da galeria foi carregado corretamente'
+        });
     }
 
     console.log('✅ [gallery-diagnostics] Correção de emergência para galeria disponível');
@@ -597,9 +771,10 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     console.log('   • galleryDebug.applyGalleryFix() - Aplicar correção');
     console.log('   • galleryDebug.checkGalleryFixStatus() - Verificar status');
     console.log('   • galleryDebug.runAutoDiagnosticAndFix() - Executar diagnóstico e correção automática');
+    console.log('   • checkGalleryCSS() - Verificar CSS da galeria');
 
     // =========================================================================
-    // 7. EXECUÇÃO AUTOMÁTICA EM MODO DEBUG OU COM PARÂMETROS ESPECÍFICOS
+    // 8. EXECUÇÃO AUTOMÁTICA EM MODO DEBUG OU COM PARÂMETROS ESPECÍFICOS
     // =========================================================================
     
     // Executar diagnóstico automático quando debug=true ou fix-gallery=true
@@ -627,7 +802,9 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
                     clearInterval(checkProperties);
                     console.warn('⚠️ [gallery-diagnostics] Timeout aguardando window.properties');
                     
-                    // Mesmo sem properties, verificar se createPropertyGallery existe
+                    // Mesmo sem properties, verificar CSS e se createPropertyGallery existe
+                    window.checkGalleryCSS();
+                    
                     if (typeof window.createPropertyGallery === 'function') {
                         console.log('🔄 [gallery-diagnostics] createPropertyGallery disponível, mas sem dados. Tentando diagnóstico parcial...');
                         window.galleryDebug.diagnoseCreatePropertyGallery();
@@ -651,6 +828,9 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
         setTimeout(() => {
             console.log('🔄 [SUPORTE] Executando verificação automática da galeria...');
             
+            // Verificar CSS automaticamente
+            window.checkGalleryCSS();
+            
             // Verificar o container atual
             const container = document.getElementById('properties-container');
             if (container) {
@@ -672,7 +852,8 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
             
             // Configurar atalho no console
             console.log('📌 Comandos disponíveis:');
-            console.log('  - checkGallerySystem() - Verificar sistema');
+            console.log('  - checkGallerySystem() - Verificar sistema completo');
+            console.log('  - checkGalleryCSS() - Verificar CSS da galeria');
             console.log('  - testGalleryNavigation() - Testar navegação');
             console.log('  - diagnoseGalleryTouch() - Diagnosticar touch');
             console.log('  - initializeGalleryModule() - Reinicializar manualmente');
@@ -686,11 +867,18 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
     }
 
     // =========================================================================
-    // 8. CORREÇÃO TEMPORÁRIA PARA FORÇAR GALERIA A APARECER (EMBARCADA)
+    // 9. CORREÇÃO TEMPORÁRIA PARA FORÇAR GALERIA A APARECER (EMBARCADA)
     // =========================================================================
     // Esta correção é ativada automaticamente se detectar que a galeria não está funcionando
     setTimeout(function() {
         console.log('🔧 [gallery-diagnostics] Verificando necessidade de correção temporária da galeria...');
+        
+        // Verificar CSS primeiro
+        const cssStatus = window.checkGalleryCSS();
+        
+        if (!cssStatus.cssLoaded) {
+            console.warn('⚠️ [gallery-diagnostics] CSS da galeria não carregado! Verifique o caminho do arquivo.');
+        }
         
         // Verificar se a função existe
         if (typeof window.createPropertyGallery !== 'function') {
@@ -724,6 +912,9 @@ console.log('🔧 [SUPPORT] gallery-diagnostics.js carregado');
             if (!hasExpectedElements) {
                 console.warn('⚠️ [gallery-diagnostics] Elementos da galeria não encontrados! Aplicando correção automática...');
                 window.galleryDebug.applyGalleryFix();
+            } else if (!cssStatus.cssLoaded) {
+                console.warn('⚠️ [gallery-diagnostics] Elementos HTML existem mas CSS não carregou!');
+                console.log('   Verifique se o arquivo gallery.css está no caminho correto.');
             } else {
                 console.log('✅ [gallery-diagnostics] Galeria parece estar funcionando corretamente');
             }
