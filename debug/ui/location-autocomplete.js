@@ -248,5 +248,25 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         });
     }
     
+   // ========== INICIALIZAÇÃO AUTOMÁTICA ==========
+    // Aguardar o DOM estar pronto antes de inicializar
+    function autoInit() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    const result = window.LocationAutocomplete?.init();
+                    console.log('📍 Autocomplete auto-inicializado:', result ? '✅' : '❌');
+                }, 500);
+            });
+        } else {
+            setTimeout(() => {
+                const result = window.LocationAutocomplete?.init();
+                console.log('📍 Autocomplete auto-inicializado:', result ? '✅' : '❌');
+            }, 500);
+        }
+    }
+    
+    autoInit();
+    
     console.log('✅ location-autocomplete.js carregado -', BAIRROS_OFICIAIS.length, 'bairros disponíveis');
 })();
