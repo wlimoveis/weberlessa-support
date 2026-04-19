@@ -1,5 +1,6 @@
-// debug/ui/location-autocomplete.js - v1.0.0
+// debug/ui/location-autocomplete.js - v1.0.2
 // Sistema de autocomplete de bairros para Weber Lessa
+// ✅ COM DIAGNÓSTICO COMPLETO INTEGRADO
 console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
 
 (function() {
@@ -63,6 +64,7 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             border-bottom: 1px solid #eee;
             transition: background 0.2s ease;
             font-size: 0.9rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
         // Destacar parte que corresponde à busca
@@ -74,7 +76,7 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             const before = bairro.substring(0, index);
             const match = bairro.substring(index, index + searchText.length);
             const after = bairro.substring(index + searchText.length);
-            div.innerHTML = `${before}<strong style="color: #1a5276;">${match}</strong>${after}`;
+            div.innerHTML = `${before}<strong style="color: #1a5276; background: #e8f0fe; padding: 0 2px; border-radius: 3px;">${match}</strong>${after}`;
         } else {
             div.textContent = bairro;
         }
@@ -88,6 +90,8 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
                 // Disparar evento para notificar mudança
                 const event = new Event('input', { bubbles: true });
                 currentInput.dispatchEvent(event);
+                
+                console.log(`📍 Bairro selecionado: ${bairro}`);
             }
         });
         
@@ -127,6 +131,7 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             width: ${rect.width}px;
             top: ${rect.bottom + window.scrollY}px;
             left: ${rect.left + window.scrollX}px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
         // Adicionar itens
@@ -135,6 +140,7 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         });
         
         document.body.appendChild(suggestionsContainer);
+        console.log(`📍 Sugestões exibidas: ${suggestions.length} resultados para "${searchText}"`);
         
         // Fechar ao clicar fora
         setTimeout(() => {
@@ -162,16 +168,22 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
      */
     function onInputChange(e) {
         const searchText = e.target.value;
+        console.log(`📍 Digitando: "${searchText}" (${searchText.length} caracteres)`);
         
         if (debounceTimer) clearTimeout(debounceTimer);
         
         if (!searchText || searchText.length < CONFIG.minChars) {
+            console.log(`📍 Mínimo de ${CONFIG.minChars} caracteres necessário. Atual: ${searchText?.length || 0}`);
             hideSuggestions();
             return;
         }
         
         debounceTimer = setTimeout(() => {
             const suggestions = filterBairros(searchText);
+            console.log(`📍 Filtro: ${suggestions.length} bairros encontrados para "${searchText}"`);
+            if (suggestions.length > 0) {
+                console.log(`   Sugestões: ${suggestions.slice(0, 5).join(', ')}${suggestions.length > 5 ? '...' : ''}`);
+            }
             showSuggestions(suggestions, searchText);
         }, CONFIG.debounceDelay);
     }
@@ -180,14 +192,21 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
      * Inicializa o autocomplete
      */
     function init() {
+        console.log('📍 Iniciando inicialização do autocomplete...');
+        
         const input = document.querySelector(CONFIG.inputSelector);
         if (!input) {
-            console.log('📍 Campo de localização não encontrado, autocomplete não iniciado');
+            console.log('❌ Campo de localização não encontrado:', CONFIG.inputSelector);
+            console.log('   Verifique se o seletor está correto');
             return false;
         }
         
+        console.log('✅ Campo encontrado:', input);
+        console.log('   ID:', input.id);
+        console.log('   Placeholder original:', input.placeholder);
+        
         if (currentInput === input) {
-            console.log('📍 Autocomplete já inicializado');
+            console.log('📍 Autocomplete já inicializado neste campo');
             return true;
         }
         
@@ -208,7 +227,10 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         // Estilo para o campo
         currentInput.style.position = 'relative';
         
-        console.log('📍 Sistema de autocomplete inicializado com', BAIRROS_OFICIAIS.length, 'bairros');
+        console.log('✅ Sistema de autocomplete inicializado com', BAIRROS_OFICIAIS.length, 'bairros');
+        console.log('   Placeholder atualizado:', currentInput.placeholder);
+        console.log('   Eventos adicionados: input, blur');
+        
         return true;
     }
     
@@ -226,12 +248,107 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         console.log('📍 Sistema de autocomplete destruído');
     }
     
+    // ========== DIAGNÓSTICO COMPLETO ==========
+    function runFullDiagnostic() {
+        console.group('🔍 DIAGNÓSTICO COMPLETO DO AUTOCOMPLETE');
+        
+        // 1. Verificar se o campo está sendo encontrado
+        console.log('1. VERIFICANDO CAMPO:');
+        const input = document.querySelector(CONFIG.inputSelector);
+        console.log('   Seletor:', CONFIG.inputSelector);
+        console.log('   Campo encontrado:', input ? '✅ SIM' : '❌ NÃO');
+        if (input) {
+            console.log('   ID:', input.id);
+            console.log('   Tipo:', input.type);
+            console.log('   Visível:', input.offsetParent !== null);
+            console.log('   Placeholder:', input.placeholder);
+        }
+        
+        // 2. Testar o filtro de bairros manualmente
+        console.log('\n2. TESTANDO FILTRO DE BAIRROS:');
+        console.log('   Total de bairros:', BAIRROS_OFICIAIS.length);
+        const testTerms = ['Ponta', 'Jatiúca', 'Centro', 'XYZ'];
+        testTerms.forEach(term => {
+            const results = filterBairros(term);
+            console.log(`   "${term}": ${results.length} resultados - ${results.slice(0, 3).join(', ') || 'nenhum'}`);
+        });
+        
+        // 3. Verificar se o input event está funcionando
+        console.log('\n3. TESTANDO INPUT EVENT:');
+        if (input) {
+            console.log('   Input event listener:', currentInput === input ? '✅ CONFIGURADO' : '❌ NÃO CONFIGURADO');
+            
+            // Simular digitação temporariamente
+            const originalValue = input.value;
+            console.log('   Simulando digitação "Ponta"...');
+            input.value = 'Ponta';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const suggestions = document.querySelector('.' + CONFIG.suggestionsClass);
+                console.log('   Container de sugestões criado:', suggestions ? '✅ SIM' : '❌ NÃO');
+                if (suggestions) {
+                    console.log('   Número de itens:', suggestions.children.length);
+                    console.log('   Estilos aplicados:', {
+                        position: suggestions.style.position,
+                        zIndex: suggestions.style.zIndex,
+                        display: suggestions.style.display,
+                        visibility: window.getComputedStyle(suggestions).visibility
+                    });
+                }
+                input.value = originalValue;
+                hideSuggestions();
+            }, 500);
+        } else {
+            console.log('   ❌ Não é possível testar - campo não encontrado');
+        }
+        
+        // 4. Verificar CSS/z-index
+        console.log('\n4. VERIFICANDO CSS E Z-INDEX:');
+        console.log('   Classe de sugestões:', '.' + CONFIG.suggestionsClass);
+        console.log('   Z-index configurado: 10000');
+        
+        // Verificar elementos que podem sobrepor
+        const highZElements = document.querySelectorAll('[style*="z-index"]');
+        const conflictingZ = Array.from(highZElements).filter(el => {
+            const zIndex = parseInt(el.style.zIndex);
+            return zIndex > 9000 && zIndex < 11000;
+        });
+        if (conflictingZ.length > 0) {
+            console.log('   ⚠️ Elementos com z-index próximo:', conflictingZ.length);
+            conflictingZ.forEach(el => {
+                console.log('     -', el.tagName, 'z-index:', el.style.zIndex);
+            });
+        } else {
+            console.log('   ✅ Nenhum conflito de z-index detectado');
+        }
+        
+        // 5. Status atual
+        console.log('\n5. STATUS ATUAL:');
+        console.log('   Módulo carregado:', typeof window.LocationAutocomplete === 'object');
+        console.log('   Autocomplete ativo:', currentInput !== null);
+        console.log('   Campo configurado:', currentInput === input);
+        
+        console.log('\n📋 RECOMENDAÇÕES:');
+        if (!input) {
+            console.log('   ❌ CRÍTICO: Campo não encontrado! Verifique se o ID está correto.');
+        } else if (currentInput !== input) {
+            console.log('   ⚠️ Inicialização pendente. Execute: window.LocationAutocomplete.init()');
+        } else {
+            console.log('   ✅ Sistema aparentemente normal. Teste digitando no campo.');
+            console.log('   Se não aparecerem sugestões, verifique o console durante a digitação.');
+        }
+        
+        console.groupEnd();
+    }
+    
     // API pública
     window.LocationAutocomplete = {
         init,
         destroy,
         getBairrosList: () => [...BAIRROS_OFICIAIS],
         isActive: () => currentInput !== null,
+        runDiagnostic: runFullDiagnostic,
         CONFIG
     };
     
@@ -241,6 +358,10 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             isSafe: true,
             description: 'Inicializa sistema de autocomplete de bairros'
         });
+        window.DiagnosticRegistry.register('LocationAutocomplete.runDiagnostic', runFullDiagnostic, 'ui', {
+            isSafe: true,
+            description: 'Executa diagnóstico completo do autocomplete'
+        });
         window.DiagnosticRegistry.register('LocationAutocomplete.getBairrosList', 
             () => BAIRROS_OFICIAIS, 'ui', {
             isSafe: true,
@@ -248,20 +369,36 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         });
     }
     
-   // ========== INICIALIZAÇÃO AUTOMÁTICA ==========
-    // Aguardar o DOM estar pronto antes de inicializar
+    // ========== INICIALIZAÇÃO AUTOMÁTICA ==========
     function autoInit() {
+        console.log('📍 Iniciando auto-inicialização...');
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     const result = window.LocationAutocomplete?.init();
-                    console.log('📍 Autocomplete auto-inicializado:', result ? '✅' : '❌');
+                    console.log('📍 Autocomplete auto-inicializado (DOMContentLoaded):', result ? '✅' : '❌');
+                    
+                    // Executar diagnóstico automático em modo debug
+                    if (window.location.search.includes('debug=true')) {
+                        setTimeout(() => {
+                            console.log('\n🔍 Executando diagnóstico automático...');
+                            window.LocationAutocomplete?.runDiagnostic();
+                        }, 1000);
+                    }
                 }, 500);
             });
         } else {
             setTimeout(() => {
                 const result = window.LocationAutocomplete?.init();
-                console.log('📍 Autocomplete auto-inicializado:', result ? '✅' : '❌');
+                console.log('📍 Autocomplete auto-inicializado (pronto):', result ? '✅' : '❌');
+                
+                // Executar diagnóstico automático em modo debug
+                if (window.location.search.includes('debug=true')) {
+                    setTimeout(() => {
+                        console.log('\n🔍 Executando diagnóstico automático...');
+                        window.LocationAutocomplete?.runDiagnostic();
+                    }, 1000);
+                }
             }, 500);
         }
     }
@@ -269,4 +406,5 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
     autoInit();
     
     console.log('✅ location-autocomplete.js carregado -', BAIRROS_OFICIAIS.length, 'bairros disponíveis');
+    console.log('📋 Para diagnóstico manual: window.LocationAutocomplete.runDiagnostic()');
 })();
