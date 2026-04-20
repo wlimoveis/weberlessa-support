@@ -1,22 +1,15 @@
-// debug/ui/location-autocomplete.js - v2.0.2
-// Módulo de DIAGNÓSTICO para o autocomplete nativo do Core System
-// CORREÇÃO: Busca mais robusta pelo campo #propLocation
-console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do autocomplete nativo');
+// debug/ui/location-autocomplete.js - v2.0.3
+// Módulo de DIAGNÓSTICO e TESTE VISUAL para o autocomplete nativo
+console.log('📍 location-autocomplete.js v2.0.3 - Diagnóstico com Teste Visual');
 
 (function() {
     'use strict';
     
-    // ==========================================================
-    // CONFIGURAÇÃO
-    // ==========================================================
     const CONFIG = {
         inputSelector: '#propLocation',
-        inputSelectors: ['#propLocation', '#propLocation', 'input#propLocation', 'input[name="location"]'],
-        minChars: 2,
         suggestionsClass: 'admin-location-suggestions',
-        diagnosticButtonPosition: 'bottom-left',
-        maxRetries: 15,              // Aumentado para 15 tentativas
-        retryDelay: 800              // Aumentado para 800ms entre tentativas
+        maxRetries: 10,
+        retryDelay: 500
     };
     
     let diagnosticPanel = null;
@@ -24,105 +17,191 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
     let testResults = {};
     let retryCount = 0;
     let checkInterval = null;
-    let isInitialized = false;
     
     // ==========================================================
-    // FUNÇÃO DE BUSCA ROBUSTA PELO CAMPO
+    // FUNÇÃO DE BUSCA ROBUSTA
     // ==========================================================
     function findLocationInput() {
-        // Estratégia 1: Busca direta pelo ID
         let input = document.getElementById('propLocation');
-        if (input) {
-            console.log('📍 Campo encontrado via getElementById');
-            return input;
-        }
+        if (input) return input;
         
-        // Estratégia 2: Busca por querySelector
         input = document.querySelector('#propLocation');
-        if (input) {
-            console.log('📍 Campo encontrado via querySelector');
-            return input;
-        }
+        if (input) return input;
         
-        // Estratégia 3: Busca em todo o documento por input com ID aproximado
         const allInputs = document.querySelectorAll('input');
         for (let inp of allInputs) {
-            if (inp.id && inp.id.toLowerCase().includes('location')) {
-                console.log(`📍 Campo encontrado via busca parcial: #${inp.id}`);
-                return inp;
-            }
+            if (inp.id && inp.id.toLowerCase().includes('location')) return inp;
         }
         
-        // Estratégia 4: Busca no painel admin especificamente
         const adminPanel = document.getElementById('adminPanel');
         if (adminPanel) {
             const adminInput = adminPanel.querySelector('input[placeholder*="bairro"], input[placeholder*="Localização"]');
-            if (adminInput) {
-                console.log('📍 Campo encontrado dentro do painel admin por placeholder');
-                return adminInput;
-            }
+            if (adminInput) return adminInput;
         }
         
-        console.log('❌ Campo #propLocation NÃO encontrado por nenhuma estratégia');
         return null;
     }
     
     // ==========================================================
-    // FUNÇÃO PRINCIPAL: DIAGNÓSTICO COMPLETO
+    // TESTE VISUAL DO AUTOCOMPLETE
+    // ==========================================================
+    function testVisualAutocomplete() {
+        console.log('🎯 [TESTE VISUAL] Iniciando teste do autocomplete...');
+        
+        const locationInput = findLocationInput();
+        if (!locationInput) {
+            alert('❌ Campo de localização não encontrado! Abra o painel admin primeiro.');
+            return false;
+        }
+        
+        // Garantir que o painel admin está visível
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel && adminPanel.style.display !== 'block') {
+            adminPanel.style.display = 'block';
+            console.log('📂 Painel admin aberto automaticamente para teste');
+        }
+        
+        // Rolar até o campo
+        locationInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Limpar sugestões existentes
+        const existingContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
+        if (existingContainer) existingContainer.remove();
+        
+        // Salvar valor original
+        const originalValue = locationInput.value;
+        
+        // Simular digitação "Ponta"
+        locationInput.value = '';
+        locationInput.focus();
+        
+        setTimeout(() => {
+            console.log('📝 Digitando "P"...');
+            locationInput.value = 'P';
+            locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                console.log('📝 Digitando "Po" (2 caracteres - threshold mínimo)...');
+                locationInput.value = 'Po';
+                locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    console.log('📝 Digitando "Pont" (4 caracteres - deve ativar)...');
+                    locationInput.value = 'Pont';
+                    locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    setTimeout(() => {
+                        console.log('📝 Digitando "Ponta" (completo)...');
+                        locationInput.value = 'Ponta';
+                        locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        
+                        setTimeout(() => {
+                            const suggestionsContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
+                            
+                            if (suggestionsContainer) {
+                                const items = suggestionsContainer.querySelectorAll('div:not([class])');
+                                const itemsCount = items.length;
+                                const itemsText = Array.from(items).map(el => el.textContent || el.innerText);
+                                
+                                console.log(`✅ Container encontrado! ${itemsCount} sugestão(ões):`, itemsText);
+                                
+                                // Destacar o container visualmente
+                                suggestionsContainer.style.border = '3px solid #00ff00';
+                                suggestionsContainer.style.boxShadow = '0 0 15px rgba(0,255,0,0.5)';
+                                
+                                setTimeout(() => {
+                                    suggestionsContainer.style.border = '';
+                                    suggestionsContainer.style.boxShadow = '';
+                                }, 2000);
+                                
+                                alert(`✅ SUCESSO! ${itemsCount} sugestão(ões) encontrada(s):\n\n${itemsText.join('\n')}\n\nO autocomplete está funcionando!`);
+                            } else {
+                                console.error('❌ Nenhum container de sugestões foi criado!');
+                                
+                                // Verificar estilos que podem estar bloqueando
+                                const allStyles = document.querySelectorAll('style');
+                                let hasBlockingStyles = false;
+                                
+                                alert(`❌ TESTE FALHOU!\n\nNenhuma sugestão apareceu para "Ponta".\n\nPossíveis causas:\n1. O CSS do container pode estar oculto (display:none)\n2. O container pode estar fora da tela (position/overflow)\n3. O JavaScript do autocomplete pode não estar respondendo\n\nClique em "CORRIGIR ESTILOS" no painel de diagnóstico.`);
+                            }
+                            
+                            // Restaurar valor original
+                            locationInput.value = originalValue;
+                            locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            
+                            setTimeout(() => {
+                                const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
+                                if (container) container.remove();
+                            }, 500);
+                            
+                        }, 400);
+                    }, 300);
+                }, 300);
+            }, 300);
+        }, 300);
+        
+        return true;
+    }
+    
+    // ==========================================================
+    // DIAGNÓSTICO COMPLETO COM VERIFICAÇÃO VISUAL
     // ==========================================================
     function runFullDiagnostic() {
-        console.log('🔬 [DIAGNÓSTICO] Iniciando análise do autocomplete nativo...');
+        console.log('🔬 [DIAGNÓSTICO] Iniciando análise completa...');
         testResults = {};
         
-        // Usar busca robusta
         const locationInput = findLocationInput();
         testResults.fieldExists = !!locationInput;
-        testResults.searchMethod = locationInput ? 'encontrado' : 'não encontrado';
         
-        console.log(`${testResults.fieldExists ? '✅' : '❌'} Campo #propLocation existe:`, testResults.fieldExists);
-        
-        if (!testResults.fieldExists) {
-            testResults.error = 'Campo de localização não encontrado no DOM. Verifique se o painel admin está aberto.';
-            testResults.suggestion = 'O campo #propLocation só existe quando o painel admin está visível ou após o admin.js carregar. Abra o painel admin primeiro (botão ⚙️ no canto inferior direito).';
+        if (!locationInput) {
+            testResults.error = 'Campo não encontrado. Abra o painel admin primeiro (botão ⚙️)';
             showDiagnosticPanel();
             return;
         }
         
-        // Se encontrou, registrar detalhes
-        console.log(`📍 ID do campo: ${locationInput.id}`);
-        console.log(`📍 Classe do campo: ${locationInput.className}`);
-        console.log(`📍 Visível: ${locationInput.offsetParent !== null}`);
-        
-        // 2. Verificar se foi inicializado pelo admin.js
+        // Verificar inicialização
         testResults.isInitialized = locationInput.hasAttribute('data-autocomplete-initialized');
-        console.log(`${testResults.isInitialized ? '✅' : '❌'} Autocomplete nativo inicializado:`, testResults.isInitialized);
-        
-        // 3. Verificar placeholder
         testResults.placeholder = locationInput.placeholder;
-        const hasCorrectPlaceholder = testResults.placeholder && (testResults.placeholder.includes('bairro') || testResults.placeholder.includes('digite'));
-        testResults.hasCorrectPlaceholder = hasCorrectPlaceholder;
-        console.log(`📍 Placeholder: "${testResults.placeholder}" ${hasCorrectPlaceholder ? '✅' : '⚠️'}`);
         
-        // 4. Verificar eventos
-        testResults.hasInputEvent = false;
-        testResults.hasBlurEvent = false;
+        // Verificar se o painel admin está visível
+        const adminPanel = document.getElementById('adminPanel');
+        testResults.adminPanelVisible = adminPanel && adminPanel.style.display === 'block';
         
-        const testInput = locationInput.cloneNode(true);
-        let inputTriggered = false;
-        let blurTriggered = false;
+        // Verificar estilos do campo
+        const inputStyles = window.getComputedStyle(locationInput);
+        testResults.inputStyles = {
+            position: inputStyles.position,
+            zIndex: inputStyles.zIndex,
+            visibility: inputStyles.visibility,
+            display: inputStyles.display
+        };
         
-        testInput.addEventListener('input', () => { inputTriggered = true; });
-        testInput.addEventListener('blur', () => { blurTriggered = true; });
+        // Verificar se existe container de sugestões (pode estar oculto)
+        const existingContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
+        testResults.containerExists = !!existingContainer;
         
-        testInput.dispatchEvent(new Event('input', { bubbles: true }));
-        testInput.dispatchEvent(new Event('blur', { bubbles: true }));
+        if (existingContainer) {
+            const containerStyles = window.getComputedStyle(existingContainer);
+            testResults.containerStyles = {
+                display: containerStyles.display,
+                visibility: containerStyles.visibility,
+                position: containerStyles.position,
+                top: containerStyles.top,
+                left: containerStyles.left,
+                zIndex: containerStyles.zIndex
+            };
+            console.log('📦 Container encontrado com estilos:', testResults.containerStyles);
+            
+            // Verificar se o container está visível
+            const isVisible = containerStyles.display !== 'none' && 
+                             containerStyles.visibility !== 'hidden' &&
+                             existingContainer.offsetParent !== null;
+            testResults.containerVisible = isVisible;
+        } else {
+            testResults.containerVisible = false;
+        }
         
-        testResults.hasInputEvent = inputTriggered;
-        testResults.hasBlurEvent = blurTriggered;
-        console.log(`${testResults.hasInputEvent ? '✅' : '❌'} Evento INPUT configurado`);
-        console.log(`${testResults.hasBlurEvent ? '✅' : '❌'} Evento BLUR configurado`);
-        
-        // 5. Lista de bairros para referência
+        // Teste de filtro da lista de bairros
         const bairrosMaceio = [
             'Pajuçara', 'Ponta Verde', 'Jatiúca', 'Jacarecica', 'Cruz das Almas',
             'Mangabeiras', 'Poço', 'Barro Duro', 'Gruta de Lourdes', 'Serraria',
@@ -134,119 +213,21 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
             'Pontal da Barra', 'Guaxuma', 'Ipioca', 'Garça Torta', 'Pescaria'
         ];
         
-        testResults.bairrosCount = bairrosMaceio.length;
-        
-        // 6. Teste de filtro
         const testSearch = 'Ponta';
         const matches = bairrosMaceio.filter(b => b.toLowerCase().includes(testSearch.toLowerCase()));
         testResults.filterTest = {
             searchTerm: testSearch,
             matchesFound: matches.length,
-            matches: matches.slice(0, 5)
+            matches: matches
         };
-        console.log(`🔍 Teste de filtro "${testSearch}": ${matches.length} resultado(s)`);
         
-        // 7. Verificar container de sugestões
-        const existingSuggestions = document.querySelector(`.${CONFIG.suggestionsClass}`);
-        testResults.suggestionsContainerExists = !!existingSuggestions;
+        console.log(`🔍 Filtro "${testSearch}": ${matches.length} resultados esperados`);
         
-        if (existingSuggestions) {
-            const styles = window.getComputedStyle(existingSuggestions);
-            testResults.suggestionsStyles = {
-                position: styles.position,
-                zIndex: styles.zIndex,
-                display: styles.display,
-                width: styles.width
-            };
-            console.log('📦 Container de sugestões encontrado');
-        }
-        
-        // 8. TESTE PRÁTICO (se o campo existe)
-        if (locationInput) {
-            const originalValue = locationInput.value;
-            locationInput.value = testSearch;
-            locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            setTimeout(() => {
-                const suggestionsAfter = document.querySelector(`.${CONFIG.suggestionsClass}`);
-                testResults.suggestionsCreated = !!suggestionsAfter;
-                console.log(`${testResults.suggestionsCreated ? '✅' : '❌'} Container criado após digitação`);
-                
-                if (suggestionsAfter) {
-                    const items = suggestionsAfter.querySelectorAll('div:not([class])');
-                    testResults.suggestionsCount = items.length;
-                    console.log(`📋 ${items.length} sugestão(ões) exibida(s)`);
-                    
-                    if (items.length > 0) {
-                        const firstItemText = items[0].textContent || items[0].innerText;
-                        testResults.firstSuggestion = firstItemText;
-                    }
-                }
-                
-                locationInput.value = originalValue;
-                locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-                
-                setTimeout(() => {
-                    const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
-                    if (container) container.remove();
-                }, 200);
-                
-                showDiagnosticPanel();
-            }, 400);
-        } else {
-            showDiagnosticPanel();
-        }
+        showDiagnosticPanel();
     }
     
     // ==========================================================
-    // TESTE RÁPIDO DE RESPOSTA
-    // ==========================================================
-    function testAutocompleteResponse(searchWord = 'Ponta') {
-        console.log(`🧪 [TESTE] Verificando resposta para: "${searchWord}"`);
-        
-        const locationInput = findLocationInput();
-        if (!locationInput) {
-            alert('❌ Campo de localização não encontrado! Abra o painel admin primeiro.');
-            return false;
-        }
-        
-        const existingContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
-        if (existingContainer) existingContainer.remove();
-        
-        const originalValue = locationInput.value;
-        locationInput.value = searchWord;
-        locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-        
-        setTimeout(() => {
-            const suggestionsContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
-            if (suggestionsContainer && suggestionsContainer.children.length > 0) {
-                const items = Array.from(suggestionsContainer.children)
-                    .filter(el => el.tagName === 'DIV' && !el.className)
-                    .map(el => el.textContent || el.innerText);
-                
-                if (items.length > 0) {
-                    alert(`✅ TESTE PASSOU!\n\n${items.length} sugestão(ões) para "${searchWord}":\n\n${items.join('\n')}`);
-                } else {
-                    alert(`⚠️ Container criado mas sem itens para "${searchWord}".`);
-                }
-            } else {
-                alert(`❌ TESTE FALHOU!\n\nNenhuma sugestão encontrada para "${searchWord}".`);
-            }
-            
-            locationInput.value = originalValue;
-            locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            setTimeout(() => {
-                const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
-                if (container) container.remove();
-            }, 200);
-        }, 500);
-        
-        return true;
-    }
-    
-    // ==========================================================
-    // PAINEL VISUAL DE DIAGNÓSTICO
+    // PAINEL DE DIAGNÓSTICO COM TESTE VISUAL
     // ==========================================================
     function showDiagnosticPanel() {
         if (diagnosticPanel) diagnosticPanel.remove();
@@ -254,12 +235,20 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         let overallStatus = '⚠️ PARCIAL';
         let statusColor = '#e67e22';
         
-        if (testResults.fieldExists && testResults.isInitialized && testResults.hasInputEvent) {
-            overallStatus = '✅ FUNCIONAL';
-            statusColor = '#27ae60';
+        if (testResults.fieldExists && testResults.isInitialized) {
+            if (testResults.containerVisible === true) {
+                overallStatus = '✅ FUNCIONAL';
+                statusColor = '#27ae60';
+            } else if (testResults.containerVisible === false && testResults.containerExists) {
+                overallStatus = '⚠️ OCULTO (CSS)';
+                statusColor = '#e67e22';
+            } else {
+                overallStatus = '⚠️ AGUARDANDO TESTE';
+                statusColor = '#3498db';
+            }
         } else if (!testResults.fieldExists) {
-            overallStatus = '❓ AGUARDANDO PAINEL';
-            statusColor = '#3498db';
+            overallStatus = '❓ ABRA O PAINEL';
+            statusColor = '#e74c3c';
         }
         
         diagnosticPanel = document.createElement('div');
@@ -267,7 +256,7 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
             position: fixed;
             top: 80px;
             right: 20px;
-            width: 500px;
+            width: 520px;
             max-height: 85vh;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.95);
@@ -294,28 +283,42 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         
         if (testResults.error) {
             html += `<div style="color: #ffaa00; margin-bottom: 12px; padding: 8px; background: rgba(0,0,0,0.5); border-radius: 6px;">
-                ⚠️ ${testResults.error}<br>
-                <small style="color: #888;">${testResults.suggestion || ''}</small>
+                ⚠️ ${testResults.error}
             </div>`;
         }
         
         if (testResults.fieldExists) {
             html += `
                 <div style="margin-bottom: 10px;">
-                    <div>📋 Campo: ${testResults.fieldExists ? '✅ ENCONTRADO' : '❌ NÃO'}</div>
+                    <div>📋 CAMPO: ${testResults.fieldExists ? '✅' : '❌'}</div>
                     <div style="margin-left: 12px;">
                         <div>🔧 Inicializado: ${testResults.isInitialized ? '✅ SIM' : '⚠️ NÃO'}</div>
                         <div>📝 Placeholder: "${testResults.placeholder || ''}"</div>
-                        <div>🎯 Eventos: INPUT ${testResults.hasInputEvent ? '✅' : '❌'} | BLUR ${testResults.hasBlurEvent ? '✅' : '❌'}</div>
+                        <div>🪟 Painel Admin: ${testResults.adminPanelVisible ? '✅ VISÍVEL' : '⚠️ FECHADO'}</div>
                     </div>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <div>🔍 Teste "${testResults.filterTest?.searchTerm}": ${testResults.filterTest?.matchesFound || 0} resultados</div>
-                    <div style="margin-left: 12px; color: #88ff88;">→ ${testResults.filterTest?.matches?.join(', ') || 'N/A'}</div>
+            `;
+        }
+        
+        html += `
+            <div style="margin-bottom: 10px;">
+                <div>🔍 TESTE DE FILTRO "${testResults.filterTest?.searchTerm}":</div>
+                <div style="margin-left: 12px; color: #88ff88;">
+                    → ${testResults.filterTest?.matchesFound || 0} resultado(s) esperados
+                    ${testResults.filterTest?.matches?.length ? `<br>→ ${testResults.filterTest.matches.slice(0, 3).join(', ')}${testResults.filterTest.matches.length > 3 ? '...' : ''}` : ''}
                 </div>
-                <div>
-                    <div>📦 Sugestões: ${testResults.suggestionsCreated ? `✅ CRIADO (${testResults.suggestionsCount} itens)` : '⏳ NÃO TESTADO'}</div>
-                    ${testResults.firstSuggestion ? `<div style="margin-left: 12px;">🎯 Primeira: "${testResults.firstSuggestion}"</div>` : ''}
+            </div>
+        `;
+        
+        if (testResults.containerExists !== undefined) {
+            html += `
+                <div style="margin-bottom: 10px;">
+                    <div>📦 CONTAINER DE SUGESTÕES:</div>
+                    <div style="margin-left: 12px;">
+                        <div>Existe: ${testResults.containerExists ? '✅' : '❌'}</div>
+                        ${testResults.containerExists ? `<div>Visível: ${testResults.containerVisible ? '✅ SIM' : '❌ NÃO (CSS pode estar ocultando)'}</div>` : ''}
+                        ${testResults.containerStyles ? `<div style="font-size: 9px; color: #aaa;">Position: ${testResults.containerStyles.position}, Z-index: ${testResults.containerStyles.zIndex}</div>` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -323,29 +326,51 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         html += `
             <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #333; display: flex; gap: 8px; flex-wrap: wrap;">
                 <button id="diag-refresh" style="background: #1a5276; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🔄 ATUALIZAR</button>
-                <button id="diag-test" style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🧪 TESTAR "Ponta"</button>
+                <button id="diag-test-visual" style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">🎯 TESTE VISUAL "Ponta"</button>
                 <button id="diag-fix-style" style="background: #e67e22; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🎨 CORRIGIR ESTILOS</button>
+                <button id="diag-open-panel" style="background: #8e44ad; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">📂 ABRIR PAINEL</button>
             </div>
-            <div style="margin-top: 8px; font-size: 9px; color: #666; text-align: center;">
-                💡 O campo só aparece quando o painel admin está aberto
+            <div style="margin-top: 10px; font-size: 9px; color: #666; text-align: center; border-top: 1px solid #333; padding-top: 8px;">
+                💡 Clique em "TESTE VISUAL" para simular digitação e ver as sugestões aparecerem
             </div>
         `;
         
         diagnosticPanel.innerHTML = html;
         document.body.appendChild(diagnosticPanel);
         
+        // Eventos dos botões
         document.getElementById('close-diag')?.addEventListener('click', () => diagnosticPanel.remove());
-        document.getElementById('diag-refresh')?.addEventListener('click', () => { diagnosticPanel.remove(); runFullDiagnostic(); });
-        document.getElementById('diag-test')?.addEventListener('click', () => testAutocompleteResponse('Ponta'));
+        document.getElementById('diag-refresh')?.addEventListener('click', () => {
+            diagnosticPanel.remove();
+            runFullDiagnostic();
+        });
+        document.getElementById('diag-test-visual')?.addEventListener('click', () => {
+            diagnosticPanel.remove();
+            testVisualAutocomplete();
+        });
         document.getElementById('diag-fix-style')?.addEventListener('click', applyStyleFix);
+        document.getElementById('diag-open-panel')?.addEventListener('click', () => {
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel) {
+                adminPanel.style.display = 'block';
+                adminPanel.scrollIntoView({ behavior: 'smooth' });
+                alert('✅ Painel admin aberto! Agora clique em "TESTE VISUAL"');
+            } else {
+                alert('❌ Painel admin não encontrado!');
+            }
+            diagnosticPanel.remove();
+        });
     }
     
     // ==========================================================
-    // CORREÇÃO DE ESTILOS
+    // CORREÇÃO DE ESTILOS FORÇADA
     // ==========================================================
     function applyStyleFix() {
+        console.log('🎨 Aplicando correção de estilos...');
+        
+        // Remover estilos conflitantes
         const style = document.createElement('style');
-        style.id = 'autocomplete-fix-styles';
+        style.id = 'autocomplete-force-fix';
         style.textContent = `
             .admin-location-suggestions {
                 position: absolute !important;
@@ -353,15 +378,22 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
                 background: white !important;
                 border: 2px solid #1a5276 !important;
                 border-radius: 8px !important;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
                 max-height: 280px !important;
                 overflow-y: auto !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                margin-top: 2px !important;
             }
             .admin-location-suggestions div {
                 padding: 10px 14px !important;
                 cursor: pointer !important;
+                font-size: 0.9rem !important;
                 color: #2c3e50 !important;
                 background: white !important;
                 border-bottom: 1px solid #ecf0f1 !important;
+                display: block !important;
             }
             .admin-location-suggestions div:hover {
                 background: #e8f4fd !important;
@@ -374,11 +406,27 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
             }
         `;
         
-        const oldStyle = document.getElementById('autocomplete-fix-styles');
+        const oldStyle = document.getElementById('autocomplete-force-fix');
         if (oldStyle) oldStyle.remove();
         document.head.appendChild(style);
         
-        showNotification('✅ Correção de estilos aplicada!', '#27ae60');
+        // Também corrigir o container se existir
+        const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
+        if (container) {
+            container.style.cssText = `
+                position: absolute !important;
+                z-index: 999999 !important;
+                background: white !important;
+                border: 2px solid #1a5276 !important;
+                border-radius: 8px !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            `;
+            console.log('✅ Container reestilizado diretamente');
+        }
+        
+        showNotification('✅ Correção de estilos aplicada! Faça o TESTE VISUAL agora.', '#27ae60');
     }
     
     function showNotification(message, color) {
@@ -386,15 +434,21 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         notification.textContent = message;
         notification.style.cssText = `
             position: fixed; top: 20px; right: 20px; background: ${color}; color: white;
-            padding: 10px 20px; border-radius: 8px; z-index: 9999999;
-            font-family: monospace; font-size: 13px; animation: fadeOut 3s ease forwards;
+            padding: 12px 20px; border-radius: 8px; z-index: 9999999;
+            font-family: monospace; font-size: 13px; font-weight: bold;
+            animation: slideIn 0.3s ease;
         `;
+        
+        const style = document.createElement('style');
+        style.textContent = `@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`;
+        document.head.appendChild(style);
+        
         document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
+        setTimeout(() => notification.remove(), 4000);
     }
     
     // ==========================================================
-    // VERIFICAÇÃO COM RETRY
+    // VERIFICAÇÃO INICIAL
     // ==========================================================
     function waitForAdminAndCheck() {
         const locationInput = findLocationInput();
@@ -404,10 +458,8 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
             
             const isInit = locationInput.hasAttribute('data-autocomplete-initialized');
             if (isInit) {
-                console.log('✅ [OK] Autocomplete nativo está funcionando!');
-                console.log('💡 Clique no botão 🔍 (canto inferior esquerdo) para diagnóstico detalhado');
-            } else {
-                console.log('⚠️ Campo encontrado, mas autocomplete não inicializado ainda');
+                console.log('✅ Autocomplete nativo está funcionando!');
+                console.log('💡 Clique no botão 🔍 e depois em "TESTE VISUAL" para ver as sugestões');
             }
             return true;
         }
@@ -415,8 +467,7 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         retryCount++;
         if (retryCount >= CONFIG.maxRetries) {
             if (checkInterval) clearInterval(checkInterval);
-            console.log('ℹ️ [INFO] Campo #propLocation não encontrado. Ele só aparece quando o painel admin está aberto.');
-            console.log('💡 Abra o painel admin (botão ⚙️ no canto inferior direito) e clique em 🔍 para diagnosticar.');
+            console.log('ℹ️ Campo não encontrado. Abra o painel admin (botão ⚙️)');
             return false;
         }
         
@@ -438,9 +489,18 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
             font-size: 24px; transition: all 0.3s ease; border: 2px solid rgba(255,255,255,0.25);
         `;
         diagnosticButton.innerHTML = '🔍';
-        diagnosticButton.title = 'Diagnóstico do Autocomplete';
+        diagnosticButton.title = 'Diagnóstico do Autocomplete - Clique para TESTE VISUAL';
         
-        diagnosticButton.addEventListener('click', () => runFullDiagnostic());
+        diagnosticButton.addEventListener('click', () => {
+            // Abrir diagnóstico e já sugerir teste visual
+            runFullDiagnostic();
+            setTimeout(() => {
+                if (confirm('🔍 Diagnóstico concluído!\n\nDeseja executar o TESTE VISUAL agora?\n\nIsso vai simular a digitação "Ponta" e mostrar as sugestões.')) {
+                    testVisualAutocomplete();
+                }
+            }, 500);
+        });
+        
         diagnosticButton.addEventListener('mouseenter', () => {
             diagnosticButton.style.transform = 'scale(1.12)';
         });
@@ -450,6 +510,7 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         
         document.body.appendChild(diagnosticButton);
         console.log('✅ Botão 🔍 adicionado (canto inferior esquerdo)');
+        console.log('💡 Clique no botão e depois em "TESTE VISUAL" para ver as sugestões aparecerem!');
     }
     
     // ==========================================================
@@ -462,7 +523,6 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         retryCount = 0;
         checkInterval = setInterval(waitForAdminAndCheck, CONFIG.retryDelay);
         
-        // Timeout de segurança para limpar o interval
         setTimeout(() => {
             if (checkInterval) clearInterval(checkInterval);
         }, CONFIG.maxRetries * CONFIG.retryDelay + 5000);
@@ -471,13 +531,12 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
     // API Pública
     window.LocationAutocomplete = {
         runFullDiagnostic,
-        testAutocompleteResponse,
+        testVisualAutocomplete,
         applyStyleFix,
         isActive: () => {
             const input = findLocationInput();
             return input?.hasAttribute('data-autocomplete-initialized') || false;
-        },
-        CONFIG
+        }
     };
     
     // Inicializar
@@ -487,7 +546,6 @@ console.log('📍 location-autocomplete.js v2.0.2 - Módulo de DIAGNÓSTICO do a
         init();
     }
     
-    console.log('✅ location-autocomplete.js v2.0.2 carregado');
-    console.log('💡 IMPORTANTE: O diagnóstico só funciona com o painel admin ABERTO!');
-    console.log('💡 Abra o painel admin (botão ⚙️ no canto inferior direito) e clique em 🔍');
+    console.log('✅ location-autocomplete.js v2.0.3 carregado');
+    console.log('🎯 FUNÇÃO PRINCIPAL: Clique em 🔍 → "TESTE VISUAL" para ver as sugestões');
 })();
