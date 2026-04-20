@@ -1,10 +1,11 @@
-// debug/diagnostics/diagnostics58.js - ANÁLISE DE ARQUIVOS ZUMBI v5.8.1
+// debug/diagnostics/diagnostics58.js - ANÁLISE DE ARQUIVOS ZUMBI v5.8.2
 // ===================================================================
 // DEPENDÊNCIA: REQUER diagnostics53.js v5.3+ (MÓDULO BASE)
 // CORREÇÃO: Validação alinhada com as funções REAIS do v53
+// MELHORIA: Adicionado botão "X" de fechamento em todos os painéis
 // ===================================================================
 
-console.log('🎯 ADICIONANDO FUNCIONALIDADES DE ANÁLISE DE ARQUIVOS ZUMBI v5.8.1');
+console.log('🎯 ADICIONANDO FUNCIONALIDADES DE ANÁLISE DE ARQUIVOS ZUMBI v5.8.2');
 
 /* ================== VALIDAÇÃO CORRIGIDA DA CADEIA DE DIAGNÓSTICO ================== */
 (function validateDiagnosticsChain() {
@@ -21,30 +22,74 @@ console.log('🎯 ADICIONANDO FUNCIONALIDADES DE ANÁLISE DE ARQUIVOS ZUMBI v5.8
     );
     
     if (missing.length > 0) {
-        console.error('❌ [v5.8.1] CADEIA DE DIAGNÓSTICO QUEBRADA!');
-        console.error('❌ [v5.8.1] Funções base ausentes:', missing.join(', '));
-        console.error('❌ [v5.8.1] diagnostics53.js NÃO FOI CARREGADO OU ESTÁ DESATUALIZADO');
-        console.error('❌ [v5.8.1] Este módulo REQUER diagnostics53.js v5.3+ como base');
+        console.error('❌ [v5.8.2] CADEIA DE DIAGNÓSTICO QUEBRADA!');
+        console.error('❌ [v5.8.2] Funções base ausentes:', missing.join(', '));
+        console.error('❌ [v5.8.2] diagnostics53.js NÃO FOI CARREGADO OU ESTÁ DESATUALIZADO');
+        console.error('❌ [v5.8.2] Este módulo REQUER diagnostics53.js v5.3+ como base');
         
         // Tenta carregar o v53 dinamicamente como fallback
         if (!window.DIAGNOSTICS_BASE_LOADED) {
-            console.warn('⚠️ [v5.8.1] Tentando carregar diagnostics53.js dinamicamente...');
+            console.warn('⚠️ [v5.8.2] Tentando carregar diagnostics53.js dinamicamente...');
             const script = document.createElement('script');
             script.src = 'https://rclessa25-hub.github.io/weberlessa-support/debug/diagnostics/diagnostics53.js';
-            script.onload = () => console.log('✅ [v5.8.1] diagnostics53.js carregado via fallback');
+            script.onload = () => console.log('✅ [v5.8.2] diagnostics53.js carregado via fallback');
             document.head.appendChild(script);
         }
     } else {
-        console.log('✅ [v5.8.1] CADEIA DE DIAGNÓSTICO VALIDADA - v53 presente');
+        console.log('✅ [v5.8.2] CADEIA DE DIAGNÓSTICO VALIDADA - v53 presente');
         if (typeof window.logToPanel === 'function') {
-            window.logToPanel('✅ diagnostics58.js v5.8.1 carregado - Cadeia íntegra', 'success');
+            window.logToPanel('✅ diagnostics58.js v5.8.2 carregado - Cadeia íntegra', 'success');
         }
     }
 })();
 
+/* ================== FUNÇÃO AUXILIAR PARA CRIAR BOTÃO "X" ================== */
+function createCloseButton(panelId, onCloseCallback) {
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '✕';
+    closeButton.title = 'Fechar painel';
+    closeButton.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: rgba(255, 85, 0, 0.8);
+        color: white;
+        border: none;
+        font-size: 20px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        z-index: 1000013;
+    `;
+    
+    closeButton.addEventListener('mouseenter', () => {
+        closeButton.style.background = '#ff0000';
+        closeButton.style.transform = 'scale(1.1)';
+    });
+    
+    closeButton.addEventListener('mouseleave', () => {
+        closeButton.style.background = 'rgba(255, 85, 0, 0.8)';
+        closeButton.style.transform = 'scale(1)';
+    });
+    
+    closeButton.addEventListener('click', () => {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.remove();
+        if (typeof onCloseCallback === 'function') onCloseCallback();
+    });
+    
+    return closeButton;
+}
+
 /* ================== ANÁLISE DE ARQUIVOS ZUMBI NO MÓDULO READER ================== */
 window.analyzeReaderModuleZombies = function() {
-    console.group('🧟 ANÁLISE DE ARQUIVOS ZUMBI NO MÓDULO READER - v5.8.1');
+    console.group('🧟 ANÁLISE DE ARQUIVOS ZUMBI NO MÓDULO READER - v5.8.2');
     
     const analysis = {
         timestamp: new Date().toISOString(),
@@ -53,7 +98,7 @@ window.analyzeReaderModuleZombies = function() {
         zombiesFound: 0,
         safeToDelete: 0,
         essentialFiles: 0,
-        version: '5.8.1',
+        version: '5.8.2',
         chainValidated: typeof window.logToPanel === 'function'
     };
     
@@ -225,7 +270,7 @@ window.analyzeReaderModuleZombies = function() {
 
 /* ================== ANÁLISE COMPLETA DE TODOS OS ARQUIVOS ZUMBI ================== */
 window.analyzeAllZombieFiles = function() {
-    console.group('🧟 ANÁLISE COMPLETA DE ARQUIVOS ZUMBI NO SISTEMA - v5.8.1');
+    console.group('🧟 ANÁLISE COMPLETA DE ARQUIVOS ZUMBI NO SISTEMA - v5.8.2');
     
     const fullAnalysis = {
         timestamp: new Date().toISOString(),
@@ -238,16 +283,16 @@ window.analyzeAllZombieFiles = function() {
             safeToDelete: 0,
             essentialFiles: 0
         },
-        version: '5.8.1',
+        version: '5.8.2',
         chainValidated: typeof window.logToPanel === 'function'
     };
     
     // VALIDAR CADEIA DE DIAGNÓSTICO
     if (!fullAnalysis.chainValidated) {
-        console.error('❌ [v5.8.1] CADEIA DE DIAGNÓSTICO QUEBRADA!');
-        console.error('❌ [v5.8.1] diagnostics53.js NÃO FOI CARREGADO!');
+        console.error('❌ [v5.8.2] CADEIA DE DIAGNÓSTICO QUEBRADA!');
+        console.error('❌ [v5.8.2] diagnostics53.js NÃO FOI CARREGADO!');
     } else {
-        console.log('✅ [v5.8.1] CADEIA DE DIAGNÓSTICO VALIDADA - v53 presente');
+        console.log('✅ [v5.8.2] CADEIA DE DIAGNÓSTICO VALIDADA - v53 presente');
     }
     
     // Padrões de arquivos zumbi
@@ -309,7 +354,7 @@ window.analyzeAllZombieFiles = function() {
     console.log(`- Cadeia de diagnóstico: ${fullAnalysis.chainValidated ? '✅ ÍNTEGRA (v53 presente)' : '❌ QUEBRADA'}`);
     
     if (typeof window.logToPanel === 'function') {
-        window.logToPanel(`🧟 Análise completa v5.8.1: ${fullAnalysis.stats.zombiesFound} zumbi(s), ${fullAnalysis.stats.safeToDelete} seguro(s) para excluir`, 
+        window.logToPanel(`🧟 Análise completa v5.8.2: ${fullAnalysis.stats.zombiesFound} zumbi(s), ${fullAnalysis.stats.safeToDelete} seguro(s) para excluir`, 
                          fullAnalysis.stats.zombiesFound > 0 ? 'warning' : 'success');
         window.logToPanel(`🔗 Cadeia de diagnóstico: ${fullAnalysis.chainValidated ? 'ÍNTEGRA (v53 OK)' : 'QUEBRADA - v53 ausente!'}`, 
                          fullAnalysis.chainValidated ? 'success' : 'error');
@@ -322,9 +367,84 @@ window.analyzeAllZombieFiles = function() {
     return fullAnalysis;
 };
 
+/* ================== PAINEL DE ANÁLISE DO MÓDULO READER ================== */
+function showReaderZombieAnalysis(analysis) {
+    const panelId = 'reader-zombie-analysis-v5-8-2';
+    
+    const existingPanel = document.getElementById(panelId);
+    if (existingPanel) existingPanel.remove();
+    
+    const panel = document.createElement('div');
+    panel.id = panelId;
+    panel.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #1a0a00, #000a0a);
+        color: #ffaa00;
+        padding: 25px;
+        border: 3px solid #ff5500;
+        border-radius: 10px;
+        z-index: 1000012;
+        max-width: 700px;
+        width: 90%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 0 40px rgba(255, 85, 0, 0.5);
+        font-family: monospace;
+        backdrop-filter: blur(10px);
+    `;
+    
+    // Adicionar botão "X" de fechamento
+    const closeBtn = createCloseButton(panelId);
+    panel.appendChild(closeBtn);
+    
+    const chainStatus = analysis.chainValidated 
+        ? '<span style="color: #00ff9c;">✅ CADEIA ÍNTEGRA (v53 presente)</span>' 
+        : '<span style="color: #ff5555;">❌ CADEIA QUEBRADA - v53 ausente!</span>';
+    
+    panel.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 24px; color: #ffaa00; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <span>🧟</span>
+                <span>ANÁLISE DO MÓDULO READER</span>
+            </div>
+            <div style="font-size: 12px; color: #ff8888; margin-top: 5px;">
+                ${new Date().toLocaleTimeString()}
+            </div>
+            <div style="font-size: 12px; margin-top: 8px; padding: 6px; background: ${analysis.chainValidated ? 'rgba(0,255,156,0.1)' : 'rgba(255,85,85,0.1)'}; border-radius: 4px;">
+                🔗 Status: ${chainStatus}
+            </div>
+        </div>
+        
+        <div style="background: rgba(255, 85, 0, 0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            ${analysis.readerFiles.map(file => `
+                <div style="margin-bottom: 10px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; border-left: 3px solid ${file.isZombie ? '#ff5500' : '#00ff9c'}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold;">${file.name}</span>
+                        <span style="color: ${file.isZombie ? '#ffaa00' : '#00ff9c'}">${file.recommendation}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #ffcc88;">${file.description}</div>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="document.getElementById('${panelId}').remove()" style="
+                background: #555; color: white; border: none;
+                padding: 10px 20px; cursor: pointer; border-radius: 5px;">
+                FECHAR
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+}
+
 /* ================== PAINEL DE ANÁLISE COMPLETA ================== */
 function showCompleteZombieAnalysis(analysis) {
-    const panelId = 'complete-zombie-analysis-v5-8-1';
+    const panelId = 'complete-zombie-analysis-v5-8-2';
     
     const existingPanel = document.getElementById(panelId);
     if (existingPanel) existingPanel.remove();
@@ -351,6 +471,10 @@ function showCompleteZombieAnalysis(analysis) {
         backdrop-filter: blur(10px);
     `;
     
+    // Adicionar botão "X" de fechamento
+    const closeBtn = createCloseButton(panelId);
+    panel.appendChild(closeBtn);
+    
     const chainStatus = analysis.chainValidated 
         ? '<span style="color: #00ff9c;">✅ CADEIA ÍNTEGRA (v53 presente)</span>' 
         : '<span style="color: #ff5555;">❌ CADEIA QUEBRADA - v53 ausente!</span>';
@@ -362,7 +486,7 @@ function showCompleteZombieAnalysis(analysis) {
                 <span>ANÁLISE COMPLETA DE ARQUIVOS ZUMBI</span>
             </div>
             <div style="font-size: 16px; color: #ffcc88; margin-top: 5px;">
-                Sistema completo - v5.8.1 (Correção de validação)
+                Sistema completo - v5.8.2
             </div>
             <div style="font-size: 12px; color: #ff8888; margin-top: 5px;">
                 ${new Date().toLocaleTimeString()}
@@ -389,7 +513,7 @@ function showCompleteZombieAnalysis(analysis) {
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 11px; color: #ffcc88;">VERSÃO</div>
-                    <div style="font-size: 20px; color: #ff8800;">5.8.1</div>
+                    <div style="font-size: 20px; color: #ff8800;">5.8.2</div>
                 </div>
             </div>
             
@@ -489,7 +613,7 @@ function showCompleteZombieAnalysis(analysis) {
         </div>
         
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button id="execute-cleanup-v5-8-1" style="
+            <button id="execute-cleanup-v5-8-2" style="
                 background: linear-gradient(45deg, #ff5500, #ffaa00); 
                 color: #000; border: none;
                 padding: 12px 24px; cursor: pointer; border-radius: 5px;
@@ -505,7 +629,7 @@ function showCompleteZombieAnalysis(analysis) {
                 font-weight: bold; flex: 1;">
                 📊 EXPORTAR RELATÓRIO
             </button>
-            <button id="close-complete-panel" style="
+            <button onclick="document.getElementById('${panelId}').remove()" style="
                 background: #555; color: white; border: none;
                 padding: 12px 24px; cursor: pointer; border-radius: 5px;
                 font-weight: bold; flex: 1;">
@@ -514,13 +638,13 @@ function showCompleteZombieAnalysis(analysis) {
         </div>
         
         <div style="font-size: 11px; color: #ffcc88; text-align: center; margin-top: 15px;">
-            ⚠️ Análise completa v5.8.1 | Base: diagnostics53.js | ${analysis.chainValidated ? 'Cadeia íntegra' : 'Cadeia quebrada!'}
+            ⚠️ Análise completa v5.8.2 | Base: diagnostics53.js | ${analysis.chainValidated ? 'Cadeia íntegra' : 'Cadeia quebrada!'}
         </div>
     `;
     
     document.body.appendChild(panel);
     
-    document.getElementById('execute-cleanup-v5-8-1').addEventListener('click', () => {
+    document.getElementById('execute-cleanup-v5-8-2').addEventListener('click', () => {
         if (analysis.stats.safeToDelete > 0) {
             executeAutoCleanup(analysis);
         }
@@ -529,15 +653,11 @@ function showCompleteZombieAnalysis(analysis) {
     document.getElementById('export-full-report').addEventListener('click', () => {
         exportZombieAnalysisReport(analysis);
     });
-    
-    document.getElementById('close-complete-panel').addEventListener('click', () => {
-        panel.remove();
-    });
 }
 
 /* ================== EXECUTAR LIMPEZA AUTOMÁTICA ================== */
 function executeAutoCleanup(analysis) {
-    console.group('🚀 EXECUTANDO LIMPEZA AUTOMÁTICA DE ZUMBIS - v5.8.1');
+    console.group('🚀 EXECUTANDO LIMPEZA AUTOMÁTICA DE ZUMBIS - v5.8.2');
     
     const cleanupSteps = [
         { step: 1, action: 'Remover placeholder.txt', status: 'pending', risk: 'ZERO' },
@@ -554,7 +674,7 @@ function executeAutoCleanup(analysis) {
 
 /* ================== PROGRESSO DA LIMPEZA ================== */
 function showCleanupProgress(steps, analysis) {
-    const progressId = 'cleanup-progress-v5-8-1';
+    const progressId = 'cleanup-progress-v5-8-2';
     
     const existingProgress = document.getElementById(progressId);
     if (existingProgress) existingProgress.remove();
@@ -579,10 +699,16 @@ function showCleanupProgress(steps, analysis) {
         text-align: center;
     `;
     
+    // Adicionar botão "X" de fechamento para o progresso
+    const closeBtn = createCloseButton(progressId);
+    progressDiv.appendChild(closeBtn);
+    
     progressDiv.innerHTML = `
-        <div style="font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <div class="loader" style="width: 24px; height: 24px; border: 3px solid #00ff9c; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <span>🚀 LIMPEZA EM ANDAMENTO</span>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <div class="loader" style="width: 24px; height: 24px; border: 3px solid #00ff9c; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span>🚀 LIMPEZA EM ANDAMENTO</span>
+            </div>
         </div>
         
         <div style="margin-bottom: 25px;">
@@ -611,7 +737,7 @@ function showCleanupProgress(steps, analysis) {
         </div>
         
         <div style="font-size: 12px; color: #88ffaa;">
-            Não feche esta janela durante a limpeza - v5.8.1 | Base: diagnostics53.js
+            Não feche esta janela durante a limpeza - v5.8.2 | Base: diagnostics53.js
         </div>
         
         <style>
@@ -680,6 +806,7 @@ function finishCleanup(progressDiv, analysis) {
         progressDiv.remove();
         
         const successDiv = document.createElement('div');
+        successDiv.id = 'cleanup-success-v5-8-2';
         successDiv.style.cssText = `
             position: fixed;
             top: 50%;
@@ -697,6 +824,10 @@ function finishCleanup(progressDiv, analysis) {
             box-shadow: 0 0 40px rgba(0, 255, 156, 0.5);
             backdrop-filter: blur(10px);
         `;
+        
+        // Adicionar botão "X" de fechamento
+        const closeBtn = createCloseButton('cleanup-success-v5-8-2');
+        successDiv.appendChild(closeBtn);
         
         const filesCleaned = analysis.stats.safeToDelete || 4;
         
@@ -727,10 +858,10 @@ function finishCleanup(progressDiv, analysis) {
             </div>
             
             <div style="font-size: 11px; color: #88ffaa; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                🔗 Cadeia de diagnóstico: diagnostics53.js (base) + diagnostics58.js v5.8.1 (extensão)
+                🔗 Cadeia de diagnóstico: diagnostics53.js (base) + diagnostics58.js v5.8.2 (extensão)
             </div>
             
-            <button onclick="this.parentElement.remove()" style="
+            <button onclick="document.getElementById('cleanup-success-v5-8-2').remove()" style="
                 background: #00ff9c; color: #000; border: none;
                 padding: 12px 24px; cursor: pointer; border-radius: 5px;
                 font-weight: bold; width: 100%; margin-top: 15px;">
@@ -753,10 +884,10 @@ function exportZombieAnalysisReport(analysis) {
     const report = {
         ...analysis,
         exportDate: new Date().toISOString(),
-        exportVersion: '5.8.1',
+        exportVersion: '5.8.2',
         diagnosticsChain: {
             base: 'diagnostics53.js',
-            extension: 'diagnostics58.js v5.8.1',
+            extension: 'diagnostics58.js v5.8.2',
             status: analysis.chainValidated ? 'INTEGRA' : 'QUEBRADA'
         }
     };
@@ -765,18 +896,18 @@ function exportZombieAnalysisReport(analysis) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `zombie-analysis-report-v5.8.1-${Date.now()}.json`;
+    a.download = `zombie-analysis-report-v5.8.2-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     
     if (typeof window.logToPanel === 'function') {
-        window.logToPanel('📊 Relatório de análise exportado (v5.8.1)', 'success');
+        window.logToPanel('📊 Relatório de análise exportado (v5.8.2)', 'success');
     }
 }
 
 /* ================== INTEGRAÇÃO COM O SISTEMA EXISTENTE ================== */
 (function integrateZombieAnalysis() {
-    console.log('🔗 INTEGRANDO ANÁLISE DE ARQUIVOS ZUMBI v5.8.1');
+    console.log('🔗 INTEGRANDO ANÁLISE DE ARQUIVOS ZUMBI v5.8.2');
     
     if (window.diag) {
         window.diag.zombie = window.diag.zombie || {};
@@ -784,7 +915,7 @@ function exportZombieAnalysisReport(analysis) {
         const zombieFunctions = {
             reader: window.analyzeReaderModuleZombies,
             all: window.analyzeAllZombieFiles,
-            version: '5.8.1',
+            version: '5.8.2',
             chain: 'diagnostics53.js (base)'
         };
         
@@ -795,10 +926,11 @@ function exportZombieAnalysisReport(analysis) {
         });
         
         window.diag.zombie.info = {
-            version: '5.8.1',
+            version: '5.8.2',
             baseModule: 'diagnostics53.js',
             description: 'Análise de arquivos zumbi - extensão da cadeia v53',
-            validationFixed: true
+            validationFixed: true,
+            hasCloseButton: true
         };
         
         console.log('✅ Funções de análise zumbi adicionadas a window.diag.zombie');
@@ -808,7 +940,7 @@ function exportZombieAnalysisReport(analysis) {
         console.diag.zombie = console.diag.zombie || {};
         console.diag.zombie.reader = window.analyzeReaderModuleZombies;
         console.diag.zombie.all = window.analyzeAllZombieFiles;
-        console.diag.zombie.version = '5.8.1 (correção validação)';
+        console.diag.zombie.version = '5.8.2 (com botão X)';
     }
     
     function addZombieButtonsToPanel() {
@@ -829,11 +961,11 @@ function exportZombieAnalysisReport(analysis) {
                     }
                 }
                 
-                if (targetContainer && !document.getElementById('analyze-zombies-btn-v5-8-1')) {
+                if (targetContainer && !document.getElementById('analyze-zombies-btn-v5-8-2')) {
                     const zombieBtn = document.createElement('button');
-                    zombieBtn.id = 'analyze-zombies-btn-v5-8-1';
-                    zombieBtn.innerHTML = '🧟 ANALISAR ZUMBIS v5.8.1';
-                    zombieBtn.title = 'Base: diagnostics53.js | Extensão: v5.8.1 (correção)';
+                    zombieBtn.id = 'analyze-zombies-btn-v5-8-2';
+                    zombieBtn.innerHTML = '🧟 ANALISAR ZUMBIS v5.8.2';
+                    zombieBtn.title = 'Base: diagnostics53.js | Extensão: v5.8.2 (com botão X)';
                     zombieBtn.style.cssText = `
                         background: linear-gradient(45deg, #ff5500, #ffaa00); 
                         color: #000; border: none;
@@ -847,9 +979,9 @@ function exportZombieAnalysisReport(analysis) {
                     });
                     
                     const allZombieBtn = document.createElement('button');
-                    allZombieBtn.id = 'analyze-all-zombies-btn-v5-8-1';
+                    allZombieBtn.id = 'analyze-all-zombies-btn-v5-8-2';
                     allZombieBtn.innerHTML = '🔍 ANALISAR TODOS ZUMBIS';
-                    allZombieBtn.title = 'Análise completa do sistema - v5.8.1';
+                    allZombieBtn.title = 'Análise completa do sistema - v5.8.2';
                     allZombieBtn.style.cssText = `
                         background: linear-gradient(45deg, #ff8800, #ffaa00); 
                         color: #000; border: none;
@@ -865,10 +997,10 @@ function exportZombieAnalysisReport(analysis) {
                     targetContainer.appendChild(zombieBtn);
                     targetContainer.appendChild(allZombieBtn);
                     
-                    console.log('✅ Botões de análise zumbi v5.8.1 adicionados ao painel');
+                    console.log('✅ Botões de análise zumbi v5.8.2 adicionados ao painel');
                     
                     if (typeof window.logToPanel === 'function') {
-                        window.logToPanel('🧟 Módulo de análise de zumbis v5.8.1 integrado ao painel (validação corrigida)', 'success');
+                        window.logToPanel('🧟 Módulo de análise de zumbis v5.8.2 integrado ao painel (com botão X)', 'success');
                     }
                 }
             }
@@ -882,7 +1014,7 @@ function exportZombieAnalysisReport(analysis) {
             if (window.DEBUG_MODE || window.DIAGNOSTICS_MODE || 
                 window.location.search.includes('debug=true')) {
                 setTimeout(() => {
-                    console.log('🔄 [v5.8.1] Executando análise automática de zumbis...');
+                    console.log('🔄 [v5.8.2] Executando análise automática de zumbis...');
                     if (window.analyzeAllZombieFiles) {
                         window.analyzeAllZombieFiles();
                     }
@@ -895,7 +1027,7 @@ function exportZombieAnalysisReport(analysis) {
         if (window.DEBUG_MODE || window.DIAGNOSTICS_MODE || 
             window.location.search.includes('debug=true')) {
             setTimeout(() => {
-                console.log('🔄 [v5.8.1] Executando análise automática de zumbis...');
+                console.log('🔄 [v5.8.2] Executando análise automática de zumbis...');
                 if (window.analyzeAllZombieFiles) {
                     window.analyzeAllZombieFiles();
                 }
@@ -903,28 +1035,31 @@ function exportZombieAnalysisReport(analysis) {
         }
     }
     
-    console.log('✅ Módulo de análise de arquivos zumbi v5.8.1 integrado - Base: diagnostics53.js | Validação corrigida');
+    console.log('✅ Módulo de análise de arquivos zumbi v5.8.2 integrado - Base: diagnostics53.js | Com botão X');
 })();
 
 /* ================== LOG FINAL ================== */
-console.log('%c✅ ANÁLISE DE ARQUIVOS ZUMBI v5.8.1 PRONTA PARA USO (VALIDAÇÃO CORRIGIDA)', 
+console.log('%c✅ ANÁLISE DE ARQUIVOS ZUMBI v5.8.2 PRONTA PARA USO (COM BOTÃO X)', 
             'color: #00ff9c; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px;');
 
-console.log('📋 Comandos disponíveis (v5.8.1 - Extensão da cadeia v53):');
+console.log('📋 Comandos disponíveis (v5.8.2 - Extensão da cadeia v53):');
 console.log('- window.analyzeReaderModuleZombies() - Analisar zumbis no módulo reader');
 console.log('- window.analyzeAllZombieFiles() - Análise completa do sistema');
 console.log('- window.diag.zombie.reader() - Via objeto diag');
 console.log('- window.diag.zombie.all() - Via objeto diag');
-console.log('🔗 Cadeia de diagnóstico: diagnostics53.js (BASE) → diagnostics58.js v5.8.1 (EXTENSÃO)');
+console.log('🔗 Cadeia de diagnóstico: diagnostics53.js (BASE) → diagnostics58.js v5.8.2 (EXTENSÃO)');
+console.log('✅ MELHORIA: Todos os painéis agora possuem botão "X" para fechamento');
 console.log('✅ CORREÇÃO: Validação agora verifica APENAS funções que realmente existem no v53');
 
 window.DIAGNOSTICS_VERSION = window.DIAGNOSTICS_VERSION || {};
-window.DIAGNOSTICS_VERSION.zombieAnalysis = '5.8.1';
+window.DIAGNOSTICS_VERSION.zombieAnalysis = '5.8.2';
 window.DIAGNOSTICS_VERSION.zombieBase = 'diagnostics53.js';
 window.DIAGNOSTICS_VERSION.validationFixed = true;
+window.DIAGNOSTICS_VERSION.hasCloseButton = true;
 
 // ===================================================================
-// FIM DO ARQUIVO diagnostics58.js v5.8.1
+// FIM DO ARQUIVO diagnostics58.js v5.8.2
 // DEPENDÊNCIA: REQUER diagnostics53.js v5.3+ CARREGADO PRIMEIRO
 // CORREÇÃO: Validação alinhada com as funções reais do módulo base
+// MELHORIA: Botão "X" de fechamento em todos os painéis
 // ===================================================================
