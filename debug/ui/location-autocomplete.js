@@ -1,6 +1,6 @@
-// debug/ui/location-autocomplete.js - v1.0.3
+// debug/ui/location-autocomplete.js - v1.0.5
 // Sistema de autocomplete de bairros para Weber Lessa
-// ✅ COM CORREÇÕES VISUAIS E DIAGNÓSTICO DE RENDERIZAÇÃO
+// ✅ COM DIAGNÓSTICO AVANÇADO AUTO-EXECUTÁVEL
 console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
 
 (function() {
@@ -34,6 +34,238 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
     let suggestionsContainer = null;
     let debounceTimer = null;
     let forceStylesApplied = false;
+    let diagnosticButton = null;
+    let diagnosticResults = {};
+    
+    /**
+     * Executa diagnóstico completo e mostra resultados na tela
+     */
+    function runAdvancedDiagnostic() {
+        console.log('🔬 Iniciando diagnóstico avançado...');
+        
+        // Criar painel de resultados
+        const resultPanel = document.createElement('div');
+        resultPanel.id = 'diagnostic-results-panel';
+        resultPanel.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.9);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 9999999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border-left: 4px solid #00ff00;
+        `;
+        
+        let html = '<h3 style="margin:0 0 10px 0; color:#0f0;">🔍 DIAGNÓSTICO AUTOCOMPLETE</h3>';
+        
+        // 1. Verificar container de sugestões
+        const suggestionsDiv = document.querySelector('.location-suggestions');
+        html += `<div style="margin-bottom:10px;"><strong>1. Container de Sugestões:</strong><br>`;
+        html += `   Existe: ${suggestionsDiv ? '✅ SIM' : '❌ NÃO'}<br>`;
+        
+        if (suggestionsDiv) {
+            const styles = window.getComputedStyle(suggestionsDiv);
+            html += `   Position: ${styles.position}<br>`;
+            html += `   Display: ${styles.display}<br>`;
+            html += `   Visibility: ${styles.visibility}<br>`;
+            html += `   Opacity: ${styles.opacity}<br>`;
+            html += `   Z-index: ${styles.zIndex}<br>`;
+            html += `   Top: ${styles.top}<br>`;
+            html += `   Left: ${styles.left}<br>`;
+            html += `   Width: ${styles.width}<br>`;
+            html += `   Height: ${styles.height}<br>`;
+            html += `   HTML: ${suggestionsDiv.outerHTML.substring(0, 200)}...<br>`;
+        }
+        html += `</div>`;
+        
+        // 2. Verificar campo de localização
+        const locationField = document.querySelector(CONFIG.inputSelector);
+        html += `<div style="margin-bottom:10px;"><strong>2. Campo de Localização:</strong><br>`;
+        html += `   Existe: ${locationField ? '✅ SIM' : '❌ NÃO'}<br>`;
+        
+        if (locationField) {
+            const fieldStyles = window.getComputedStyle(locationField);
+            html += `   Position: ${fieldStyles.position}<br>`;
+            html += `   Z-index: ${fieldStyles.zIndex}<br>`;
+            html += `   Visível: ${locationField.offsetParent !== null ? '✅ SIM' : '❌ NÃO'}<br>`;
+            html += `   Placeholder: ${locationField.placeholder}<br>`;
+        }
+        html += `</div>`;
+        
+        // 3. Status do módulo
+        html += `<div style="margin-bottom:10px;"><strong>3. Status do Módulo:</strong><br>`;
+        html += `   Módulo carregado: ${typeof window.LocationAutocomplete === 'object' ? '✅ SIM' : '❌ NÃO'}<br>`;
+        html += `   Autocomplete ativo: ${currentInput !== null ? '✅ SIM' : '❌ NÃO'}<br>`;
+        html += `   Estilos aplicados: ${forceStylesApplied ? '✅ SIM' : '❌ NÃO'}<br>`;
+        html += `   Container ativo: ${suggestionsContainer !== null ? '✅ SIM' : '❌ NÃO'}<br>`;
+        html += `</div>`;
+        
+        // 4. Teste de filtro
+        const testResults = filterBairros('Ponta');
+        html += `<div style="margin-bottom:10px;"><strong>4. Teste de Filtro ("Ponta"):</strong><br>`;
+        html += `   Resultados: ${testResults.length}<br>`;
+        html += `   Bairros: ${testResults.join(', ')}<br>`;
+        html += `</div>`;
+        
+        // 5. Teste de criação do container
+        html += `<div style="margin-bottom:10px;"><strong>5. Teste de Criação:</strong><br>`;
+        
+        resultPanel.innerHTML = html;
+        document.body.appendChild(resultPanel);
+        
+        // Executar teste de input
+        if (locationField) {
+            html += `   Simulando digitação "Ponta"...<br>`;
+            resultPanel.innerHTML = html;
+            
+            const originalValue = locationField.value;
+            locationField.value = 'Ponta';
+            locationField.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const suggestionsAfter = document.querySelector('.location-suggestions');
+                const afterHtml = document.createElement('div');
+                afterHtml.innerHTML = `<br>   Container após input: ${suggestionsAfter ? '✅ CRIADO' : '❌ NÃO CRIADO'}<br>`;
+                
+                if (suggestionsAfter) {
+                    afterHtml.innerHTML += `   Itens: ${suggestionsAfter.children.length}<br>`;
+                    afterHtml.innerHTML += `   HTML: ${suggestionsAfter.outerHTML.substring(0, 300)}...<br>`;
+                    
+                    // Verificar cores
+                    const firstItem = suggestionsAfter.querySelector('.location-suggestions-item');
+                    if (firstItem) {
+                        const color = window.getComputedStyle(firstItem).color;
+                        const bgColor = window.getComputedStyle(firstItem).backgroundColor;
+                        afterHtml.innerHTML += `   Cor do texto: ${color}<br>`;
+                        afterHtml.innerHTML += `   Cor do fundo: ${bgColor}<br>`;
+                        afterHtml.innerHTML += `   Conflito de cores: ${color === bgColor ? '⚠️ SIM' : '✅ NÃO'}<br>`;
+                    }
+                    
+                    // Verificar posição
+                    const rect = suggestionsAfter.getBoundingClientRect();
+                    afterHtml.innerHTML += `   Posição: top=${rect.top}, left=${rect.left}<br>`;
+                    afterHtml.innerHTML += `   Na tela: ${rect.top >= 0 && rect.bottom <= window.innerHeight ? '✅ SIM' : '❌ NÃO'}<br>`;
+                }
+                
+                resultPanel.innerHTML = html + afterHtml.innerHTML;
+                
+                // Adicionar botões de ação
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.style.marginTop = '15px';
+                buttonsDiv.style.display = 'flex';
+                buttonsDiv.style.gap = '10px';
+                buttonsDiv.innerHTML = `
+                    <button id="diag-force-fix" style="background:#1a5276; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                        🔧 Forçar Correção
+                    </button>
+                    <button id="diag-close" style="background:#666; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                        ✕ Fechar
+                    </button>
+                `;
+                
+                resultPanel.appendChild(buttonsDiv);
+                
+                document.getElementById('diag-force-fix')?.addEventListener('click', () => {
+                    forceVisualFix();
+                    alert('✅ Correção visual aplicada! O container foi reestilizado.');
+                });
+                
+                document.getElementById('diag-close')?.addEventListener('click', () => {
+                    resultPanel.remove();
+                    locationField.value = originalValue;
+                    hideSuggestions();
+                });
+                
+                console.log('✅ Diagnóstico avançado concluído');
+            }, 300);
+        } else {
+            html += `   ❌ Campo não encontrado - não foi possível testar<br>`;
+            resultPanel.innerHTML = html;
+            
+            setTimeout(() => {
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = 'Fechar';
+                closeBtn.style.cssText = 'margin-top:10px; padding:5px 10px; background:#666; color:white; border:none; border-radius:5px; cursor:pointer;';
+                closeBtn.onclick = () => resultPanel.remove();
+                resultPanel.appendChild(closeBtn);
+            }, 100);
+        }
+    }
+    
+    /**
+     * Força correção visual e mostra resultado
+     */
+    function forceVisualFix() {
+        console.log('🔧 Aplicando correção visual forçada...');
+        applyForceStyles();
+        
+        if (suggestionsContainer) {
+            const inputRect = currentInput?.getBoundingClientRect();
+            if (inputRect) {
+                suggestionsContainer.style.cssText = `
+                    position: absolute !important;
+                    z-index: 999999 !important;
+                    background: white !important;
+                    border: 2px solid #1a5276 !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+                    width: ${inputRect.width}px !important;
+                    top: ${inputRect.bottom + window.scrollY + 4}px !important;
+                    left: ${inputRect.left + window.scrollX}px !important;
+                    display: block !important;
+                    max-height: 300px !important;
+                    overflow-y: auto !important;
+                `;
+                console.log('✅ Container reestilizado');
+            }
+        }
+        
+        // Notificação visual
+        showNotification('✅ Correção visual aplicada!', '#27ae60');
+    }
+    
+    /**
+     * Mostra notificação na tela
+     */
+    function showNotification(message, color = '#27ae60') {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${color};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 9999999;
+            font-family: monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        `;
+        
+        // Adicionar animação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
     
     /**
      * Aplica estilos de correção visual forçada
@@ -46,7 +278,6 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         const style = document.createElement('style');
         style.id = 'location-autocomplete-force-styles';
         style.textContent = `
-            /* Estilos forçados para garantir visibilidade das sugestões */
             .location-suggestions {
                 position: absolute !important;
                 background: white !important;
@@ -56,147 +287,42 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
                 max-height: 300px !important;
                 overflow-y: auto !important;
                 z-index: 999999 !important;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                 margin-top: 4px !important;
             }
-            
             .location-suggestions-item {
                 padding: 10px 12px !important;
                 cursor: pointer !important;
                 border-bottom: 1px solid #e0e0e0 !important;
-                transition: background 0.2s ease !important;
                 font-size: 0.9rem !important;
                 color: #333333 !important;
                 background: white !important;
                 display: block !important;
             }
-            
-            .location-suggestions-item:last-child {
-                border-bottom: none !important;
-            }
-            
             .location-suggestions-item:hover {
                 background: #f0f7ff !important;
             }
-            
             .location-suggestions-item strong {
                 color: #1a5276 !important;
                 background: #e8f0fe !important;
                 padding: 0 2px !important;
                 border-radius: 3px !important;
-                font-weight: 600 !important;
             }
         `;
         
-        // Remover estilo anterior se existir
         const oldStyle = document.getElementById('location-autocomplete-force-styles');
         if (oldStyle) oldStyle.remove();
         
         document.head.appendChild(style);
         forceStylesApplied = true;
         console.log('✅ Estilos de correção visual aplicados');
+        showNotification('🎨 Estilos de correção aplicados', '#1a5276');
     }
     
     /**
-     * Verifica e corrige overflow da página
-     */
-    function fixPageOverflow() {
-        const bodyOverflow = window.getComputedStyle(document.body).overflow;
-        const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
-        
-        console.log('📐 Verificando overflow:', { bodyOverflow, htmlOverflow });
-        
-        if (bodyOverflow === 'hidden' || htmlOverflow === 'hidden') {
-            console.log('⚠️ Overflow detectado, corrigindo...');
-            if (bodyOverflow === 'hidden') {
-                document.body.style.overflow = 'auto';
-                document.body.style.setProperty('overflow', 'auto', 'important');
-            }
-            if (htmlOverflow === 'hidden') {
-                document.documentElement.style.overflow = 'auto';
-                document.documentElement.style.setProperty('overflow', 'auto', 'important');
-            }
-            return true;
-        }
-        return false;
-    }
-    
-    /**
-     * Verifica se o container está visível e na posição correta
-     */
-    function checkContainerVisibility(container) {
-        if (!container) return false;
-        
-        const rect = container.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const viewportWidth = window.innerWidth;
-        
-        const isInViewport = rect.top >= 0 && rect.left >= 0 && 
-                            rect.bottom <= viewportHeight && 
-                            rect.right <= viewportWidth;
-        
-        console.log('📐 Posição do container:', {
-            top: rect.top,
-            left: rect.left,
-            bottom: rect.bottom,
-            right: rect.right,
-            width: rect.width,
-            height: rect.height,
-            isInViewport: isInViewport
-        });
-        
-        if (!isInViewport) {
-            console.log('⚠️ Container fora da área visível! Aplicando correção...');
-            
-            // Tentar posicionar corretamente
-            if (currentInput) {
-                const inputRect = currentInput.getBoundingClientRect();
-                const newTop = inputRect.bottom + window.scrollY;
-                const newLeft = inputRect.left + window.scrollX;
-                
-                container.style.top = newTop + 'px';
-                container.style.left = newLeft + 'px';
-                container.style.width = inputRect.width + 'px';
-                
-                console.log('📐 Posição corrigida:', { newTop, newLeft });
-            }
-            
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Verifica cores do texto e fundo
-     */
-    function checkColors(suggestionItem) {
-        if (!suggestionItem) return;
-        
-        const computedStyle = window.getComputedStyle(suggestionItem);
-        const color = computedStyle.color;
-        const bgColor = computedStyle.backgroundColor;
-        
-        console.log('🎨 Cores do item:', { color, bgColor });
-        
-        // Verificar se é invisível (mesma cor)
-        if (color === bgColor || (color === 'rgba(0, 0, 0, 0)' && bgColor === 'rgba(0, 0, 0, 0)')) {
-            console.log('⚠️ Cores conflitantes detectadas! Aplicando correção...');
-            suggestionItem.style.color = '#333333';
-            suggestionItem.style.backgroundColor = 'white';
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Filtra bairros baseado no texto digitado
+     * Filtra bairros
      */
     function filterBairros(searchText) {
-        if (!searchText || searchText.length < CONFIG.minChars) {
-            return [];
-        }
+        if (!searchText || searchText.length < CONFIG.minChars) return [];
         
         const searchLower = searchText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         
@@ -209,26 +335,21 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
     }
     
     /**
-     * Cria elemento de sugestão com estilos garantidos
+     * Cria elemento de sugestão
      */
     function createSuggestionElement(bairro, searchText) {
         const div = document.createElement('div');
         div.className = CONFIG.suggestionsClass + '-item';
-        
-        // Estilos inline garantidos
         div.style.cssText = `
             padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid #e0e0e0;
-            transition: background 0.2s ease;
             font-size: 0.9rem;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #333333;
             background: white;
             display: block;
         `;
         
-        // Destacar parte que corresponde à busca
         const searchLower = searchText.toLowerCase();
         const bairroLower = bairro.toLowerCase();
         const index = bairroLower.indexOf(searchLower);
@@ -237,54 +358,39 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             const before = bairro.substring(0, index);
             const match = bairro.substring(index, index + searchText.length);
             const after = bairro.substring(index + searchText.length);
-            div.innerHTML = `${before}<strong style="color: #1a5276; background: #e8f0fe; padding: 0 2px; border-radius: 3px; font-weight: 600;">${match}</strong>${after}`;
+            div.innerHTML = `${before}<strong style="color: #1a5276; background: #e8f0fe; padding: 0 2px; border-radius: 3px;">${match}</strong>${after}`;
         } else {
             div.textContent = bairro;
         }
         
-        // Evento de clique
         div.addEventListener('click', () => {
             if (currentInput) {
                 currentInput.value = bairro;
                 hideSuggestions();
-                
                 const event = new Event('input', { bubbles: true });
                 currentInput.dispatchEvent(event);
-                
-                console.log(`📍 Bairro selecionado: ${bairro}`);
+                showNotification(`📍 Bairro selecionado: ${bairro}`, '#27ae60');
             }
         });
         
-        // Hover effect
-        div.addEventListener('mouseenter', () => {
-            div.style.backgroundColor = '#f0f7ff';
-        });
-        
-        div.addEventListener('mouseleave', () => {
-            div.style.backgroundColor = 'white';
-        });
+        div.addEventListener('mouseenter', () => div.style.backgroundColor = '#f0f7ff');
+        div.addEventListener('mouseleave', () => div.style.backgroundColor = 'white');
         
         return div;
     }
     
     /**
-     * Mostra sugestões com correções de posicionamento
+     * Mostra sugestões
      */
     function showSuggestions(suggestions, searchText) {
         hideSuggestions();
-        
         if (!suggestions.length || !currentInput) return;
         
-        // Aplicar correções antes de mostrar
         applyForceStyles();
-        fixPageOverflow();
         
-        // Criar container
         const rect = currentInput.getBoundingClientRect();
         suggestionsContainer = document.createElement('div');
         suggestionsContainer.className = CONFIG.suggestionsClass;
-        
-        // Estilos inline garantidos
         suggestionsContainer.style.cssText = `
             position: absolute;
             z-index: 999999;
@@ -297,29 +403,15 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
             width: ${rect.width}px;
             top: ${rect.bottom + window.scrollY + 4}px;
             left: ${rect.left + window.scrollX}px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
-        // Adicionar itens
         suggestions.forEach(bairro => {
             suggestionsContainer.appendChild(createSuggestionElement(bairro, searchText));
         });
         
         document.body.appendChild(suggestionsContainer);
-        console.log(`📍 Sugestões exibidas: ${suggestions.length} resultados para "${searchText}"`);
+        console.log(`📍 Sugestões exibidas: ${suggestions.length} resultados`);
         
-        // Verificar visibilidade do container
-        setTimeout(() => {
-            if (suggestionsContainer) {
-                checkContainerVisibility(suggestionsContainer);
-                const firstItem = suggestionsContainer.querySelector('.' + CONFIG.suggestionsClass + '-item');
-                if (firstItem) {
-                    checkColors(firstItem);
-                }
-            }
-        }, 50);
-        
-        // Fechar ao clicar fora
         setTimeout(() => {
             document.addEventListener('click', function onClickOutside(e) {
                 if (!suggestionsContainer?.contains(e.target) && e.target !== currentInput) {
@@ -330,9 +422,6 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         }, 0);
     }
     
-    /**
-     * Esconde sugestões
-     */
     function hideSuggestions() {
         if (suggestionsContainer) {
             suggestionsContainer.remove();
@@ -340,13 +429,8 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         }
     }
     
-    /**
-     * Handler de input
-     */
     function onInputChange(e) {
         const searchText = e.target.value;
-        console.log(`📍 Digitando: "${searchText}" (${searchText.length} caracteres)`);
-        
         if (debounceTimer) clearTimeout(debounceTimer);
         
         if (!searchText || searchText.length < CONFIG.minChars) {
@@ -356,32 +440,15 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         
         debounceTimer = setTimeout(() => {
             const suggestions = filterBairros(searchText);
-            console.log(`📍 Filtro: ${suggestions.length} bairros encontrados para "${searchText}"`);
-            if (suggestions.length > 0) {
-                console.log(`   Sugestões: ${suggestions.slice(0, 5).join(', ')}${suggestions.length > 5 ? '...' : ''}`);
-            }
             showSuggestions(suggestions, searchText);
         }, CONFIG.debounceDelay);
     }
     
-    /**
-     * Inicializa o autocomplete
-     */
     function init() {
-        console.log('📍 Iniciando inicialização do autocomplete...');
-        
         const input = document.querySelector(CONFIG.inputSelector);
-        if (!input) {
-            console.log('❌ Campo de localização não encontrado:', CONFIG.inputSelector);
-            return false;
-        }
+        if (!input) return false;
+        if (currentInput === input) return true;
         
-        if (currentInput === input) {
-            console.log('📍 Autocomplete já inicializado neste campo');
-            return true;
-        }
-        
-        // Limpar anterior
         if (currentInput) {
             currentInput.removeEventListener('input', onInputChange);
             currentInput.removeEventListener('blur', () => setTimeout(hideSuggestions, 200));
@@ -390,24 +457,21 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         currentInput = input;
         currentInput.setAttribute('autocomplete', 'off');
         currentInput.setAttribute('placeholder', 'Ex: Ponta Verde, Maceió-AL (digite o bairro)');
-        
-        // Adicionar eventos
         currentInput.addEventListener('input', onInputChange);
         currentInput.addEventListener('blur', () => setTimeout(hideSuggestions, 200));
-        
         currentInput.style.position = 'relative';
         
-        // Aplicar correções visuais
         applyForceStyles();
         
-        console.log('✅ Sistema de autocomplete inicializado com', BAIRROS_OFICIAIS.length, 'bairros');
+        // Criar botão de diagnóstico
+        createDiagnosticButton();
+        
+        console.log('✅ Autocomplete inicializado com', BAIRROS_OFICIAIS.length, 'bairros');
+        showNotification('✅ Autocomplete inicializado! Digite o nome do bairro', '#27ae60');
         
         return true;
     }
     
-    /**
-     * Destrói o autocomplete
-     */
     function destroy() {
         if (currentInput) {
             currentInput.removeEventListener('input', onInputChange);
@@ -416,166 +480,83 @@ console.log('📍 location-autocomplete.js - Sistema de sugestão de bairros');
         }
         hideSuggestions();
         if (debounceTimer) clearTimeout(debounceTimer);
-        console.log('📍 Sistema de autocomplete destruído');
     }
     
-    /**
-     * Executa diagnóstico completo com verificações visuais
-     */
-    function runFullDiagnostic() {
-        console.group('🔍 DIAGNÓSTICO COMPLETO DO AUTOCOMPLETE');
+    function createDiagnosticButton() {
+        if (diagnosticButton) return;
         
-        // 1. Verificar campo
-        const input = document.querySelector(CONFIG.inputSelector);
-        console.log('1. CAMPO:', input ? '✅ ENCONTRADO' : '❌ NÃO ENCONTRADO');
+        diagnosticButton = document.createElement('div');
+        diagnosticButton.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: #1a5276;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999998;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            font-size: 24px;
+            font-family: monospace;
+            transition: all 0.3s ease;
+        `;
+        diagnosticButton.innerHTML = '🔍';
+        diagnosticButton.title = 'Clique para diagnosticar o autocomplete';
         
-        // 2. Verificar overflow da página
-        const bodyOverflow = window.getComputedStyle(document.body).overflow;
-        const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
-        console.log('2. OVERFLOW:', { bodyOverflow, htmlOverflow });
-        if (bodyOverflow === 'hidden' || htmlOverflow === 'hidden') {
-            console.log('   ⚠️ Overflow detectado - pode esconder as sugestões!');
-        } else {
-            console.log('   ✅ Sem overflow');
-        }
+        diagnosticButton.addEventListener('click', () => {
+            runAdvancedDiagnostic();
+        });
         
-        // 3. Testar filtro
-        const testResults = filterBairros('Ponta');
-        console.log('3. FILTRO:', `${testResults.length} resultados para "Ponta"`);
+        diagnosticButton.addEventListener('mouseenter', () => {
+            diagnosticButton.style.transform = 'scale(1.1)';
+        });
         
-        // 4. Verificar estilos aplicados
-        console.log('4. ESTILOS:', forceStylesApplied ? '✅ CORREÇÕES APLICADAS' : '⚠️ NENHUMA CORREÇÃO');
+        diagnosticButton.addEventListener('mouseleave', () => {
+            diagnosticButton.style.transform = 'scale(1)';
+        });
         
-        // 5. Simular digitação e verificar visualização
-        if (input) {
-            console.log('\n5. SIMULANDO DIGITAÇÃO...');
-            const originalValue = input.value;
-            input.value = 'Ponta';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            setTimeout(() => {
-                const container = document.querySelector('.' + CONFIG.suggestionsClass);
-                if (container) {
-                    const rect = container.getBoundingClientRect();
-                    const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
-                    console.log('   Container visível:', isInViewport ? '✅ SIM' : '❌ NÃO');
-                    console.log('   Posição:', { top: rect.top, bottom: rect.bottom });
-                    
-                    if (!isInViewport) {
-                        console.log('   🔧 Aplicando correção de posição...');
-                        const inputRect = input.getBoundingClientRect();
-                        container.style.top = (inputRect.bottom + window.scrollY + 4) + 'px';
-                        console.log('   ✅ Posição corrigida');
-                    }
-                    
-                    const firstItem = container.querySelector('.' + CONFIG.suggestionsClass + '-item');
-                    if (firstItem) {
-                        const color = window.getComputedStyle(firstItem).color;
-                        const bgColor = window.getComputedStyle(firstItem).backgroundColor;
-                        console.log('   Cores:', { color, bgColor });
-                        if (color === bgColor) {
-                            console.log('   ⚠️ Conflito de cores detectado!');
-                        }
-                    }
-                } else {
-                    console.log('   ❌ Nenhum container criado');
-                }
-                
-                input.value = originalValue;
-                hideSuggestions();
-                console.groupEnd();
-            }, 500);
-        } else {
-            console.groupEnd();
-        }
+        document.body.appendChild(diagnosticButton);
+        console.log('✅ Botão de diagnóstico criado (🔍)');
     }
     
-    /**
-     * Força correção visual das sugestões
-     */
-    function forceVisualFix() {
-        console.log('🔧 Aplicando correção visual forçada...');
-        applyForceStyles();
-        fixPageOverflow();
-        
-        // Reaplicar estilos ao container existente
-        if (suggestionsContainer) {
-            const inputRect = currentInput?.getBoundingClientRect();
-            if (inputRect) {
-                suggestionsContainer.style.cssText = `
-                    position: absolute;
-                    z-index: 999999;
-                    background: white;
-                    border: 2px solid #1a5276;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-                    max-height: 300px;
-                    overflow-y: auto;
-                    width: ${inputRect.width}px;
-                    top: ${inputRect.bottom + window.scrollY + 4}px;
-                    left: ${inputRect.left + window.scrollX}px;
-                `;
-                console.log('✅ Container reestilizado');
-            }
-        }
-        
-        console.log('✅ Correção visual aplicada');
-    }
-    
-    // API pública
+    // API Pública
     window.LocationAutocomplete = {
         init,
         destroy,
-        getBairrosList: () => [...BAIRROS_OFICIAIS],
         isActive: () => currentInput !== null,
-        runDiagnostic: runFullDiagnostic,
-        forceVisualFix: forceVisualFix,
+        forceVisualFix,
+        runDiagnostic: runAdvancedDiagnostic,
+        testSuggestions: () => {
+            const field = document.querySelector(CONFIG.inputSelector);
+            if (field) {
+                field.value = 'Ponta';
+                field.dispatchEvent(new Event('input', { bubbles: true }));
+                showNotification('🧪 Testando "Ponta"...', '#1a5276');
+            }
+        },
+        getBairrosList: () => [...BAIRROS_OFICIAIS],
         CONFIG
     };
     
-    // Auto-registrar no DiagnosticRegistry
+    // Auto-registro
     if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register('LocationAutocomplete.init', init, 'ui', {
-            isSafe: true,
-            description: 'Inicializa sistema de autocomplete de bairros'
-        });
-        window.DiagnosticRegistry.register('LocationAutocomplete.runDiagnostic', runFullDiagnostic, 'ui', {
-            isSafe: true,
-            description: 'Executa diagnóstico completo do autocomplete'
-        });
-        window.DiagnosticRegistry.register('LocationAutocomplete.forceVisualFix', forceVisualFix, 'ui', {
-            isSafe: true,
-            description: 'Aplica correção visual forçada nas sugestões'
-        });
+        window.DiagnosticRegistry.register('LocationAutocomplete.init', init, 'ui', { isSafe: true });
+        window.DiagnosticRegistry.register('LocationAutocomplete.runDiagnostic', runAdvancedDiagnostic, 'ui', { isSafe: true });
+        window.DiagnosticRegistry.register('LocationAutocomplete.forceVisualFix', forceVisualFix, 'ui', { isSafe: true });
     }
     
-    // Inicialização automática
-    function autoInit() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(() => {
-                    window.LocationAutocomplete?.init();
-                    setTimeout(() => {
-                        if (window.location.search.includes('debug=true')) {
-                            window.LocationAutocomplete?.runDiagnostic();
-                        }
-                    }, 1000);
-                }, 500);
-            });
-        } else {
-            setTimeout(() => {
-                window.LocationAutocomplete?.init();
-                setTimeout(() => {
-                    if (window.location.search.includes('debug=true')) {
-                        window.LocationAutocomplete?.runDiagnostic();
-                    }
-                }, 1000);
-            }, 500);
-        }
+    // Auto-inicialização
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
+    } else {
+        setTimeout(init, 500);
     }
     
-    autoInit();
-    
-    console.log('✅ location-autocomplete.js carregado -', BAIRROS_OFICIAIS.length, 'bairros disponíveis');
-    console.log('📋 Comandos: window.LocationAutocomplete.runDiagnostic() | forceVisualFix()');
+    console.log('✅ location-autocomplete.js v1.0.5 carregado -', BAIRROS_OFICIAIS.length, 'bairros');
+    console.log('📋 Clique no botão 🔍 no canto inferior direito para executar diagnóstico completo');
 })();
