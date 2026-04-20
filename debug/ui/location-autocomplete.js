@@ -1,7 +1,7 @@
-// debug/ui/location-autocomplete.js - v2.0.0
+// debug/ui/location-autocomplete.js - v2.0.1
 // Módulo de DIAGNÓSTICO para o autocomplete nativo do Core System
-// NÃO implementa autocomplete - apenas valida e diagnostica a implementação do admin.js
-console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do autocomplete nativo');
+// CORREÇÃO: Aguarda o admin.js inicializar antes de diagnosticar
+console.log('📍 location-autocomplete.js v2.0.1 - Módulo de DIAGNÓSTICO do autocomplete nativo');
 
 (function() {
     'use strict';
@@ -13,13 +13,17 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         inputSelector: '#propLocation',
         minChars: 2,
         suggestionsClass: 'admin-location-suggestions',
-        diagnosticButtonPosition: 'bottom-left' // Posição do botão de diagnóstico
+        diagnosticButtonPosition: 'bottom-left',
+        maxRetries: 10,           // Número máximo de tentativas
+        retryDelay: 500           // Delay entre tentativas (ms)
     };
     
     let diagnosticPanel = null;
     let diagnosticButton = null;
     let testResults = {};
     let isMonitoring = false;
+    let retryCount = 0;
+    let checkInterval = null;
     
     // ==========================================================
     // FUNÇÃO PRINCIPAL: DIAGNÓSTICO COMPLETO
@@ -75,7 +79,7 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
             'Mangabeiras', 'Poço', 'Barro Duro', 'Gruta de Lourdes', 'Serraria',
             'Farol', 'Jardim Petrópolis', 'Centro', 'Prado', 'Jaraguá', 'Feitosa',
             'Pinheiro', 'Santa Lúcia', 'Santa Amélia', 'Tabuleiro do Martins',
-            'Cidade Universitária', 'Clima Bem', 'Benedito Bentes', 'Santos Dumont',
+            'Cidade Universitária', 'Clima Bom', 'Benedito Bentes', 'Santos Dumont',
             'São Jorge', 'Levada', 'Trapiche da Barra', 'Vergel do Lago',
             'Ouro Preto', 'Mutange', 'Fernão Velho', 'Rio Novo', 'Riacho Doce',
             'Pontal da Barra', 'Guaxuma', 'Ipioca', 'Garça Torta', 'Pescaria'
@@ -90,7 +94,7 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         testResults.filterTest = {
             searchTerm: testSearch,
             matchesFound: matches.length,
-            matches: matches.slice(0, 5) // Apenas os primeiros 5 para exibição
+            matches: matches.slice(0, 5)
         };
         console.log(`🔍 Teste de filtro "${testSearch}": ${matches.length} resultado(s) esperado(s) -`, matches);
         
@@ -123,18 +127,16 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
             console.log(`${testResults.suggestionsCreated ? '✅' : '❌'} Container criado após digitação de "${testSearch}"`);
             
             if (suggestionsAfter) {
-                const items = suggestionsAfter.querySelectorAll('div:not([class])'); // Itens de sugestão
+                const items = suggestionsAfter.querySelectorAll('div:not([class])');
                 testResults.suggestionsCount = items.length;
                 console.log(`📋 ${items.length} sugestão(ões) exibida(s)`);
                 
-                // Verificar se as sugestões correspondem ao esperado
                 if (items.length > 0) {
                     const firstItemText = items[0].textContent || items[0].innerText;
                     const expectedFirst = matches[0];
                     testResults.firstMatchCorrect = firstItemText.includes(expectedFirst) || expectedFirst.includes(firstItemText);
                     console.log(`🎯 Primeira sugestão: "${firstItemText}" - ${testResults.firstMatchCorrect ? '✅ correta' : '⚠️ pode estar incorreta'}`);
                     
-                    // Verificar estilos dos itens
                     const firstItem = items[0];
                     const itemStyles = window.getComputedStyle(firstItem);
                     testResults.itemStyles = {
@@ -151,13 +153,11 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
             locationInput.value = originalValue;
             locationInput.dispatchEvent(new Event('input', { bubbles: true }));
             
-            // Pequeno delay para limpar o container
             setTimeout(() => {
                 const containerToClean = document.querySelector(`.${CONFIG.suggestionsClass}`);
                 if (containerToClean) containerToClean.remove();
             }, 200);
             
-            // Mostrar painel com resultados
             showDiagnosticPanel();
             
         }, 400);
@@ -175,18 +175,14 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
             return false;
         }
         
-        // Limpar sugestões existentes
         const existingContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
         if (existingContainer) existingContainer.remove();
         
-        // Salvar valor original
         const originalValue = locationInput.value;
         
-        // Disparar evento com a palavra de teste
         locationInput.value = searchWord;
         locationInput.dispatchEvent(new Event('input', { bubbles: true }));
         
-        // Aguardar e verificar resultado
         setTimeout(() => {
             const suggestionsContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
             if (suggestionsContainer && suggestionsContainer.children.length > 0) {
@@ -206,7 +202,6 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
                 alert(`❌ TESTE FALHOU!\n\nNenhuma sugestão encontrada para "${searchWord}".\n\nVerifique se o autocomplete nativo está funcionando corretamente.`);
             }
             
-            // Restaurar valor original e limpar
             locationInput.value = originalValue;
             locationInput.dispatchEvent(new Event('input', { bubbles: true }));
             
@@ -225,7 +220,6 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
     function showDiagnosticPanel() {
         if (diagnosticPanel) diagnosticPanel.remove();
         
-        // Determinar cor de status geral
         let overallStatus = '⚠️ PARCIAL';
         let statusColor = '#e67e22';
         
@@ -267,7 +261,7 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
                         🔍 DIAGNÓSTICO: AUTOCOMPLETE NATIVO
                     </h3>
                     <div style="font-size: 9px; color: #888; margin-top: 4px;">
-                        Support System v2.0 | Modo Diagnóstico
+                        Support System v2.0.1 | Modo Diagnóstico
                     </div>
                 </div>
                 <button id="close-native-diag" style="background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; padding: 5px 10px; font-size: 11px; font-weight: bold;">
@@ -326,7 +320,6 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
             `;
         }
         
-        // Botões de ação
         html += `
             <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #333; display: flex; gap: 8px; flex-wrap: wrap;">
                 <button id="diag-refresh-native" style="background: #1a5276; color: white; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;">
@@ -350,7 +343,6 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         diagnosticPanel.innerHTML = html;
         document.body.appendChild(diagnosticPanel);
         
-        // Eventos dos botões
         document.getElementById('close-native-diag')?.addEventListener('click', () => {
             diagnosticPanel.remove();
             diagnosticPanel = null;
@@ -418,8 +410,6 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         if (oldStyle) oldStyle.remove();
         
         document.head.appendChild(style);
-        
-        // Notificação visual
         showNotification('✅ Correção de estilos aplicada!', '#27ae60');
     }
     
@@ -456,6 +446,48 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 3000);
+    }
+    
+    // ==========================================================
+    // VERIFICAÇÃO INTELIGENTE (AGUARDA O ADMIN CARREGAR)
+    // ==========================================================
+    function waitForAdminAndCheck() {
+        console.log(`⏳ Aguardando admin.js inicializar... (tentativa ${retryCount + 1}/${CONFIG.maxRetries})`);
+        
+        const locationInput = document.getElementById(CONFIG.inputSelector);
+        
+        if (locationInput) {
+            // Campo encontrado!
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+            
+            const isInit = locationInput.hasAttribute('data-autocomplete-initialized');
+            if (isInit) {
+                console.log('✅ [QUICK CHECK] Autocomplete nativo está funcionando!');
+                console.log('💡 Clique no botão 🔍 para diagnóstico detalhado');
+            } else {
+                console.log('⚠️ [QUICK CHECK] Campo encontrado, mas autocomplete NÃO inicializado ainda');
+                console.log('💡 Aguarde mais alguns segundos ou clique no botão 🔍 para diagnosticar');
+            }
+            return true;
+        }
+        
+        retryCount++;
+        
+        if (retryCount >= CONFIG.maxRetries) {
+            // Esgotou as tentativas
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+            console.log('⚠️ [QUICK CHECK] Campo #propLocation não encontrado após várias tentativas');
+            console.log('💡 O admin.js pode não ter carregado corretamente. Clique no botão 🔍 para diagnosticar.');
+            return false;
+        }
+        
+        return false;
     }
     
     // ==========================================================
@@ -509,46 +541,48 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
     }
     
     // ==========================================================
-    // VERIFICAÇÃO RÁPIDA (SEM ABRIR PAINEL)
+    // VERIFICAÇÃO RÁPIDA (COM AGUARDO INTELIGENTE)
     // ==========================================================
     function quickCheck() {
         const locationInput = document.getElementById(CONFIG.inputSelector);
         if (!locationInput) {
-            console.log('❌ [QUICK CHECK] Campo #propLocation não encontrado');
-            return { working: false, reason: 'Campo não encontrado' };
+            return { working: false, reason: 'Campo não encontrado (admin.js pode não ter carregado)' };
         }
         
         const isInit = locationInput.hasAttribute('data-autocomplete-initialized');
         if (!isInit) {
-            console.log('⚠️ [QUICK CHECK] Autocomplete NÃO inicializado');
-            return { working: false, reason: 'Não inicializado' };
+            return { working: false, reason: 'Campo encontrado mas não inicializado' };
         }
         
-        console.log('✅ [QUICK CHECK] Autocomplete nativo está funcionando!');
         return { working: true, reason: 'OK' };
     }
     
     // ==========================================================
-    // INICIALIZAÇÃO DO MÓDULO DE DIAGNÓSTICO
+    // INICIALIZAÇÃO DO MÓDULO DE DIAGNÓSTICO (COM RETRY)
     // ==========================================================
     function init() {
         console.log('🔧 Inicializando módulo de DIAGNÓSTICO do autocomplete nativo...');
         
-        // Aguardar DOM estar pronto
         const startDiagnostic = () => {
-            setTimeout(() => {
-                createDiagnosticButton();
-                
-                // Executar verificação rápida silenciosa
-                const check = quickCheck();
-                if (check.working) {
-                    console.log('🎉 Autocomplete nativo está OPERACIONAL!');
-                    console.log('💡 Clique no botão 🔍 para diagnóstico detalhado');
-                } else {
-                    console.log(`⚠️ Autocomplete nativo: ${check.reason}`);
-                    console.log('💡 Clique no botão 🔍 para diagnosticar e corrigir');
+            // Criar botão imediatamente
+            createDiagnosticButton();
+            
+            // Iniciar verificação com retry
+            retryCount = 0;
+            checkInterval = setInterval(() => {
+                const found = waitForAdminAndCheck();
+                if (found) {
+                    // Se encontrou, faz uma verificação final silenciosa
+                    setTimeout(() => {
+                        const check = quickCheck();
+                        if (check.working) {
+                            console.log('🎉 Autocomplete nativo está OPERACIONAL!');
+                        } else {
+                            console.log(`⚠️ Autocomplete nativo: ${check.reason}`);
+                        }
+                    }, 500);
                 }
-            }, 1500);
+            }, CONFIG.retryDelay);
         };
         
         if (document.readyState === 'loading') {
@@ -580,21 +614,18 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
     // API PÚBLICA
     // ==========================================================
     window.LocationAutocomplete = {
-        // Diagnóstico
         runFullDiagnostic,
         testAutocompleteResponse,
         quickCheck,
         applyStyleFix,
         
-        // Informações
         isActive: () => {
             const input = document.getElementById(CONFIG.inputSelector);
             return input?.hasAttribute('data-autocomplete-initialized') || false;
         },
         
-        // Compatibilidade (mantido para não quebrar código existente)
         init: () => {
-            console.log('ℹ️ LocationAutocomplete.init() - Este é um módulo de DIAGNÓSTICO.');
+            console.log('ℹ️ LocationAutocomplete.init() - Módulo de DIAGNÓSTICO.');
             console.log('   O autocomplete é implementado pelo Core System (admin.js)');
             console.log('   Use runFullDiagnostic() para verificar o funcionamento.');
             return true;
@@ -603,12 +634,13 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
         destroy: () => {
             if (diagnosticButton) diagnosticButton.remove();
             if (diagnosticPanel) diagnosticPanel.remove();
+            if (checkInterval) clearInterval(checkInterval);
             diagnosticButton = null;
             diagnosticPanel = null;
+            checkInterval = null;
             console.log('🧹 Módulo de diagnóstico removido');
         },
         
-        // Utilitários
         getBairrosList: () => [
             'Pajuçara', 'Ponta Verde', 'Jatiúca', 'Jacarecica', 'Cruz das Almas',
             'Mangabeiras', 'Poço', 'Barro Duro', 'Gruta de Lourdes', 'Serraria',
@@ -622,7 +654,7 @@ console.log('📍 location-autocomplete.js v2.0.0 - Módulo de DIAGNÓSTICO do a
     // Auto-inicializar
     init();
     
-    console.log('✅ location-autocomplete.js v2.0.0 carregado - MODO DIAGNÓSTICO');
+    console.log('✅ location-autocomplete.js v2.0.1 carregado - MODO DIAGNÓSTICO (com aguardador)');
     console.log('📋 Funcionalidade: Validar e testar o autocomplete nativo do Core System');
-    console.log('💡 Use window.LocationAutocomplete.runFullDiagnostic() para diagnóstico completo');
+    console.log('💡 O diagnóstico aguarda o admin.js carregar antes de verificar');
 })();
