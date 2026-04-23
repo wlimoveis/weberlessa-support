@@ -1,6 +1,6 @@
-// debug/ui/location-autocomplete.js - v2.1.0
-// Módulo de DIAGNÓSTICO com CORREÇÃO AUTOMÁTICA - Versão com Inicialização Definitiva
-console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática Definitiva');
+// debug/ui/location-autocomplete.js - v2.0.6
+// Módulo de DIAGNÓSTICO com CORREÇÃO AUTOMÁTICA de cores e POSICIONAMENTO
+console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção de Posicionamento e Cores');
 
 (function() {
     'use strict';
@@ -8,10 +8,8 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
     const CONFIG = {
         inputSelector: '#propLocation',
         suggestionsClass: 'admin-location-suggestions',
-        maxRetries: 15,
-        retryDelay: 500,
-        scrollWaitDelay: 800,
-        testValue: 'Ponta'
+        maxRetries: 10,
+        retryDelay: 500
     };
     
     let diagnosticPanel = null;
@@ -20,7 +18,6 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
     let retryCount = 0;
     let checkInterval = null;
     let colorFixObserver = null;
-    let isInitialized = false;  // Flag para evitar múltiplas inicializações
     
     // ==========================================================
     // DIAGNÓSTICO DE POSICIONAMENTO DO CAMPO
@@ -34,34 +31,31 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
             return null;
         }
         
-        const rect = input.getBoundingClientRect();
-        const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
-        
         const diagnosis = {
             fieldFound: true,
             offsetTop: input.offsetTop,
             offsetLeft: input.offsetLeft,
             offsetParent: input.offsetParent?.tagName || 'null',
-            boundingRect: rect,
+            boundingRect: input.getBoundingClientRect(),
             scrollY: window.scrollY,
-            isInViewport: isInViewport,
-            distanceFromViewport: Math.max(0, rect.top - window.innerHeight, -rect.top),
             parentTree: [],
             issues: []
         };
         
         console.log('=== DIAGNÓSTICO DE POSICIONAMENTO ===');
         console.log('📋 Campo:', input);
+        console.log(`📏 offsetTop: ${diagnosis.offsetTop}`);
+        console.log(`📏 offsetLeft: ${diagnosis.offsetLeft}`);
+        console.log(`📁 offsetParent: ${diagnosis.offsetParent}`);
         console.log(`📐 getBoundingClientRect():`, {
             top: diagnosis.boundingRect.top,
             left: diagnosis.boundingRect.left,
             bottom: diagnosis.boundingRect.bottom,
+            right: diagnosis.boundingRect.right,
             width: diagnosis.boundingRect.width,
             height: diagnosis.boundingRect.height
         });
-        console.log(`👁️ Está visível no viewport: ${isInViewport ? '✅ SIM' : '⚠️ NÃO'}`);
-        console.log(`📏 Distância do viewport: ${diagnosis.distanceFromViewport}px`);
-        console.log(`📜 window.scrollY: ${diagnosis.scrollY}px`);
+        console.log(`📜 window.scrollY: ${diagnosis.scrollY}`);
         
         // Percorrer árvore de pais
         let parent = input.parentElement;
@@ -103,14 +97,11 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         diagnosis.hasRelativeParent = hasRelativeParent;
         
         // Verificar problemas comuns
-        if (!isInViewport) {
-            diagnosis.issues.push(`⚠️ Campo está fora da viewport (distância: ${diagnosis.distanceFromViewport}px)`);
-        }
         if (diagnosis.boundingRect.top < 0) {
-            diagnosis.issues.push('⚠️ Campo está acima da tela (topo negativo)');
+            diagnosis.issues.push('⚠️ Campo está fora da tela (topo negativo)');
         }
         if (diagnosis.boundingRect.bottom > window.innerHeight) {
-            diagnosis.issues.push('⚠️ Campo está abaixo da tela (precisa rolar para baixo)');
+            diagnosis.issues.push('⚠️ Campo está abaixo da tela (precisa rolar)');
         }
         if (hasAbsoluteParent) {
             diagnosis.issues.push('⚠️ Campo tem pai com position:absolute - pode afetar posicionamento do dropdown');
@@ -120,16 +111,6 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         diagnosis.issues.forEach(issue => console.log(`   ${issue}`));
         
         return diagnosis;
-    }
-    
-    // ==========================================================
-    // FUNÇÃO AUXILIAR: VERIFICAR SE CAMPO ESTÁ VISÍVEL
-    // ==========================================================
-    function isFieldInViewport() {
-        const input = findLocationInput();
-        if (!input) return false;
-        const rect = input.getBoundingClientRect();
-        return rect.top >= 0 && rect.bottom <= window.innerHeight;
     }
     
     // ==========================================================
@@ -206,7 +187,8 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                         if (node.nodeType === 1 && node.classList && node.classList.contains(CONFIG.suggestionsClass)) {
                             console.log('🎯 Container detectado! Aplicando correção de cores...');
                             applyColorFixToContainer(node);
-                            setTimeout(() => fixContainerPosition(), 100);
+                            // Também corrigir posição automaticamente
+                            setTimeout(() => fixContainerPosition(), 50);
                         }
                     });
                 }
@@ -299,89 +281,8 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                 }
             }
         } else {
-            alert('❌ Nenhum container encontrado! Use o botão "FORÇAR CRIAÇÃO" primeiro.');
+            alert('❌ Nenhum container encontrado! Digite "Ponta" no campo primeiro.');
         }
-    }
-    
-    // ==========================================================
-    // FORÇAR CRIAÇÃO DO CONTAINER
-    // ==========================================================
-    function forceCreateContainer() {
-        console.log('🔧 [FORCE] Forçando criação do container de sugestões...');
-        
-        const input = findLocationInput();
-        if (!input) {
-            console.error('❌ [FORCE] Campo de localização não encontrado!');
-            showNotification('❌ Campo não encontrado! Abra o painel admin primeiro.', '#e74c3c');
-            return false;
-        }
-        
-        const adminPanel = document.getElementById('adminPanel');
-        if (!adminPanel || adminPanel.style.display !== 'block') {
-            console.warn('⚠️ [FORCE] Painel admin não está visível. Abrindo...');
-            if (typeof window.toggleAdminPanel === 'function') {
-                window.toggleAdminPanel();
-            } else {
-                showNotification('⚠️ Abra o painel admin primeiro!', '#e67e22');
-                return false;
-            }
-        }
-        
-        // Garantir que o campo está marcado como inicializado
-        if (!input.hasAttribute('data-autocomplete-initialized')) {
-            input.setAttribute('data-autocomplete-initialized', 'true');
-            console.log('🔧 [FORCE] Marcando campo como inicializado');
-        }
-        
-        const originalValue = input.value;
-        
-        // Garantir que o campo está visível
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        setTimeout(() => {
-            const existingContainer = document.querySelector(`.${CONFIG.suggestionsClass}`);
-            if (existingContainer) existingContainer.remove();
-            
-            input.value = '';
-            input.focus();
-            
-            setTimeout(() => {
-                const testValue = CONFIG.testValue;
-                for (let i = 0; i <= testValue.length; i++) {
-                    setTimeout(() => {
-                        input.value = testValue.substring(0, i);
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('keyup', { bubbles: true }));
-                        
-                        if (i === testValue.length) {
-                            console.log(`✅ [FORCE] Eventos disparados com valor: "${testValue}"`);
-                            
-                            setTimeout(() => {
-                                const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
-                                if (container) {
-                                    console.log('✅ [FORCE] Container criado com sucesso!');
-                                    showNotification('✅ Container criado!', '#27ae60');
-                                    setTimeout(() => {
-                                        applyColorFixToContainer(container);
-                                        fixContainerPosition();
-                                    }, 100);
-                                } else {
-                                    console.error('❌ [FORCE] Container não foi criado');
-                                    showNotification('❌ Falha ao criar container', '#e74c3c');
-                                }
-                                
-                                setTimeout(() => {
-                                    input.value = originalValue;
-                                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                                }, 3000);
-                            }, 300);
-                        }
-                    }, i * 150);
-                }
-            }, 100);
-        }, 300);
-        
-        return true;
     }
     
     // ==========================================================
@@ -390,6 +291,7 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
     function testVisualAutocomplete() {
         console.log('🎯 [TESTE VISUAL] Iniciando teste...');
         
+        // Primeiro, diagnosticar posicionamento
         const positionDiagnosis = diagnoseFieldPosition();
         
         const locationInput = findLocationInput();
@@ -434,28 +336,31 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                                 
                                 console.log(`✅ Container encontrado! ${items.length} sugestões`);
                                 
+                                // Aplicar correções
                                 applyColorFixToContainer(suggestionsContainer);
                                 fixContainerPosition();
                                 
+                                // Destacar visualmente
                                 suggestionsContainer.style.border = '3px solid #00ff00';
                                 setTimeout(() => {
                                     suggestionsContainer.style.border = '';
                                 }, 2000);
                                 
+                                // Mostrar resultado com informações de posição
                                 let positionInfo = '';
                                 const containerRect = suggestionsContainer.getBoundingClientRect();
                                 if (containerRect.top < 0) {
-                                    positionInfo = '\n\n⚠️ O container está fora da tela (topo negativo).';
+                                    positionInfo = '\n\n⚠️ O container está fora da tela (topo negativo). Tente rolar a página para cima.';
                                 } else if (containerRect.bottom > window.innerHeight) {
-                                    positionInfo = '\n\n⚠️ O container está abaixo da tela.';
+                                    positionInfo = '\n\n⚠️ O container está abaixo da tela. Tente rolar a página para baixo.';
                                 } else {
                                     positionInfo = '\n\n✅ O container está visível na tela!';
                                 }
                                 
-                                alert(`✅ SUCESSO! ${items.length} sugestão(ões):\n\n${itemsText.join('\n')}${positionInfo}`);
+                                alert(`✅ SUCESSO! ${items.length} sugestão(ões):\n\n${itemsText.join('\n')}\n\n✅ CORES CORRIGIDAS!${positionInfo}`);
                             } else {
                                 console.error('❌ Nenhum container foi criado!');
-                                alert('❌ TESTE FALHOU!\n\nNenhuma sugestão apareceu.');
+                                alert('❌ TESTE FALHOU!\n\nNenhuma sugestão apareceu.\n\nVerifique se o autocomplete está configurado corretamente no sistema.');
                             }
                             
                             locationInput.value = originalValue;
@@ -492,114 +397,13 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
     }
     
     // ==========================================================
-    // WAIT FOR ADMIN - VERSÃO CORRIGIDA COM INICIALIZAÇÃO DEFINITIVA
-    // ==========================================================
-    function waitForAdminAndCheck() {
-        const locationInput = findLocationInput();
-        const adminPanel = document.getElementById('adminPanel');
-        const isPanelVisible = adminPanel && adminPanel.style.display === 'block';
-        
-        if (locationInput && isPanelVisible && !isInitialized) {
-            console.log('✅ [Autocomplete] Campo e painel visível - inicializando...');
-            
-            // Limpar intervalo para não executar múltiplas vezes
-            if (checkInterval) {
-                clearInterval(checkInterval);
-                checkInterval = null;
-            }
-            
-            // ✅ FORÇAR O ESTADO COMO INICIALIZADO (SOLUÇÃO DO PROBLEMA)
-            if (!locationInput.hasAttribute('data-autocomplete-initialized')) {
-                locationInput.setAttribute('data-autocomplete-initialized', 'true');
-                console.log('🔧 [Autocomplete] ✅ Campo marcado como inicializado!');
-            }
-            isInitialized = true;
-            
-            // Rolar até o campo
-            setTimeout(() => {
-                console.log('📜 [Autocomplete] Rolando até o campo...');
-                locationInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
-                // Aguardar rolagem e inicializar autocomplete
-                setTimeout(() => {
-                    console.log('🔧 [Autocomplete] Configurando eventos e criando container...');
-                    
-                    // Salvar valor original
-                    const originalValue = locationInput.value;
-                    
-                    // Limpar e digitar valor de teste para forçar criação do container
-                    locationInput.value = '';
-                    locationInput.focus();
-                    
-                    setTimeout(() => {
-                        const testValue = CONFIG.testValue;
-                        for (let i = 0; i <= testValue.length; i++) {
-                            setTimeout(() => {
-                                locationInput.value = testValue.substring(0, i);
-                                locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                locationInput.dispatchEvent(new Event('keyup', { bubbles: true }));
-                                
-                                if (i === testValue.length) {
-                                    console.log(`✅ [Autocomplete] Inicializado com valor de teste: "${testValue}"`);
-                                    
-                                    // Verificar se o container foi criado
-                                    setTimeout(() => {
-                                        const container = document.querySelector(`.${CONFIG.suggestionsClass}`);
-                                        if (container) {
-                                            console.log('✅ [Autocomplete] Container criado com sucesso!');
-                                            showNotification('✅ Autocomplete inicializado automaticamente!', '#27ae60');
-                                            
-                                            // Aplicar correções de cores e posição
-                                            setTimeout(() => {
-                                                applyColorFixToContainer(container);
-                                                fixContainerPosition();
-                                            }, 100);
-                                        } else {
-                                            console.warn('⚠️ [Autocomplete] Container não foi criado, mas sistema está ativo');
-                                            showNotification('⚠️ Autocomplete ativo, digite para ver sugestões', '#e67e22');
-                                        }
-                                        
-                                        // Restaurar valor original após 2 segundos
-                                        setTimeout(() => {
-                                            locationInput.value = originalValue;
-                                            locationInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                        }, 2000);
-                                    }, 500);
-                                }
-                            }, i * 150);
-                        }
-                    }, 100);
-                }, 500);
-            }, 100);
-            
-            return true;
-        }
-        
-        if (locationInput && !isPanelVisible) {
-            console.log('⏳ [Autocomplete] Campo encontrado, mas painel admin está fechado. Aguardando...');
-        }
-        
-        if (!isInitialized) {
-            retryCount++;
-            if (retryCount >= CONFIG.maxRetries) {
-                console.warn('⚠️ [Autocomplete] Timeout - painel admin não foi aberto');
-                if (checkInterval) {
-                    clearInterval(checkInterval);
-                    checkInterval = null;
-                }
-                return false;
-            }
-        }
-        return false;
-    }
-    
-    // ==========================================================
     // DIAGNÓSTICO COMPLETO
     // ==========================================================
     function runFullDiagnostic() {
         console.log('🔬 [DIAGNÓSTICO] Iniciando análise completa...');
         testResults = {};
         
+        // Executar diagnóstico de posicionamento
         const positionDiagnosis = diagnoseFieldPosition();
         testResults.positionDiagnosis = positionDiagnosis;
         
@@ -614,7 +418,6 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         
         testResults.isInitialized = locationInput.hasAttribute('data-autocomplete-initialized');
         testResults.placeholder = locationInput.placeholder;
-        testResults.isInViewport = isFieldInViewport();
         
         const adminPanel = document.getElementById('adminPanel');
         testResults.adminPanelVisible = adminPanel && adminPanel.style.display === 'block';
@@ -641,15 +444,14 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         }
         
         const bairrosMaceio = [
-        'Pajuçara, Maceió/AL', 'Ponta Verde, Maceió/AL', 'Jatiúca, Maceió/AL', 'Jacarecica, Maceió/AL', 'Cruz das Almas, Maceió/AL',
-        'Mangabeiras, Maceió/AL', 'Poço, Maceió/AL', 'Barro Duro, Maceió/AL', 'Gruta de Lourdes, Maceió/AL', 'Serraria, Maceió/AL',
-        'Farol, Maceió/AL', 'Jardim Petrópolis, Maceió/AL', 'Centro, Maceió/AL', 'Prado, Maceió/AL', 'Jaraguá, Maceió/AL', 'Feitosa, Maceió/AL',
-        'Pinheiro, Maceió/AL', 'Santa Lúcia, Maceió/AL', 'Santa Amélia, Maceió/AL', 'Tabuleiro do Martins, Maceió/AL',
-        'Cidade Universitária, Maceió/AL', 'Clima Bom, Maceió/AL', 'Benedito Bentes, Maceió/AL', 'Santos Dumont, Maceió/AL',
-        'São Jorge, Maceió/AL', 'Levada, Maceió/AL', 'Trapiche da Barra, Maceió/AL', 'Vergel do Lago, Maceió/AL',
-        'Ouro Preto, Maceió/AL', 'Mutange, Maceió/AL', 'Fernão Velho', 'Rio Novo', 'Riacho Doce', 'Pontal da Barra, Maceió/AL', 'Guaxuma',
-        'Ipioca', 'Garça Torta', 'Pescaria', 'Ponta da Terra, Maceió/AL', 'Barra de São Miguel', 'Murilopes, Maceió/AL',
-        'Barra de São Miguel', 'Boa Viagem, Recife/PE', 'São Miguel dos Milagres',
+            'Pajuçara', 'Ponta Verde', 'Jatiúca', 'Jacarecica', 'Cruz das Almas',
+            'Mangabeiras', 'Poço', 'Barro Duro', 'Gruta de Lourdes', 'Serraria',
+            'Farol', 'Jardim Petrópolis', 'Centro', 'Prado', 'Jaraguá', 'Feitosa',
+            'Pinheiro', 'Santa Lúcia', 'Santa Amélia', 'Tabuleiro do Martins',
+            'Cidade Universitária', 'Clima Bom', 'Benedito Bentes', 'Santos Dumont',
+            'São Jorge', 'Levada', 'Trapiche da Barra', 'Vergel do Lago',
+            'Ouro Preto', 'Mutange', 'Fernão Velho', 'Rio Novo', 'Riacho Doce',
+            'Pontal da Barra', 'Guaxuma', 'Ipioca', 'Garça Torta', 'Pescaria'
         ];
         
         const testSearch = 'Ponta';
@@ -680,8 +482,8 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                 overallStatus = '⚠️ COR INVISÍVEL';
                 statusColor = '#e67e22';
             } else {
-                overallStatus = '✅ ATIVO';
-                statusColor = '#27ae60';
+                overallStatus = '⚠️ AGUARDANDO TESTE';
+                statusColor = '#3498db';
             }
         } else if (!testResults.fieldExists) {
             overallStatus = '❓ ABRA O PAINEL';
@@ -719,7 +521,7 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         
         let html = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid ${statusColor}; padding-bottom: 10px;">
-                <h3 style="margin: 0; color: ${statusColor}; font-size: 14px;">🔍 DIAGNÓSTICO AUTOCOMPLETE v2.1.0</h3>
+                <h3 style="margin: 0; color: ${statusColor}; font-size: 14px;">🔍 DIAGNÓSTICO AUTOCOMPLETE v2.0.6</h3>
                 <button id="close-diag" style="background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; padding: 4px 10px;">✕</button>
             </div>
             <div style="margin-bottom: 12px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 6px;">
@@ -734,10 +536,8 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                     <div>📋 CAMPO: ✅</div>
                     <div style="margin-left: 12px;">
                         <div>🔧 Inicializado: ${testResults.isInitialized ? '✅ SIM' : '⚠️ NÃO'}</div>
-                        <div>👁️ Visível no viewport: ${testResults.isInViewport ? '✅ SIM' : '⚠️ NÃO'}</div>
                         <div>📝 Placeholder: "${testResults.placeholder || ''}"</div>
                         <div>🪟 Painel Admin: ${testResults.adminPanelVisible ? '✅ VISÍVEL' : '⚠️ FECHADO'}</div>
-                        <div>📦 Container existe: ${testResults.containerExists ? '✅ SIM' : '❌ NÃO'}</div>
                     </div>
                 </div>
             `;
@@ -749,9 +549,9 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
                     <div>📐 POSIÇÃO DO CAMPO:</div>
                     <div style="margin-left: 12px; font-size: 10px;">
                         <div>Top: ${Math.round(testResults.positionDiagnosis.boundingRect?.top || 0)}px</div>
+                        <div>Left: ${Math.round(testResults.positionDiagnosis.boundingRect?.left || 0)}px</div>
                         <div>Bottom: ${Math.round(testResults.positionDiagnosis.boundingRect?.bottom || 0)}px</div>
                         <div>Scroll Y: ${testResults.positionDiagnosis.scrollY}px</div>
-                        <div>Distância: ${testResults.positionDiagnosis.distanceFromViewport}px</div>
                     </div>
                 </div>
             `;
@@ -761,11 +561,11 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
             <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #333; display: flex; gap: 8px; flex-wrap: wrap;">
                 <button id="diag-refresh" style="background: #1a5276; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🔄 ATUALIZAR</button>
                 <button id="diag-test-visual" style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">🎯 TESTE VISUAL</button>
-                <button id="diag-force-create" style="background: #8e44ad; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">🔧 FORÇAR CRIAÇÃO</button>
-                <button id="diag-force-fix" style="background: #e67e22; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🎨 CORRIGIR CORES</button>
+                <button id="diag-force-fix" style="background: #e67e22; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🔧 CORRIGIR TUDO</button>
+                <button id="diag-diagnose-pos" style="background: #8e44ad; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">📐 DIAGN. POSIÇÃO</button>
             </div>
             <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">
-                💡 Inicialização automática: ✅ ATIVA
+                💡 O sistema corrige AUTOMATICAMENTE cores e posição!
             </div>
         `;
         
@@ -781,11 +581,17 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
             diagnosticPanel.remove();
             testVisualAutocomplete();
         });
-        document.getElementById('diag-force-create')?.addEventListener('click', () => {
-            forceCreateContainer();
-        });
         document.getElementById('diag-force-fix')?.addEventListener('click', () => {
             forceColorFix();
+        });
+        document.getElementById('diag-diagnose-pos')?.addEventListener('click', () => {
+            const diagnosis = diagnoseFieldPosition();
+            alert(`📐 DIAGNÓSTICO DE POSIÇÃO:\n\n` +
+                  `Campo Top: ${Math.round(diagnosis.boundingRect?.top || 0)}px\n` +
+                  `Campo Bottom: ${Math.round(diagnosis.boundingRect?.bottom || 0)}px\n` +
+                  `Scroll Y: ${diagnosis.scrollY}px\n` +
+                  `Problemas: ${diagnosis.issues.length || 'Nenhum'}\n\n` +
+                  `${diagnosis.issues.join('\n') || '✅ Posição parece OK!'}`);
         });
     }
     
@@ -797,13 +603,29 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
             padding: 12px 20px; border-radius: 8px; z-index: 9999999;
             font-family: monospace; font-size: 13px; font-weight: bold;
             animation: slideIn 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         `;
         const style = document.createElement('style');
         style.textContent = `@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`;
         document.head.appendChild(style);
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 4000);
+    }
+    
+    // ==========================================================
+    // VERIFICAÇÃO INICIAL
+    // ==========================================================
+    function waitForAdminAndCheck() {
+        const locationInput = findLocationInput();
+        if (locationInput) {
+            if (checkInterval) clearInterval(checkInterval);
+            return true;
+        }
+        retryCount++;
+        if (retryCount >= CONFIG.maxRetries) {
+            if (checkInterval) clearInterval(checkInterval);
+            return false;
+        }
+        return false;
     }
     
     // ==========================================================
@@ -825,6 +647,11 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         
         diagnosticButton.addEventListener('click', () => {
             runFullDiagnostic();
+            setTimeout(() => {
+                if (confirm('🔍 Diagnóstico concluído!\n\nDeseja executar o TESTE VISUAL agora?\n\nO sistema vai FORÇAR cores e posição corretas.')) {
+                    testVisualAutocomplete();
+                }
+            }, 500);
         });
         
         document.body.appendChild(diagnosticButton);
@@ -832,28 +659,18 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
     }
     
     // ==========================================================
-    // INICIALIZAÇÃO PRINCIPAL
+    // INICIALIZAÇÃO
     // ==========================================================
     function init() {
-        console.log('🔧 Inicializando diagnóstico v2.1.0 - Inicialização Automática Definitiva...');
+        console.log('🔧 Inicializando diagnóstico v2.0.6...');
         createDiagnosticButton();
         startColorFixObserver();
         
         retryCount = 0;
-        isInitialized = false;
-        
-        if (checkInterval) clearInterval(checkInterval);
         checkInterval = setInterval(waitForAdminAndCheck, CONFIG.retryDelay);
-        
         setTimeout(() => {
-            if (checkInterval) {
-                clearInterval(checkInterval);
-                checkInterval = null;
-                if (!isInitialized) {
-                    console.warn('⚠️ [Autocomplete] Timeout global - sistema pode não ter iniciado');
-                }
-            }
-        }, CONFIG.maxRetries * CONFIG.retryDelay + 10000);
+            if (checkInterval) clearInterval(checkInterval);
+        }, CONFIG.maxRetries * CONFIG.retryDelay + 5000);
     }
     
     // API Pública
@@ -861,25 +678,11 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         runFullDiagnostic,
         testVisualAutocomplete,
         forceColorFix,
-        forceCreateContainer,
         diagnoseFieldPosition,
         fixContainerPosition,
-        isFieldInViewport,
         isActive: () => {
             const input = findLocationInput();
-            const hasAttribute = input?.hasAttribute('data-autocomplete-initialized') || false;
-            console.log(`🔍 [isActive] Campo inicializado: ${hasAttribute ? '✅ SIM' : '❌ NÃO'}`);
-            return hasAttribute;
-        },
-        init: function() {
-            console.log('🔧 [Autocomplete] Inicialização manual via API');
-            const input = findLocationInput();
-            if (input && !input.hasAttribute('data-autocomplete-initialized')) {
-                input.setAttribute('data-autocomplete-initialized', 'true');
-                console.log('✅ [Autocomplete] Campo marcado como inicializado');
-            }
-            forceCreateContainer();
-            return true;
+            return input?.hasAttribute('data-autocomplete-initialized') || false;
         }
     };
     
@@ -889,8 +692,6 @@ console.log('📍 location-autocomplete.js v2.1.0 - Inicialização Automática 
         init();
     }
     
-    console.log('✅ location-autocomplete.js v2.1.0 carregado');
-    console.log('🎯 INICIALIZAÇÃO AUTOMÁTICA ATIVADA!');
-    console.log('   - O sistema marcará o campo como inicializado automaticamente');
-    console.log('   - O container será criado quando o painel admin abrir');
+    console.log('✅ location-autocomplete.js v2.0.6 carregado');
+    console.log('🎯 CORREÇÃO AUTOMÁTICA: cores E posição!');
 })();
