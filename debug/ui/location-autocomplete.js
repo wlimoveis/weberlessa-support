@@ -1,6 +1,6 @@
-// debug/ui/location-autocomplete.js - v2.0.6
-// Módulo de DIAGNÓSTICO com CORREÇÃO AUTOMÁTICA de cores e POSICIONAMENTO
-console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção de Posicionamento e Cores');
+// debug/ui/location-autocomplete.js - v2.0.7
+// Módulo de DIAGNÓSTICO com CORREÇÃO AUTOMÁTICA de cores, POSICIONAMENTO e API de Inicialização
+console.log('📍 location-autocomplete.js v2.0.7 - Diagnóstico com Correção de Posicionamento e Cores + API init()');
 
 (function() {
     'use strict';
@@ -522,7 +522,7 @@ console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção 
         
         let html = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid ${statusColor}; padding-bottom: 10px;">
-                <h3 style="margin: 0; color: ${statusColor}; font-size: 14px;">🔍 DIAGNÓSTICO AUTOCOMPLETE v2.0.6</h3>
+                <h3 style="margin: 0; color: ${statusColor}; font-size: 14px;">🔍 DIAGNÓSTICO AUTOCOMPLETE v2.0.7</h3>
                 <button id="close-diag" style="background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; padding: 4px 10px;">✕</button>
             </div>
             <div style="margin-bottom: 12px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 6px;">
@@ -663,7 +663,7 @@ console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção 
     // INICIALIZAÇÃO
     // ==========================================================
     function init() {
-        console.log('🔧 Inicializando diagnóstico v2.0.6...');
+        console.log('🔧 Inicializando diagnóstico v2.0.7...');
         createDiagnosticButton();
         startColorFixObserver();
         
@@ -674,7 +674,7 @@ console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção 
         }, CONFIG.maxRetries * CONFIG.retryDelay + 5000);
     }
     
-    // API Pública
+    // API Pública - VERSÃO CORRIGIDA COM init()
     window.LocationAutocomplete = {
         runFullDiagnostic,
         testVisualAutocomplete,
@@ -684,6 +684,26 @@ console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção 
         isActive: () => {
             const input = findLocationInput();
             return input?.hasAttribute('data-autocomplete-initialized') || false;
+        },
+        // ✅ NOVA FUNÇÃO EXPORTADA CONFORME RECOMENDAÇÃO
+        init: function() {
+            console.log('🔧 [Autocomplete] Inicialização forçada via API');
+            // Forçar a verificação e inicialização
+            const input = findLocationInput();
+            const adminPanel = document.getElementById('adminPanel');
+            
+            if (input && adminPanel && adminPanel.style.display === 'block') {
+                // Simular que o campo foi encontrado com painel visível
+                if (checkInterval) clearInterval(checkInterval);
+                setTimeout(() => {
+                    // Disparar evento para forçar criação do container
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ [Autocomplete] Inicialização forçada concluída');
+                }, 100);
+                return true;
+            }
+            console.warn('⚠️ [Autocomplete] Não foi possível inicializar - painel ou campo não disponível');
+            return false;
         }
     };
     
@@ -693,6 +713,6 @@ console.log('📍 location-autocomplete.js v2.0.6 - Diagnóstico com Correção 
         init();
     }
     
-    console.log('✅ location-autocomplete.js v2.0.6 carregado');
-    console.log('🎯 CORREÇÃO AUTOMÁTICA: cores E posição!');
+    console.log('✅ location-autocomplete.js v2.0.7 carregado com API init()');
+    console.log('🎯 CORREÇÃO AUTOMÁTICA: cores, posição E inicialização sob demanda!');
 })();
