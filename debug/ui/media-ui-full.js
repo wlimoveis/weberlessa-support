@@ -1,9 +1,143 @@
 // debug/ui/media-ui-full.js - UI Completa do Media System para modo debug
-// VERSÃO: 1.2.0 - Suporte completo a vídeos + diagnóstico automático
-console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
+// VERSÃO: 1.3.0 - Monitor de carregamento de imóvel + diagnóstico automático
+console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
 
 (function() {
     'use strict';
+
+    // ==============================================================
+    // MONITOR DE CARREGAMENTO DE IMÓVEL (NOVO)
+    // ==============================================================
+    // Este monitor detecta automaticamente quando um imóvel está sendo editado
+    // e força o carregamento correto das mídias existentes
+    
+    (function() {
+        console.log('🔍 [MONITOR] Iniciando monitor de edição de imóvel...');
+        console.log('📋 [MONITOR] Este monitor irá verificar automaticamente se um imóvel está sendo editado');
+        console.log('📋 [MONITOR] e forçar o carregamento correto das mídias existentes.');
+        
+        let wasFixed = false;
+        let checkCount = 0;
+        
+        // Função para verificar se o MediaSystem tem dados
+        function checkAndFixMediaData() {
+            if (wasFixed) return true;
+            
+            if (!window.MediaSystem) {
+                console.log('⏳ [MONITOR] Aguardando MediaSystem ser inicializado...');
+                return false;
+            }
+            
+            const state = window.MediaSystem.state;
+            const hasExisting = (state.existing?.length > 0) || (state.existingPdfs?.length > 0);
+            
+            if (hasExisting) {
+                console.log('✅ [MONITOR] MediaSystem JÁ TEM dados!', {
+                    existingImages: state.existing?.length || 0,
+                    existingPdfs: state.existingPdfs?.length || 0,
+                    files: state.files?.length || 0,
+                    pdfs: state.pdfs?.length || 0
+                });
+                
+                console.log('🔄 [MONITOR] Forçando renderização visual...');
+                
+                // Forçar renderização
+                if (window.SupportMediaUI) {
+                    if (typeof window.SupportMediaUI.renderMediaPreview === 'function') {
+                        window.SupportMediaUI.renderMediaPreview.call(window.MediaSystem);
+                        console.log('✅ [MONITOR] renderMediaPreview chamado');
+                    }
+                    if (typeof window.SupportMediaUI.renderPdfPreview === 'function') {
+                        window.SupportMediaUI.renderPdfPreview.call(window.MediaSystem);
+                        console.log('✅ [MONITOR] renderPdfPreview chamado');
+                    }
+                }
+                
+                // Fallback: tentar métodos diretos do MediaSystem
+                if (typeof window.MediaSystem.renderMediaPreview === 'function') {
+                    window.MediaSystem.renderMediaPreview();
+                }
+                if (typeof window.MediaSystem.renderPdfPreview === 'function') {
+                    window.MediaSystem.renderPdfPreview();
+                }
+                
+                wasFixed = true;
+                return true;
+            }
+            
+            // Tentar encontrar o imóvel sendo editado
+            const urlParams = new URLSearchParams(window.location.search);
+            const editingId = urlParams.get('edit');
+            
+            if (editingId) {
+                console.log(`🔍 [MONITOR] Parâmetro 'edit' encontrado na URL: ${editingId}`);
+                
+                // Tentar encontrar nos dados globais
+                if (window.properties && Array.isArray(window.properties)) {
+                    const property = window.properties.find(p => p.id == editingId);
+                    if (property) {
+                        console.log('✅ [MONITOR] Imóvel encontrado em window.properties!', {
+                            id: property.id,
+                            title: property.title,
+                            images: property.images,
+                            pdfs: property.pdfs
+                        });
+                        
+                        console.log('🔄 [MONITOR] Forçando MediaSystem.loadExisting...');
+                        window.MediaSystem.loadExisting(property);
+                        wasFixed = true;
+                        return true;
+                    } else {
+                        console.log(`⚠️ [MONITOR] Imóvel ID ${editingId} NÃO encontrado em window.properties`);
+                    }
+                } else {
+                    console.log('⚠️ [MONITOR] window.properties não disponível ou não é array');
+                }
+            }
+            
+            return false;
+        }
+        
+        // Verificar a cada 500ms se um imóvel foi carregado
+        let checkInterval = setInterval(() => {
+            checkCount++;
+            if (checkCount <= 5 || checkCount % 4 === 0) { // Log a cada 2 segundos após os primeiros
+                console.log(`🔍 [MONITOR] Verificação #${checkCount}...`);
+            }
+            
+            if (checkAndFixMediaData()) {
+                clearInterval(checkInterval);
+                console.log('✅ [MONITOR] ===== PROBLEMA CORRIGIDO AUTOMATICAMENTE =====');
+                console.log('✅ [MONITOR] As mídias existentes agora devem aparecer na interface');
+            } else if (checkCount >= 20) {
+                // Parar após 10 segundos (20 verificações de 500ms)
+                clearInterval(checkInterval);
+                console.log('⚠️ [MONITOR] ===== TEMPO ESGOTADO =====');
+                console.log('⚠️ [MONITOR] Nenhum imóvel em edição foi detectado após 10 segundos');
+                console.log('💡 [MONITOR] Verifique se:');
+                console.log('   1. A URL contém o parâmetro ?edit=ID_DO_IMOVEL');
+                console.log('   2. window.properties está populado com os dados do imóvel');
+                console.log('   3. MediaSystem foi inicializado corretamente');
+            }
+        }, 500);
+        
+        // Também verificar quando a página terminar de carregar completamente
+        window.addEventListener('load', function() {
+            console.log('📄 [MONITOR] Evento "load" disparado - verificando novamente...');
+            checkAndFixMediaData();
+        });
+        
+        // Expor função de diagnóstico global para debug
+        window.DiagnoseMediaLoad = function() {
+            console.log('🔧 [DIAGNÓSTICO MANUAL] Executando diagnóstico...');
+            const result = checkAndFixMediaData();
+            console.log('🔧 [DIAGNÓSTICO MANUAL] Resultado:', result ? 'Corrigido' : 'Nada a corrigir');
+            return result;
+        };
+        
+        console.log('✅ [MONITOR] Monitor de carregamento instalado com sucesso!');
+        console.log('💡 [MONITOR] Para diagnóstico manual, execute window.DiagnoseMediaLoad()');
+    })();
 
     // ==============================================================
     // FUNÇÕES DE DIAGNÓSTICO AUTOMÁTICO
@@ -11,7 +145,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
     
     function autoDiagnose() {
         console.log('═══════════════════════════════════════════════════');
-        console.log('🔍 [DIAGNÓSTICO AUTOMÁTICO] SupportMediaUI v1.2.0');
+        console.log('🔍 [DIAGNÓSTICO AUTOMÁTICO] SupportMediaUI v1.3.0');
         console.log('═══════════════════════════════════════════════════');
         
         // Aguardar MediaSystem estar disponível
@@ -496,7 +630,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
         updateUI,
         isVideoUrl,
         autoDiagnose,
-        version: '1.2.0'
+        version: '1.3.0'
     };
 
     // ==============================================================
@@ -507,11 +641,11 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
     setTimeout(() => {
         autoDiagnose();
         startMonitoring();
-        console.log('✅ SupportMediaUI v1.2.0 carregado - Diagnóstico automático ativo');
+        console.log('✅ SupportMediaUI v1.3.0 carregado - Diagnóstico automático ativo');
     }, 500);
 
     // Verificar periodicamente se o MediaSystem foi carregado
-    let checkCount = 0;
+    let checkCountMs = 0;
     const mediaSystemCheck = setInterval(() => {
         if (window.MediaSystem) {
             console.log('✅ MediaSystem detectado pelo SupportMediaUI');
@@ -519,8 +653,8 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
             // Diagnosticar novamente agora que o MediaSystem está disponível
             setTimeout(() => autoDiagnose(), 200);
         }
-        checkCount++;
-        if (checkCount > 20) { // 10 segundos
+        checkCountMs++;
+        if (checkCountMs > 20) { // 10 segundos
             clearInterval(mediaSystemCheck);
             if (!window.MediaSystem) {
                 console.warn('⚠️ MediaSystem não detectado após 10 segundos');
@@ -529,8 +663,8 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.2.0 carregado.');
     }, 500);
 
     if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register('mediaUI', () => ({ status: 'loaded', version: '1.2.0' }), 'ui', { isSafe: true });
+        window.DiagnosticRegistry.register('mediaUI', () => ({ status: 'loaded', version: '1.3.0' }), 'ui', { isSafe: true });
     }
 
-    console.log('✅ SupportMediaUI v1.2.0 pronto - UI completa com diagnóstico automático');
+    console.log('✅ SupportMediaUI v1.3.0 pronto - UI completa com diagnóstico automático e monitor de carregamento');
 })();
