@@ -1,248 +1,12 @@
 // debug/ui/media-ui-full.js - UI Completa do Media System para modo debug
-// VERSÃO: 1.3.0 - Monitor de carregamento de imóvel + diagnóstico automático
-console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
+// VERSÃO: 1.4.0 - CORREÇÃO DEFINITIVA DO CONTEXTO
+console.log('🎨 [SUPPORT] media-ui-full.js v1.4.0 carregado.');
 
 (function() {
     'use strict';
 
     // ==============================================================
-    // MONITOR DE CARREGAMENTO DE IMÓVEL (NOVO)
-    // ==============================================================
-    // Este monitor detecta automaticamente quando um imóvel está sendo editado
-    // e força o carregamento correto das mídias existentes
-    
-    (function() {
-        console.log('🔍 [MONITOR] Iniciando monitor de edição de imóvel...');
-        console.log('📋 [MONITOR] Este monitor irá verificar automaticamente se um imóvel está sendo editado');
-        console.log('📋 [MONITOR] e forçar o carregamento correto das mídias existentes.');
-        
-        let wasFixed = false;
-        let checkCount = 0;
-        
-        // Função para verificar se o MediaSystem tem dados
-        function checkAndFixMediaData() {
-            if (wasFixed) return true;
-            
-            if (!window.MediaSystem) {
-                console.log('⏳ [MONITOR] Aguardando MediaSystem ser inicializado...');
-                return false;
-            }
-            
-            const state = window.MediaSystem.state;
-            const hasExisting = (state.existing?.length > 0) || (state.existingPdfs?.length > 0);
-            
-            if (hasExisting) {
-                console.log('✅ [MONITOR] MediaSystem JÁ TEM dados!', {
-                    existingImages: state.existing?.length || 0,
-                    existingPdfs: state.existingPdfs?.length || 0,
-                    files: state.files?.length || 0,
-                    pdfs: state.pdfs?.length || 0
-                });
-                
-                console.log('🔄 [MONITOR] Forçando renderização visual...');
-                
-                // Forçar renderização
-                if (window.SupportMediaUI) {
-                    if (typeof window.SupportMediaUI.renderMediaPreview === 'function') {
-                        window.SupportMediaUI.renderMediaPreview.call(window.MediaSystem);
-                        console.log('✅ [MONITOR] renderMediaPreview chamado');
-                    }
-                    if (typeof window.SupportMediaUI.renderPdfPreview === 'function') {
-                        window.SupportMediaUI.renderPdfPreview.call(window.MediaSystem);
-                        console.log('✅ [MONITOR] renderPdfPreview chamado');
-                    }
-                }
-                
-                // Fallback: tentar métodos diretos do MediaSystem
-                if (typeof window.MediaSystem.renderMediaPreview === 'function') {
-                    window.MediaSystem.renderMediaPreview();
-                }
-                if (typeof window.MediaSystem.renderPdfPreview === 'function') {
-                    window.MediaSystem.renderPdfPreview();
-                }
-                
-                wasFixed = true;
-                return true;
-            }
-            
-            // Tentar encontrar o imóvel sendo editado
-            const urlParams = new URLSearchParams(window.location.search);
-            const editingId = urlParams.get('edit');
-            
-            if (editingId) {
-                console.log(`🔍 [MONITOR] Parâmetro 'edit' encontrado na URL: ${editingId}`);
-                
-                // Tentar encontrar nos dados globais
-                if (window.properties && Array.isArray(window.properties)) {
-                    const property = window.properties.find(p => p.id == editingId);
-                    if (property) {
-                        console.log('✅ [MONITOR] Imóvel encontrado em window.properties!', {
-                            id: property.id,
-                            title: property.title,
-                            images: property.images,
-                            pdfs: property.pdfs
-                        });
-                        
-                        console.log('🔄 [MONITOR] Forçando MediaSystem.loadExisting...');
-                        window.MediaSystem.loadExisting(property);
-                        wasFixed = true;
-                        return true;
-                    } else {
-                        console.log(`⚠️ [MONITOR] Imóvel ID ${editingId} NÃO encontrado em window.properties`);
-                    }
-                } else {
-                    console.log('⚠️ [MONITOR] window.properties não disponível ou não é array');
-                }
-            }
-            
-            return false;
-        }
-        
-        // Verificar a cada 500ms se um imóvel foi carregado
-        let checkInterval = setInterval(() => {
-            checkCount++;
-            if (checkCount <= 5 || checkCount % 4 === 0) { // Log a cada 2 segundos após os primeiros
-                console.log(`🔍 [MONITOR] Verificação #${checkCount}...`);
-            }
-            
-            if (checkAndFixMediaData()) {
-                clearInterval(checkInterval);
-                console.log('✅ [MONITOR] ===== PROBLEMA CORRIGIDO AUTOMATICAMENTE =====');
-                console.log('✅ [MONITOR] As mídias existentes agora devem aparecer na interface');
-            } else if (checkCount >= 20) {
-                // Parar após 10 segundos (20 verificações de 500ms)
-                clearInterval(checkInterval);
-                console.log('⚠️ [MONITOR] ===== TEMPO ESGOTADO =====');
-                console.log('⚠️ [MONITOR] Nenhum imóvel em edição foi detectado após 10 segundos');
-                console.log('💡 [MONITOR] Verifique se:');
-                console.log('   1. A URL contém o parâmetro ?edit=ID_DO_IMOVEL');
-                console.log('   2. window.properties está populado com os dados do imóvel');
-                console.log('   3. MediaSystem foi inicializado corretamente');
-            }
-        }, 500);
-        
-        // Também verificar quando a página terminar de carregar completamente
-        window.addEventListener('load', function() {
-            console.log('📄 [MONITOR] Evento "load" disparado - verificando novamente...');
-            checkAndFixMediaData();
-        });
-        
-        // Expor função de diagnóstico global para debug
-        window.DiagnoseMediaLoad = function() {
-            console.log('🔧 [DIAGNÓSTICO MANUAL] Executando diagnóstico...');
-            const result = checkAndFixMediaData();
-            console.log('🔧 [DIAGNÓSTICO MANUAL] Resultado:', result ? 'Corrigido' : 'Nada a corrigir');
-            return result;
-        };
-        
-        console.log('✅ [MONITOR] Monitor de carregamento instalado com sucesso!');
-        console.log('💡 [MONITOR] Para diagnóstico manual, execute window.DiagnoseMediaLoad()');
-    })();
-
-    // ==============================================================
-    // FUNÇÕES DE DIAGNÓSTICO AUTOMÁTICO
-    // ==============================================================
-    
-    function autoDiagnose() {
-        console.log('═══════════════════════════════════════════════════');
-        console.log('🔍 [DIAGNÓSTICO AUTOMÁTICO] SupportMediaUI v1.3.0');
-        console.log('═══════════════════════════════════════════════════');
-        
-        // Aguardar MediaSystem estar disponível
-        setTimeout(() => {
-            if (!window.MediaSystem) {
-                console.warn('⚠️ MediaSystem não disponível ainda, agendando novo diagnóstico...');
-                setTimeout(() => autoDiagnose(), 500);
-                return;
-            }
-            
-            const state = window.MediaSystem.state;
-            
-            console.log('📊 ESTADO ATUAL:');
-            console.log('  ├─ existing:', state.existing?.length || 0, 'arquivos');
-            console.log('  ├─ files:', state.files?.length || 0, 'arquivos');
-            console.log('  ├─ existingPdfs:', state.existingPdfs?.length || 0, 'PDFs');
-            console.log('  └─ pdfs:', state.pdfs?.length || 0, 'PDFs');
-            
-            // Verificar URLs carregadas
-            if (state.existing && state.existing.length > 0) {
-                console.log('📸 URLs de imagens/vídeos:');
-                state.existing.forEach((item, idx) => {
-                    const shortUrl = item.url?.substring(0, 80) || 'sem URL';
-                    console.log(`  ${idx+1}. ${shortUrl}... (vídeo: ${item.isVideo || false})`);
-                });
-            } else {
-                console.log('📸 Nenhuma imagem/vídeo carregado');
-            }
-            
-            if (state.existingPdfs && state.existingPdfs.length > 0) {
-                console.log('📄 URLs de PDFs:');
-                state.existingPdfs.forEach((pdf, idx) => {
-                    const shortUrl = pdf.url?.substring(0, 80) || 'sem URL';
-                    console.log(`  ${idx+1}. ${shortUrl}...`);
-                });
-            } else {
-                console.log('📄 Nenhum PDF carregado');
-            }
-            
-            // Verificar container
-            const container = document.getElementById('uploadPreview');
-            console.log('📦 Container #uploadPreview:', container ? '✅ existe' : '❌ NÃO EXISTE');
-            
-            if (container) {
-                const totalFiles = (state.existing?.length || 0) + (state.files?.length || 0);
-                console.log('🎨 Total a renderizar:', totalFiles);
-            }
-            
-            console.log('═══════════════════════════════════════════════════');
-            
-            // Forçar renderização se houver dados
-            if (window.SupportMediaUI?.renderMediaPreview && 
-                ((state.existing?.length || 0) + (state.files?.length || 0) > 0)) {
-                console.log('🔄 Forçando renderização automática...');
-                window.SupportMediaUI.renderMediaPreview.call(window.MediaSystem);
-            }
-        }, 100);
-    }
-    
-    // Monitorar atualizações do MediaSystem (via MutationObserver ou polling)
-    let lastStateHash = '';
-    
-    function monitorStateChanges() {
-        if (!window.MediaSystem) return;
-        
-        const currentState = window.MediaSystem.state;
-        const stateHash = JSON.stringify({
-            existingLen: currentState.existing?.length || 0,
-            filesLen: currentState.files?.length || 0,
-            existingPdfsLen: currentState.existingPdfs?.length || 0,
-            pdfsLen: currentState.pdfs?.length || 0
-        });
-        
-        if (stateHash !== lastStateHash) {
-            lastStateHash = stateHash;
-            console.log('🔄 [MONITOR] Estado do MediaSystem alterado, diagnosticando...');
-            
-            const total = (currentState.existing?.length || 0) + (currentState.files?.length || 0);
-            console.log(`📊 Novo estado: ${total} arquivo(s) no total`);
-            
-            // Se há dados mas a UI pode não ter renderizado, forçar
-            if (total > 0 && window.SupportMediaUI?.renderMediaPreview) {
-                setTimeout(() => {
-                    window.SupportMediaUI.renderMediaPreview.call(window.MediaSystem);
-                }, 50);
-            }
-        }
-    }
-    
-    // Iniciar monitoramento periódico
-    function startMonitoring() {
-        setInterval(monitorStateChanges, 500);
-        console.log('👀 Monitoramento de estado iniciado (check a cada 500ms)');
-    }
-
-    // ==============================================================
-    // FUNÇÕES DE UI (VERSÃO COMPLETA COM SUPORTE A VÍDEOS)
+    // FUNÇÕES DE UI
     // ==============================================================
 
     function isVideoUrl(url) {
@@ -259,7 +23,6 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         const displayName = item.name || 'Arquivo';
         const shortName = displayName.length > 20 ? displayName.substring(0, 17) + '...' : displayName;
         
-        // Verificar se é VÍDEO (prioridade máxima)
         const isVideoFile = item.isVideo === true || 
                             (item.type && item.type.startsWith('video/')) || 
                             (item.name && item.name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/)) ||
@@ -267,7 +30,6 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         
         const videoUrl = item.uploadedUrl || item.url || item.preview;
         
-        // Se for vídeo e tiver URL válida, renderizar player de vídeo
         if (isVideoFile && videoUrl && !videoUrl.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#000;">
@@ -283,7 +45,6 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
             `;
         }
         
-        // Se for arquivo NOVO não enviado (tem BLOB URL)
         if (item.isNew && !item.uploaded && item.preview && item.preview.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#2c3e50;">
@@ -299,7 +60,6 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
             `;
         }
         
-        // Se for arquivo com URL permanente
         if ((item.url || item.uploadedUrl) && !(item.url || '').startsWith('blob:')) {
             const imageUrl = item.uploadedUrl || item.url;
             return `
@@ -317,7 +77,6 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
             `;
         }
         
-        // Fallback
         return `
             <div style="width:100%;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#2c3e50;color:#ecf0f1;">
                 <i class="fas fa-image" style="font-size:1.5rem;margin-bottom:5px;"></i>
@@ -326,6 +85,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         `;
     }
 
+    // FUNÇÃO CORRIGIDA - USA window.MediaSystem DIRETAMENTE
     function renderMediaPreview() {
         const container = document.getElementById('uploadPreview');
         if (!container) {
@@ -333,15 +93,14 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
             return;
         }
         
-        // Obter o MediaSystem corretamente
-        const mediaSystem = this && (this.state !== undefined) ? this : window.MediaSystem;
+        // FORÇAR uso do MediaSystem global
+        const mediaSystem = window.MediaSystem;
         
         if (!mediaSystem || !mediaSystem.state) {
             console.warn('⚠️ MediaSystem não disponível para renderização');
             return;
         }
         
-        // Combinar todos os arquivos
         const allFiles = [
             ...(mediaSystem.state.existing?.filter(item => !item.markedForDeletion) || []),
             ...(mediaSystem.state.files || [])
@@ -349,18 +108,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         
         console.log(`🎨 Renderizando ${allFiles.length} arquivo(s) visualmente`);
         
-        // DIAGNÓSTICO DETALHADO
         if (allFiles.length === 0) {
-            console.log('ℹ️ Nenhum arquivo para renderizar - exibindo estado vazio');
-            // Verificar se há dados no MediaSystem mas não foram filtrados
-            const existingCount = mediaSystem.state.existing?.length || 0;
-            const filesCount = mediaSystem.state.files?.length || 0;
-            if (existingCount > 0 || filesCount > 0) {
-                console.warn(`⚠️ INCONSISTÊNCIA: MediaSystem tem ${existingCount + filesCount} arquivo(s), mas todos estão marcados para exclusão?`);
-                console.log('  existing (marcados):', mediaSystem.state.existing?.filter(i => i.markedForDeletion).length);
-                console.log('  existing (não marcados):', mediaSystem.state.existing?.filter(i => !i.markedForDeletion).length);
-            }
-            
             container.innerHTML = `
                 <div style="text-align: center; color: #95a5a6; padding: 2rem;">
                     <i class="fas fa-images" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
@@ -379,13 +127,11 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
             const isNew = item.isNew;
             const isUploaded = item.uploaded;
             
-            // Determinar se é vídeo para aplicar estilo diferente
             const isVideo = item.isVideo === true || 
                             (item.type && item.type.startsWith('video/')) || 
                             (item.name && isVideoUrl(item.name)) ||
                             (item.url && isVideoUrl(item.url));
             
-            // Cores: Roxo para vídeos, Azul para imagens
             let borderColor = isVideo ? '#9b59b6' : '#3498db';
             let bgColor = isVideo ? '#f4ecf7' : '#e8f4fc';
             let statusText = isNew ? 'Novo' : (isExisting ? 'Existente' : (isUploaded ? 'Salvo' : ''));
@@ -408,7 +154,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
                  style="position:relative;width:110px;height:110px;border-radius:8px;overflow:hidden;border:2px solid ${borderColor};background:${bgColor};cursor:grab;">
                 
                 <div style="width:100%;height:70px;overflow:hidden;">
-                    ${getMediaPreviewHTML.call(this, item)}
+                    ${getMediaPreviewHTML(item)}
                 </div>
                 
                 <div style="padding:5px;font-size:0.7rem;text-align:center;height:40px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
@@ -440,17 +186,17 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         html += '</div>';
         container.innerHTML = html;
         
-        // Reconfigurar eventos de drag & drop
         setTimeout(() => setupContainerDragEvents('uploadPreview'), 100);
         
         console.log(`✅ Renderização concluída: ${allFiles.length} arquivo(s) visualizados`);
     }
 
+    // FUNÇÃO CORRIGIDA - USA window.MediaSystem DIRETAMENTE
     function renderPdfPreview() {
         const container = document.getElementById('pdfUploadPreview');
         if (!container) return;
         
-        const mediaSystem = this && (this.state !== undefined) ? this : window.MediaSystem;
+        const mediaSystem = window.MediaSystem;
         if (!mediaSystem || !mediaSystem.state) return;
         
         const allPdfs = [
@@ -609,11 +355,13 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         this.updateUI();
     }
 
+    // FUNÇÃO CORRIGIDA - Força renderização correta
     function updateUI() {
         if (this._updateTimeout) clearTimeout(this._updateTimeout);
         this._updateTimeout = setTimeout(() => {
-            renderMediaPreview.call(this);
-            renderPdfPreview.call(this);
+            // CHAMAR DIRETAMENTE com window.MediaSystem
+            renderMediaPreview();
+            renderPdfPreview();
         }, 50);
     }
 
@@ -629,42 +377,19 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.3.0 carregado.');
         reorderItems,
         updateUI,
         isVideoUrl,
-        autoDiagnose,
-        version: '1.3.0'
+        version: '1.4.0'
     };
 
-    // ==============================================================
-    // INICIALIZAÇÃO AUTOMÁTICA COM DIAGNÓSTICO
-    // ==============================================================
-    
-    // Executar diagnóstico automático ao carregar
-    setTimeout(() => {
-        autoDiagnose();
-        startMonitoring();
-        console.log('✅ SupportMediaUI v1.3.0 carregado - Diagnóstico automático ativo');
-    }, 500);
-
-    // Verificar periodicamente se o MediaSystem foi carregado
-    let checkCountMs = 0;
-    const mediaSystemCheck = setInterval(() => {
-        if (window.MediaSystem) {
-            console.log('✅ MediaSystem detectado pelo SupportMediaUI');
-            clearInterval(mediaSystemCheck);
-            // Diagnosticar novamente agora que o MediaSystem está disponível
-            setTimeout(() => autoDiagnose(), 200);
-        }
-        checkCountMs++;
-        if (checkCountMs > 20) { // 10 segundos
-            clearInterval(mediaSystemCheck);
-            if (!window.MediaSystem) {
-                console.warn('⚠️ MediaSystem não detectado após 10 segundos');
-            }
-        }
-    }, 500);
-
-    if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register('mediaUI', () => ({ status: 'loaded', version: '1.3.0' }), 'ui', { isSafe: true });
+    // Forçar que o updateUI do MediaSystem use a versão corrigida
+    if (window.MediaSystem) {
+        const originalUpdateUI = window.MediaSystem.updateUI;
+        window.MediaSystem.updateUI = function() {
+            console.log('🔄 [MediaSystem] updateUI chamado - existing:', this.state.existing?.length);
+            renderMediaPreview();
+            renderPdfPreview();
+        };
+        console.log('✅ [SupportMediaUI] updateUI do MediaSystem substituído com sucesso!');
     }
 
-    console.log('✅ SupportMediaUI v1.3.0 pronto - UI completa com diagnóstico automático e monitor de carregamento');
+    console.log('✅ SupportMediaUI v1.4.0 pronto - CORREÇÃO DEFINITIVA APLICADA!');
 })();
