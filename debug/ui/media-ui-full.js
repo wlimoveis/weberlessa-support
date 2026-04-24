@@ -1,18 +1,29 @@
 // debug/ui/media-ui-full.js - UI Completa do Media System para modo debug
-// VERSÃO: 1.0.1 - Adicionado diagnóstico automático no carregamento
-console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
+// VERSÃO: 1.1.0 - Suporte completo a vídeos e previews visuais
+console.log('🎨 [SUPPORT] media-ui-full.js v1.1.0 carregado.');
 
 (function() {
     'use strict';
 
     // ==============================================================
-    // FUNÇÕES DE UI MIGRADAS DO MEDIA SYSTEM (NÃO ESSENCIAIS)
+    // FUNÇÕES DE UI (VERSÃO COMPLETA COM SUPORTE A VÍDEOS)
     // ==============================================================
+
+    function isVideoUrl(url) {
+        if (!url) return false;
+        const urlLower = url.toLowerCase();
+        return urlLower.includes('.mp4') || 
+               urlLower.includes('.mov') || 
+               urlLower.includes('.webm') || 
+               urlLower.includes('.avi') ||
+               urlLower.includes('video/');
+    }
 
     function getMediaPreviewHTML(item) {
         const displayName = item.name || 'Arquivo';
         const shortName = displayName.length > 20 ? displayName.substring(0, 17) + '...' : displayName;
         
+        // Verificar se é VÍDEO (prioridade máxima)
         const isVideoFile = item.isVideo === true || 
                             (item.type && item.type.startsWith('video/')) || 
                             (item.name && item.name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/)) ||
@@ -20,12 +31,14 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
         
         const videoUrl = item.uploadedUrl || item.url || item.preview;
         
+        // Se for vídeo e tiver URL válida, renderizar player de vídeo
         if (isVideoFile && videoUrl && !videoUrl.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#000;">
                     <video style="width:100%;height:100%;object-fit:cover;" preload="metadata" muted>
                         <source src="${videoUrl}" type="video/mp4">
                         <source src="${videoUrl}" type="video/quicktime">
+                        Seu navegador não suporta vídeo.
                     </video>
                     <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:0.6rem;">
                         <i class="fas fa-video"></i> Vídeo
@@ -34,10 +47,13 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             `;
         }
         
+        // Se for arquivo NOVO não enviado (tem BLOB URL)
         if (item.isNew && !item.uploaded && item.preview && item.preview.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#2c3e50;">
-                    <img src="${item.preview}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;"
+                    <img src="${item.preview}" 
+                         alt="${displayName}"
+                         style="width:100%;height:100%;object-fit:cover;"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;color:#ecf0f1;">
                         <i class="fas fa-image" style="font-size:1.5rem;margin-bottom:5px;"></i>
@@ -47,11 +63,15 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             `;
         }
         
+        // Se for arquivo com URL permanente
         if ((item.url || item.uploadedUrl) && !(item.url || '').startsWith('blob:')) {
             const imageUrl = item.uploadedUrl || item.url;
             return `
                 <div style="width:100%;height:70px;position:relative;background:#2c3e50;">
-                    <img src="${imageUrl}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;" loading="lazy"
+                    <img src="${imageUrl}" 
+                         alt="${displayName}"
+                         style="width:100%;height:100%;object-fit:cover;"
+                         loading="lazy"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;color:#ecf0f1;">
                         <i class="fas fa-image" style="font-size:1.5rem;margin-bottom:5px;"></i>
@@ -61,6 +81,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             `;
         }
         
+        // Fallback
         return `
             <div style="width:100%;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#2c3e50;color:#ecf0f1;">
                 <i class="fas fa-image" style="font-size:1.5rem;margin-bottom:5px;"></i>
@@ -69,21 +90,20 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
         `;
     }
 
-    function isVideoUrl(url) {
-        if (!url) return false;
-        const urlLower = url.toLowerCase();
-        return urlLower.includes('.mp4') || urlLower.includes('.mov') || 
-               urlLower.includes('.webm') || urlLower.includes('.avi');
-    }
-
     function renderMediaPreview() {
         const container = document.getElementById('uploadPreview');
-        if (!container) return;
+        if (!container) {
+            console.warn('⚠️ Container #uploadPreview não encontrado');
+            return;
+        }
         
+        // Combinar todos os arquivos
         const allFiles = [
             ...(this.state.existing?.filter(item => !item.markedForDeletion) || []),
             ...(this.state.files || [])
         ];
+        
+        console.log(`🎨 Renderizando ${allFiles.length} arquivo(s)`);
         
         if (allFiles.length === 0) {
             container.innerHTML = `
@@ -104,9 +124,13 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             const isNew = item.isNew;
             const isUploaded = item.uploaded;
             
-            const isVideo = item.isVideo === true || (item.type && item.type.startsWith('video/')) ||
-                            (item.name && isVideoUrl(item.name)) || (item.url && isVideoUrl(item.url));
+            // Determinar se é vídeo para aplicar estilo diferente
+            const isVideo = item.isVideo === true || 
+                            (item.type && item.type.startsWith('video/')) || 
+                            (item.name && isVideoUrl(item.name)) ||
+                            (item.url && isVideoUrl(item.url));
             
+            // Cores: Roxo para vídeos, Azul para imagens
             let borderColor = isVideo ? '#9b59b6' : '#3498db';
             let bgColor = isVideo ? '#f4ecf7' : '#e8f4fc';
             let statusText = isNew ? 'Novo' : (isExisting ? 'Existente' : (isUploaded ? 'Salvo' : ''));
@@ -122,21 +146,46 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             const shortName = displayName.length > 15 ? displayName.substring(0, 12) + '...' : displayName;
             
             html += `
-            <div class="media-preview-item draggable-item" draggable="true" data-id="${item.id}" style="position:relative;width:110px;height:110px;border-radius:8px;overflow:hidden;border:2px solid ${borderColor};background:${bgColor};cursor:grab;">
-                <div style="width:100%;height:70px;overflow:hidden;">${getMediaPreviewHTML(item)}</div>
-                <div style="padding:5px;font-size:0.7rem;text-align:center;height:40px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-                    <span style="display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${statusIcon}${shortName}</span>
+            <div class="media-preview-item draggable-item" 
+                 draggable="true"
+                 data-id="${item.id}"
+                 title="${displayName}"
+                 style="position:relative;width:110px;height:110px;border-radius:8px;overflow:hidden;border:2px solid ${borderColor};background:${bgColor};cursor:grab;">
+                
+                <div style="width:100%;height:70px;overflow:hidden;">
+                    ${getMediaPreviewHTML.call(this, item)}
                 </div>
-                <div style="position:absolute;top:0;left:0;background:rgba(0,0,0,0.7);color:white;width:22px;height:22px;border-radius:0 0 8px 0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;z-index:10;"><i class="fas fa-arrows-alt"></i></div>
-                <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.8);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;z-index:5;">${index + 1}</div>
-                <button onclick="window.MediaSystem.removeFile('${item.id}')" style="position:absolute;top:0;right:0;background:${isMarked ? '#c0392b' : '#e74c3c'};color:white;border:none;width:24px;height:24px;cursor:pointer;font-size:14px;font-weight:bold;z-index:10;border-radius:0 0 0 8px;display:flex;align-items:center;justify-content:center;">${isMarked ? '↺' : '×'}</button>
-                <div style="position:absolute;bottom:2px;left:2px;background:${borderColor};color:white;font-size:0.5rem;padding:1px 3px;border-radius:2px;z-index:10;">${statusText}</div>
-            </div>`;
+                
+                <div style="padding:5px;font-size:0.7rem;text-align:center;height:40px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                    <span style="display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        ${statusIcon}${shortName}
+                    </span>
+                </div>
+                
+                <div style="position:absolute;top:0;left:0;background:rgba(0,0,0,0.7);color:white;width:22px;height:22px;border-radius:0 0 8px 0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;z-index:10;">
+                    <i class="fas fa-arrows-alt"></i>
+                </div>
+                
+                <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.8);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;z-index:5;">
+                    ${index + 1}
+                </div>
+                
+                <button onclick="window.MediaSystem.removeFile('${item.id}')" 
+                        style="position:absolute;top:0;right:0;background:${isMarked ? '#c0392b' : '#e74c3c'};color:white;border:none;width:24px;height:24px;cursor:pointer;font-size:14px;font-weight:bold;z-index:10;border-radius:0 0 0 8px;display:flex;align-items:center;justify-content:center;">
+                    ${isMarked ? '↺' : '×'}
+                </button>
+                
+                <div style="position:absolute;bottom:2px;left:2px;background:${borderColor};color:white;font-size:0.5rem;padding:1px 3px;border-radius:2px;z-index:10;">
+                    ${statusText}
+                </div>
+            </div>
+            `;
         });
         
         html += '</div>';
         container.innerHTML = html;
         
+        // Reconfigurar eventos de drag & drop
         setTimeout(() => setupContainerDragEvents('uploadPreview'), 100);
     }
 
@@ -150,14 +199,17 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
         ];
         
         if (allPdfs.length === 0) {
-            container.innerHTML = `<div style="text-align: center; color: #95a5a6; padding: 1rem; font-size: 0.9rem;">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                <p style="margin: 0;">Arraste ou clique para adicionar PDFs</p>
-            </div>`;
+            container.innerHTML = `
+                <div style="text-align: center; color: #95a5a6; padding: 1rem; font-size: 0.9rem;">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                    <p style="margin: 0;">Arraste ou clique para adicionar PDFs</p>
+                </div>
+            `;
             return;
         }
         
         let html = '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+        
         allPdfs.forEach((pdf, index) => {
             const isMarked = pdf.markedForDeletion;
             const isExisting = pdf.isExisting;
@@ -184,17 +236,32 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
             
             const shortName = pdf.name.length > 15 ? pdf.name.substring(0, 12) + '...' : pdf.name;
             
-            html += `<div class="pdf-preview-container draggable-item" draggable="true" data-id="${pdf.id}" style="position:relative;cursor:grab;">
-                <div style="background:${bgColor};border:1px solid ${borderColor};border-radius:6px;padding:0.5rem;width:90px;height:90px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;position:relative;">
-                    <div style="position:absolute;top:0;left:0;background:rgba(0,0,0,0.6);color:white;width:20px;height:20px;border-radius:0 0 6px 0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;z-index:5;"><i class="fas fa-arrows-alt"></i></div>
-                    <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.8);color:white;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;z-index:5;">${index + 1}</div>
-                    <i class="fas fa-file-pdf" style="font-size:1.2rem;color:${borderColor};margin-bottom:0.3rem;"></i>
-                    <p style="font-size:0.7rem;margin:0;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${shortName}</p>
-                    <small style="color:#7f8c8d;font-size:0.6rem;">${statusText}</small>
+            html += `
+                <div class="pdf-preview-container draggable-item"
+                     draggable="true"
+                     data-id="${pdf.id}"
+                     style="position:relative;cursor:grab;">
+                    <div style="background:${bgColor};border:1px solid ${borderColor};border-radius:6px;padding:0.5rem;width:90px;height:90px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;position:relative;">
+                        <div style="position:absolute;top:0;left:0;background:rgba(0,0,0,0.6);color:white;width:20px;height:20px;border-radius:0 0 6px 0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;z-index:5;">
+                            <i class="fas fa-arrows-alt"></i>
+                        </div>
+                        
+                        <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.8);color:white;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;z-index:5;">
+                            ${index + 1}
+                        </div>
+                        
+                        <i class="fas fa-file-pdf" style="font-size:1.2rem;color:${borderColor};margin-bottom:0.3rem;"></i>
+                        <p style="font-size:0.7rem;margin:0;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${shortName}</p>
+                        <small style="color:#7f8c8d;font-size:0.6rem;">${statusText}</small>
+                    </div>
+                    <button onclick="window.MediaSystem.removeFile('${pdf.id}')" 
+                            style="position:absolute;top:0;right:0;background:${borderColor};color:white;border:none;width:22px;height:22px;font-size:14px;font-weight:bold;cursor:pointer;border-radius:0 0 0 6px;">
+                        ×
+                    </button>
                 </div>
-                <button onclick="window.MediaSystem.removeFile('${pdf.id}')" style="position:absolute;top:0;right:0;background:${borderColor};color:white;border:none;width:22px;height:22px;font-size:14px;font-weight:bold;cursor:pointer;border-radius:0 0 0 6px;">×</button>
-            </div>`;
+            `;
         });
+        
         html += '</div>';
         container.innerHTML = html;
         
@@ -255,7 +322,7 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
         ];
         
         for (const arr of allArrays) {
-            const draggedIndex = arr.array.findIndex(item => item.id === draggedId);
+            const draggedIndex = arr.array?.findIndex(item => item.id === draggedId);
             if (draggedIndex !== -1) {
                 sourceArray = arr.array;
                 arrayName = arr.name;
@@ -291,34 +358,27 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
     }
 
     // ==============================================================
-    // DIAGNÓSTICO AUTOMÁTICO (executado no carregamento)
+    // DIAGNÓSTICO AUTOMÁTICO
     // ==============================================================
     function runDiagnostics() {
         console.log('═══════════════════════════════════════════════════');
-        console.log('🔍 [SUPPORT] DIAGNÓSTICO AUTOMÁTICO - SupportMediaUI');
+        console.log('🔍 [SUPPORT] DIAGNÓSTICO AUTOMÁTICO - SupportMediaUI v1.1.0');
         console.log('═══════════════════════════════════════════════════');
         
-        // Verificar SupportMediaUI
         console.log('📌 SupportMediaUI existe:', !!window.SupportMediaUI);
         console.log('📌 SupportMediaUI.updateUI:', typeof window.SupportMediaUI?.updateUI);
         console.log('📌 SupportMediaUI.renderMediaPreview:', typeof window.SupportMediaUI?.renderMediaPreview);
         console.log('📌 SupportMediaUI.renderPdfPreview:', typeof window.SupportMediaUI?.renderPdfPreview);
         
-        // Verificar MediaSystem (após carregamento)
         setTimeout(() => {
             if (window.MediaSystem) {
                 console.log('📌 MediaSystem existe:', !!window.MediaSystem);
                 console.log('📌 MediaSystem.updateUI:', typeof window.MediaSystem.updateUI);
-                if (window.MediaSystem.updateUI) {
-                    const updateUIStr = window.MediaSystem.updateUI.toString();
-                    console.log('📌 MediaSystem.updateUI preview:', updateUIStr.substring(0, 100));
-                }
             } else {
                 console.log('⚠️ MediaSystem ainda não carregado');
             }
         }, 100);
         
-        // Forçar atualização manual (após MediaSystem estar disponível)
         setTimeout(() => {
             if (window.SupportMediaUI?.renderMediaPreview && window.MediaSystem) {
                 try {
@@ -328,17 +388,16 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
                     console.log('❌ Erro na renderização forçada:', error.message);
                 }
             } else {
-                console.log('❌ SupportMediaUI.renderMediaPreview não disponível para renderização forçada');
-                if (!window.SupportMediaUI) console.log('   → SupportMediaUI não existe');
-                if (!window.SupportMediaUI?.renderMediaPreview) console.log('   → renderMediaPreview não é função');
-                if (!window.MediaSystem) console.log('   → MediaSystem não existe');
+                console.log('❌ SupportMediaUI.renderMediaPreview não disponível');
             }
         }, 500);
         
         console.log('═══════════════════════════════════════════════════');
     }
 
+    // ==============================================================
     // EXPORTAÇÃO
+    // ==============================================================
     window.SupportMediaUI = {
         getMediaPreviewHTML,
         renderMediaPreview,
@@ -348,23 +407,23 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.0.1 carregado.');
         reorderItems,
         updateUI,
         isVideoUrl,
-        version: '1.0.1'
+        version: '1.1.0'
     };
 
-    // Executar diagnóstico automático
+    // Executar diagnóstico
     runDiagnostics();
 
     // Auto-verificação
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('debug=true')) {
         setTimeout(() => {
-            console.log('✅ SupportMediaUI carregado - UI completa disponível');
+            console.log('✅ SupportMediaUI v1.1.0 carregado - UI completa com suporte a vídeos');
         }, 500);
     }
 
     if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register('mediaUI', () => ({ status: 'loaded', version: '1.0.1' }), 'ui', { isSafe: true });
+        window.DiagnosticRegistry.register('mediaUI', () => ({ status: 'loaded', version: '1.1.0' }), 'ui', { isSafe: true });
     }
 
-    console.log('✅ SupportMediaUI pronto - UI completa do Media System disponível');
+    console.log('✅ SupportMediaUI v1.1.0 pronto - UI completa com suporte a vídeos');
 })();
