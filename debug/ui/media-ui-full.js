@@ -1,41 +1,38 @@
-// debug/media/media-ui-full.js - MÓDULO DE UI COMPLETA PARA MEDIASYSTEM
-// ✅ Carrega APENAS em modo debug (?debug=true)
-// ✅ Fornece previews, drag & drop, reordenamento e UI visual avançada
-// ✅ TODO código não essencial migrado do Core System
+// debug/media/media-ui-full.js - MÓDULO DE UI COMPLETA PARA MEDIASYSTEM (VERSÃO CORRIGIDA)
+// ✅ Corrigido: renderização de previews ao carregar mídia existente
 
 console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaSystem');
 
 (function() {
     'use strict';
     
-    // ========== VERIFICAÇÃO DE AMBIENTE ==========
     const isDebugMode = window.location.search.includes('debug=true') || 
                         window.location.search.includes('test=true');
     
-    if (!isDebugMode) {
-        console.log('🎨 [Support] Modo produção - UI completa não carregada');
-        return;
-    }
-    
-    // ========== CONFIGURAÇÃO ==========
-    const UI_CONFIG = {
-        animationDuration: 300,
-        maxPreviewItems: 50,
-        dragThreshold: 5
-    };
-    
     // ========== FUNÇÕES DE PREVIEW ==========
     
-    /**
-     * Obtém HTML de preview para um item de mídia
-     * @param {Object} item - Item de mídia (foto ou vídeo)
-     * @returns {string} HTML do preview
-     */
+    function isVideoUrl(url) {
+        if (!url) return false;
+        const urlLower = url.toLowerCase();
+        return urlLower.includes('.mp4') || urlLower.includes('.mov') || 
+               urlLower.includes('.webm') || urlLower.includes('.avi') ||
+               urlLower.includes('video/');
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    
     function getMediaPreviewHTML(item) {
         const displayName = item.name || 'Arquivo';
         const shortName = displayName.length > 20 ? displayName.substring(0, 17) + '...' : displayName;
         
-        // Verificar se é vídeo
         const isVideoFile = item.isVideo === true || 
                             (item.type && item.type.startsWith('video/')) || 
                             (item.name && item.name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/)) ||
@@ -43,14 +40,12 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         
         const videoUrl = item.uploadedUrl || item.url || item.preview;
         
-        // Preview de vídeo
         if (isVideoFile && videoUrl && !videoUrl.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#000;">
                     <video style="width:100%;height:100%;object-fit:cover;" preload="metadata" muted>
                         <source src="${videoUrl}" type="video/mp4">
                         <source src="${videoUrl}" type="video/quicktime">
-                        Seu navegador não suporta vídeo.
                     </video>
                     <div style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:0.6rem;">
                         <i class="fas fa-video"></i> Vídeo
@@ -59,7 +54,6 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
             `;
         }
         
-        // Preview de imagem nova (blob URL)
         if (item.isNew && !item.uploaded && item.preview && item.preview.startsWith('blob:')) {
             return `
                 <div style="width:100%;height:70px;position:relative;background:#2c3e50;">
@@ -75,7 +69,6 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
             `;
         }
         
-        // Preview de imagem existente
         if ((item.url || item.uploadedUrl) && !(item.url || '').startsWith('blob:')) {
             const imageUrl = item.uploadedUrl || item.url;
             return `
@@ -93,7 +86,6 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
             `;
         }
         
-        // Fallback
         return `
             <div style="width:100%;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#2c3e50;color:#ecf0f1;">
                 <i class="fas fa-image" style="font-size:1.5rem;margin-bottom:5px;"></i>
@@ -102,46 +94,22 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         `;
     }
     
-    /**
-     * Verifica se URL é de vídeo
-     */
-    function isVideoUrl(url) {
-        if (!url) return false;
-        const urlLower = url.toLowerCase();
-        return urlLower.includes('.mp4') || 
-               urlLower.includes('.mov') || 
-               urlLower.includes('.webm') || 
-               urlLower.includes('.avi') ||
-               urlLower.includes('video/');
-    }
+    // ========== RENDERIZAÇÃO DE PREVIEWS - VERSÃO CORRIGIDA ==========
     
-    /**
-     * Escapa HTML para evitar XSS
-     */
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-    
-    // ========== RENDERIZAÇÃO DE PREVIEWS ==========
-    
-    /**
-     * Renderiza preview de mídia (fotos/vídeos)
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
     function renderMediaPreview(mediaSystem) {
-        const container = document.getElementById('uploadPreview');
-        if (!container) return;
+        console.log('🎨 [SupportUI] renderMediaPreview chamado');
         
-        const allFiles = [
-            ...(mediaSystem.state.existing || []).filter(item => !item.markedForDeletion),
-            ...(mediaSystem.state.files || [])
-        ];
+        const container = document.getElementById('uploadPreview');
+        if (!container) {
+            console.warn('⚠️ [SupportUI] Container #uploadPreview não encontrado');
+            return;
+        }
+        
+        const existingItems = (mediaSystem.state.existing || []).filter(item => !item.markedForDeletion);
+        const newItems = (mediaSystem.state.files || []);
+        const allFiles = [...existingItems, ...newItems];
+        
+        console.log(`🎨 [SupportUI] Renderizando ${allFiles.length} arquivo(s) (${existingItems.length} existentes, ${newItems.length} novos)`);
         
         if (allFiles.length === 0) {
             container.innerHTML = `
@@ -214,23 +182,23 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         
         html += '</div>';
         container.innerHTML = html;
-        
-        // Reconfigurar eventos de drag & drop
-        setTimeout(() => setupContainerDragEvents('uploadPreview', mediaSystem), 100);
+        console.log('✅ [SupportUI] renderMediaPreview concluído');
     }
     
-    /**
-     * Renderiza preview de PDFs
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
     function renderPdfPreview(mediaSystem) {
-        const container = document.getElementById('pdfUploadPreview');
-        if (!container) return;
+        console.log('🎨 [SupportUI] renderPdfPreview chamado');
         
-        const allPdfs = [
-            ...(mediaSystem.state.existingPdfs || []).filter(item => !item.markedForDeletion),
-            ...(mediaSystem.state.pdfs || [])
-        ];
+        const container = document.getElementById('pdfUploadPreview');
+        if (!container) {
+            console.warn('⚠️ [SupportUI] Container #pdfUploadPreview não encontrado');
+            return;
+        }
+        
+        const existingPdfs = (mediaSystem.state.existingPdfs || []).filter(item => !item.markedForDeletion);
+        const newPdfs = (mediaSystem.state.pdfs || []);
+        const allPdfs = [...existingPdfs, ...newPdfs];
+        
+        console.log(`🎨 [SupportUI] Renderizando ${allPdfs.length} PDF(s) (${existingPdfs.length} existentes, ${newPdfs.length} novos)`);
         
         if (allPdfs.length === 0) {
             container.innerHTML = `
@@ -289,182 +257,27 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         
         html += '</div>';
         container.innerHTML = html;
-        
-        // Reconfigurar eventos de drag & drop
-        setTimeout(() => setupContainerDragEvents('pdfUploadPreview', mediaSystem), 100);
+        console.log('✅ [SupportUI] renderPdfPreview concluído');
     }
     
-    // ========== DRAG & DROP REORDER ==========
+    // ========== INJEÇÃO NO MEDIASYSTEM - VERSÃO CORRIGIDA ==========
     
-    /**
-     * Configura eventos de drag & drop para um container
-     * @param {string} containerId - ID do container
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
-    function setupContainerDragEvents(containerId, mediaSystem) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        container.addEventListener('dragstart', (e) => {
-            const draggable = e.target.closest('.draggable-item');
-            if (!draggable) return;
-            
-            e.dataTransfer.setData('text/plain', draggable.dataset.id);
-            e.dataTransfer.effectAllowed = 'move';
-            draggable.classList.add('dragging');
-        });
-        
-        container.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        });
-        
-        container.addEventListener('drop', (e) => {
-            e.preventDefault();
-            
-            const draggedId = e.dataTransfer.getData('text/plain');
-            const dropTarget = e.target.closest('.draggable-item');
-            
-            if (!draggedId || !dropTarget) return;
-            
-            const targetId = dropTarget.dataset.id;
-            if (draggedId === targetId) return;
-            
-            reorderItems(draggedId, targetId, mediaSystem);
-            
-            document.querySelectorAll('.dragging').forEach(el => {
-                el.classList.remove('dragging');
-            });
-        });
-        
-        container.addEventListener('dragend', () => {
-            document.querySelectorAll('.dragging').forEach(el => {
-                el.classList.remove('dragging');
-            });
-        });
-    }
-    
-    /**
-     * Reordena itens após drag & drop
-     * @param {string} draggedId - ID do item arrastado
-     * @param {string} targetId - ID do item alvo
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
-    function reorderItems(draggedId, targetId, mediaSystem) {
-        const allArrays = [
-            { name: 'files', array: mediaSystem.state.files },
-            { name: 'existing', array: mediaSystem.state.existing },
-            { name: 'pdfs', array: mediaSystem.state.pdfs },
-            { name: 'existingPdfs', array: mediaSystem.state.existingPdfs }
-        ];
-        
-        for (const arr of allArrays) {
-            const draggedIndex = arr.array.findIndex(item => item.id === draggedId);
-            if (draggedIndex !== -1) {
-                const targetIndex = arr.array.findIndex(item => item.id === targetId);
-                if (targetIndex !== -1) {
-                    const newArray = [...arr.array];
-                    const [draggedItem] = newArray.splice(draggedIndex, 1);
-                    newArray.splice(targetIndex, 0, draggedItem);
-                    
-                    if (arr.name === 'files') mediaSystem.state.files = newArray;
-                    else if (arr.name === 'existing') mediaSystem.state.existing = newArray;
-                    else if (arr.name === 'pdfs') mediaSystem.state.pdfs = newArray;
-                    else if (arr.name === 'existingPdfs') mediaSystem.state.existingPdfs = newArray;
-                    
-                    // Re-renderizar após reordenação
-                    setTimeout(() => {
-                        renderMediaPreview(mediaSystem);
-                        renderPdfPreview(mediaSystem);
-                    }, 50);
-                }
-                break;
-            }
-        }
-    }
-    
-    // ========== EVENT LISTENERS DE UPLOAD ==========
-    
-    /**
-     * Configura event listeners para áreas de upload
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
-    function setupEventListeners(mediaSystem) {
-        // Upload de mídia (fotos/vídeos)
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        
-        if (uploadArea && fileInput && !uploadArea.hasAttribute('data-ui-initialized')) {
-            uploadArea.setAttribute('data-ui-initialized', 'true');
-            
-            uploadArea.addEventListener('click', () => fileInput.click());
-            
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.style.borderColor = '#3498db';
-                uploadArea.style.background = '#e8f4fc';
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.style.borderColor = '#ddd';
-                uploadArea.style.background = '#fafafa';
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.style.borderColor = '#ddd';
-                uploadArea.style.background = '#fafafa';
-                
-                if (e.dataTransfer.files.length > 0 && mediaSystem.addFiles) {
-                    mediaSystem.addFiles(e.dataTransfer.files);
-                }
-            });
-            
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0 && mediaSystem.addFiles) {
-                    mediaSystem.addFiles(e.target.files);
-                    e.target.value = '';
-                }
-            });
-        }
-        
-        // Upload de PDFs
-        const pdfUploadArea = document.getElementById('pdfUploadArea');
-        const pdfFileInput = document.getElementById('pdfFileInput');
-        
-        if (pdfUploadArea && pdfFileInput && !pdfUploadArea.hasAttribute('data-ui-initialized')) {
-            pdfUploadArea.setAttribute('data-ui-initialized', 'true');
-            
-            pdfUploadArea.addEventListener('click', () => pdfFileInput.click());
-            
-            pdfFileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0 && mediaSystem.addPdfs) {
-                    mediaSystem.addPdfs(e.target.files);
-                    e.target.value = '';
-                }
-            });
-        }
-    }
-    
-    // ========== FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ==========
-    
-    /**
-     * Injeta as funções de UI no MediaSystem existente
-     * @param {Object} mediaSystem - Instância do MediaSystem
-     */
     function injectUIIntoMediaSystem(mediaSystem) {
         if (!mediaSystem) {
-            console.error('❌ [Support] MediaSystem não encontrado para injetar UI');
+            console.error('❌ [Support] MediaSystem não encontrado');
             return false;
         }
         
         console.log('🎨 [Support] Injetando UI completa no MediaSystem...');
         
-        // Salvar referências originais (se existirem)
-        const originalRenderMediaPreview = mediaSystem.renderMediaPreview;
-        const originalRenderPdfPreview = mediaSystem.renderPdfPreview;
+        // ✅ CORREÇÃO: Sobrescrever o método updateUI diretamente
+        mediaSystem.updateUI = function() {
+            console.log('🔄 [SupportUI] updateUI chamado via MediaSystem');
+            renderMediaPreview(this);
+            renderPdfPreview(this);
+        };
         
-        // Sobrescrever métodos com versões completas
+        // ✅ CORREÇÃO: Adicionar métodos auxiliares
         mediaSystem.renderMediaPreview = function() {
             renderMediaPreview(this);
         };
@@ -473,44 +286,33 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
             renderPdfPreview(this);
         };
         
-        mediaSystem.setupDragAndDrop = function() {
-            setupContainerDragEvents('uploadPreview', this);
-            setupContainerDragEvents('pdfUploadPreview', this);
-        };
-        
-        // Atualizar método setupEventListeners se existir
-        if (mediaSystem.setupEventListeners) {
-            const originalSetup = mediaSystem.setupEventListeners;
-            mediaSystem.setupEventListeners = function() {
-                originalSetup.call(this);
-                setupEventListeners(this);
-            };
-        } else {
-            mediaSystem.setupEventListeners = function() {
-                setupEventListeners(this);
-            };
+        // ✅ CORREÇÃO: Forçar renderização imediata se houver dados
+        if (mediaSystem.state.existing.length > 0 || mediaSystem.state.files.length > 0 ||
+            mediaSystem.state.existingPdfs.length > 0 || mediaSystem.state.pdfs.length > 0) {
+            console.log('🎨 [Support] Dados existentes detectados, renderizando imediatamente...');
+            setTimeout(() => {
+                renderMediaPreview(mediaSystem);
+                renderPdfPreview(mediaSystem);
+            }, 100);
         }
         
-        // Adicionar método auxiliar de reordenação
-        mediaSystem.reorderItems = function(draggedId, targetId) {
-            reorderItems(draggedId, targetId, this);
-        };
-        
-        // Forçar re-renderização
-        setTimeout(() => {
-            if (mediaSystem.renderMediaPreview) mediaSystem.renderMediaPreview();
-            if (mediaSystem.renderPdfPreview) mediaSystem.renderPdfPreview();
-        }, 100);
-        
-        console.log('✅ [Support] UI completa injetada no MediaSystem');
+        console.log('✅ [Support] UI injetada no MediaSystem - método updateUI substituído');
         return true;
     }
     
+    // ========== EXPORTAÇÃO PARA WINDOW ==========
+    
+    window.SupportUI = {
+        renderMediaPreview,
+        renderPdfPreview,
+        getMediaPreviewHTML,
+        isVideoUrl,
+        injectUIIntoMediaSystem,
+        version: '1.1'
+    };
+    
     // ========== AUTO-INICIALIZAÇÃO ==========
     
-    /**
-     * Aguarda MediaSystem e injeta UI
-     */
     function waitForMediaSystem() {
         let attempts = 0;
         const maxAttempts = 20;
@@ -523,132 +325,25 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
                 console.log('🎨 [Support] MediaSystem encontrado, injetando UI...');
                 injectUIIntoMediaSystem(window.MediaSystem);
                 
-                // Disparar evento de UI pronta
+                // Disparar evento
                 if (window.dispatchEvent) {
                     window.dispatchEvent(new CustomEvent('media-ui-ready', {
-                        detail: { source: 'media-ui-full', version: '1.0' }
+                        detail: { source: 'media-ui-full', version: '1.1' }
                     }));
                 }
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
-                console.warn('⚠️ [Support] MediaSystem não encontrado após 20 tentativas');
+                console.warn('⚠️ [Support] MediaSystem não encontrado');
             }
         }, 500);
     }
     
-    // ========== VERIFICAÇÃO PÓS-MIGRAÇÃO ==========
-    // ✅ Checklist Automático (via código versionado)
-    
-    if (window.location.search.includes('verify-migration=true')) {
-        setTimeout(() => {
-            console.group('🧪 VERIFICAÇÃO DE MIGRAÇÃO - Media UI Full');
-            
-            const checks = {
-                'renderMediaPreview': typeof window.MediaSystem?.renderMediaPreview === 'function',
-                'renderPdfPreview': typeof window.MediaSystem?.renderPdfPreview === 'function',
-                'setupDragAndDrop': typeof window.MediaSystem?.setupDragAndDrop === 'function',
-                'reorderItems': typeof window.MediaSystem?.reorderItems === 'function',
-                'getMediaPreviewHTML': typeof getMediaPreviewHTML === 'function',
-                'isVideoUrl': typeof isVideoUrl === 'function'
-            };
-            
-            const allPass = Object.values(checks).every(v => v === true);
-            const passCount = Object.values(checks).filter(v => v === true).length;
-            const totalCount = Object.keys(checks).length;
-            
-            console.log(`📊 Resultado: ${passCount}/${totalCount} funcionalidades OK`);
-            
-            Object.entries(checks).forEach(([name, passed]) => {
-                console.log(`${passed ? '✅' : '❌'} ${name}: ${passed ? 'disponível' : 'indisponível'}`);
-            });
-            
-            if (allPass) {
-                console.log('✅ MIGRAÇÃO BEM-SUCEDIDA - UI completa funcionando');
-                console.log('🎨 UI Visual completa: previews, drag & drop, reordenamento');
-            } else {
-                console.warn('⚠️ MIGRAÇÃO PARCIAL - Algumas funcionalidades em fallback');
-                console.log('📝 Modo produção: UI básica ativa (sem recursos visuais avançados)');
-            }
-            
-            // Verificar ambiente
-            const isDebug = window.location.search.includes('debug=true');
-            console.log(`🔧 Ambiente: ${isDebug ? 'DEBUG (UI completa)' : 'PRODUÇÃO (UI básica)'}`);
-            
-            console.groupEnd();
-        }, 1500);
+    // Iniciar apenas em modo debug
+    if (isDebugMode) {
+        waitForMediaSystem();
+        console.log('✅ [Support] media-ui-full.js inicializado - Modo DEBUG ativo');
+    } else {
+        console.log('🎨 [Support] Modo produção - UI completa não carregada');
     }
     
-    // ========== TESTE PRÁTICO PARA VERIFICAÇÃO ==========
-    // ✅ Como verificar agora - executa automaticamente em modo debug
-    
-    if (window.location.search.includes('debug=true') || 
-        window.location.search.includes('test=true')) {
-        
-        setTimeout(() => {
-            console.group('🔬 TESTE PRÁTICO - Media UI Full');
-            console.log('🎯 Verificando funcionalidades do MediaSystem com UI completa:');
-            
-            // Teste 1: Verificar se UI foi injetada
-            const hasUI = typeof window.MediaSystem?.renderMediaPreview === 'function';
-            console.log(`${hasUI ? '✅' : '⚠️'} UI injetada: ${hasUI ? 'Sim' : 'Não (fallback ativo)'}`);
-            
-            // Teste 2: Verificar container de preview
-            const previewContainer = document.getElementById('uploadPreview');
-            console.log(`${previewContainer ? '✅' : '❌'} Container preview: ${previewContainer ? 'encontrado' : 'não encontrado'}`);
-            
-            // Teste 3: Verificar área de upload
-            const uploadArea = document.getElementById('uploadArea');
-            console.log(`${uploadArea ? '✅' : '❌'} Área de upload: ${uploadArea ? 'configurada' : 'não encontrada'}`);
-            
-            // Teste 4: Verificar se eventos estão configurados
-            const hasDragEvents = uploadArea && uploadArea.hasAttribute('data-ui-initialized');
-            console.log(`${hasDragEvents ? '✅' : '⚠️'} Drag & drop: ${hasDragEvents ? 'configurado' : 'não configurado'}`);
-            
-            // Teste 5: Verificar suporte a vídeos
-            const hasVideoSupport = typeof window.MediaSystem?.state?.files !== 'undefined';
-            console.log(`${hasVideoSupport ? '✅' : '⚠️'} Suporte a vídeos: ${hasVideoSupport ? 'disponível' : 'não verificado'}`);
-            
-            console.log('\n📝 COMO TESTAR MANUALMENTE (se tivesse console):');
-            console.log('  1. Abrir painel admin (botão flutuante)');
-            console.log('  2. Clicar na área de upload ou arrastar imagens');
-            console.log('  3. Verificar se previews aparecem com estilos visuais');
-            console.log('  4. Arrastar itens para reordenar');
-            console.log('  5. Verificar se PDFs são exibidos corretamente');
-            
-            console.groupEnd();
-        }, 2000);
-    }
-    
-    // Inicializar
-    waitForMediaSystem();
-    
-    // Registrar no DiagnosticRegistry se disponível
-    if (window.DiagnosticRegistry) {
-        window.DiagnosticRegistry.register(
-            'mediaUI',
-            () => ({
-                status: 'loaded',
-                version: '1.0',
-                functions: {
-                    renderMediaPreview: typeof renderMediaPreview === 'function',
-                    renderPdfPreview: typeof renderPdfPreview === 'function',
-                    reorderItems: typeof reorderItems === 'function'
-                }
-            }),
-            'ui',
-            { isSafe: true, description: 'UI completa para MediaSystem (previews, drag & drop, reordenamento)' }
-        );
-    }
-    
-    // Expor utilitários para debug (se necessário)
-    window.SupportUI = {
-        renderMediaPreview,
-        renderPdfPreview,
-        reorderItems,
-        getMediaPreviewHTML,
-        isVideoUrl,
-        version: '1.0'
-    };
-    
-    console.log('✅ [Support] media-ui-full.js inicializado - UI completa pronta');
 })();
