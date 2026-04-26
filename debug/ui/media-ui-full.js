@@ -1,6 +1,6 @@
 // debug/ui/media-ui-full.js - UI Completa do Media System para modo debug
-// VERSÃO: 1.4.0 - CORREÇÃO DEFINITIVA DO CONTEXTO
-console.log('🎨 [SUPPORT] media-ui-full.js v1.4.0 carregado.');
+// VERSÃO: 1.5.0 - CORREÇÃO DO UPDATEUI E RENDERIZAÇÃO VISUAL
+console.log('🎨 [SUPPORT] media-ui-full.js v1.5.0 carregado.');
 
 (function() {
     'use strict';
@@ -355,11 +355,12 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.4.0 carregado.');
         this.updateUI();
     }
 
-    // FUNÇÃO CORRIGIDA - Força renderização correta
+    // FUNÇÃO updateUI - NÃO substitui mais o updateUI do MediaSystem
+    // Apenas chama diretamente os renderizadores visuais
     function updateUI() {
         if (this._updateTimeout) clearTimeout(this._updateTimeout);
         this._updateTimeout = setTimeout(() => {
-            // CHAMAR DIRETAMENTE com window.MediaSystem
+            // CHAMAR DIRETAMENTE os renderizadores visuais
             renderMediaPreview();
             renderPdfPreview();
         }, 50);
@@ -377,19 +378,21 @@ console.log('🎨 [SUPPORT] media-ui-full.js v1.4.0 carregado.');
         reorderItems,
         updateUI,
         isVideoUrl,
-        version: '1.4.0'
+        version: '1.5.0'
     };
 
-    // Forçar que o updateUI do MediaSystem use a versão corrigida
+    // ==============================================================
+    // NÃO substituir o updateUI do MediaSystem - apenas garantir que 
+    // as funções auxiliares estejam disponíveis
+    // ==============================================================
     if (window.MediaSystem) {
-        const originalUpdateUI = window.MediaSystem.updateUI;
-        window.MediaSystem.updateUI = function() {
-            console.log('🔄 [MediaSystem] updateUI chamado - existing:', this.state.existing?.length);
-            renderMediaPreview();
-            renderPdfPreview();
-        };
-        console.log('✅ [SupportMediaUI] updateUI do MediaSystem substituído com sucesso!');
+        console.log('✅ [SupportMediaUI] MediaSystem detectado, funções de renderização disponíveis');
+        // Garantir que os métodos auxiliares estejam disponíveis no MediaSystem
+        // para chamadas diretas
+        window.MediaSystem.renderMediaPreviewVisual = renderMediaPreview;
+        window.MediaSystem.renderPdfPreviewVisual = renderPdfPreview;
+        console.log('✅ [SupportMediaUI] Métodos visuais expostos no MediaSystem');
     }
 
-    console.log('✅ SupportMediaUI v1.4.0 pronto - CORREÇÃO DEFINITIVA APLICADA!');
+    console.log('✅ SupportMediaUI v1.5.0 pronto - SEM substituição de updateUI!');
 })();
