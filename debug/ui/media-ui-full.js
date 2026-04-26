@@ -1,13 +1,16 @@
-// debug/media/media-ui-full.js - MÓDULO DE UI COMPLETA PARA MEDIASYSTEM (VERSÃO CORRIGIDA)
-// ✅ Corrigido: renderização de previews ao carregar mídia existente
+// debug/ui/media-ui-full.js - MÓDULO DE UI COMPLETA PARA MEDIASYSTEM (COM DIAGNÓSTICO)
+// 🔍 Versão com diagnósticos automáticos no console.log
 
 console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaSystem');
+console.log('🔍 [DIAG] Iniciando diagnóstico automático...');
 
 (function() {
     'use strict';
     
     const isDebugMode = window.location.search.includes('debug=true') || 
                         window.location.search.includes('test=true');
+    
+    console.log(`🔍 [DIAG] Modo debug: ${isDebugMode ? 'ATIVO' : 'INATIVO'}`);
     
     // ========== FUNÇÕES DE PREVIEW ==========
     
@@ -98,10 +101,18 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
     
     function renderMediaPreview(mediaSystem) {
         console.log('🎨 [SupportUI] renderMediaPreview chamado');
+        console.log('🔍 [DIAG] MediaSystem recebido:', mediaSystem ? 'OK' : 'UNDEFINED');
         
         const container = document.getElementById('uploadPreview');
+        console.log('🔍 [DIAG] Container #uploadPreview:', container ? 'ENCONTRADO' : 'NÃO ENCONTRADO');
+        
         if (!container) {
             console.warn('⚠️ [SupportUI] Container #uploadPreview não encontrado');
+            return;
+        }
+        
+        if (!mediaSystem) {
+            console.error('❌ [DIAG] mediaSystem é undefined em renderMediaPreview');
             return;
         }
         
@@ -109,6 +120,11 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         const newItems = (mediaSystem.state.files || []);
         const allFiles = [...existingItems, ...newItems];
         
+        console.log(`🔍 [DIAG] Estado do MediaSystem:`);
+        console.log(`  - existing.length: ${mediaSystem.state.existing?.length || 0}`);
+        console.log(`  - files.length: ${mediaSystem.state.files?.length || 0}`);
+        console.log(`  - existingPdfs.length: ${mediaSystem.state.existingPdfs?.length || 0}`);
+        console.log(`  - pdfs.length: ${mediaSystem.state.pdfs?.length || 0}`);
         console.log(`🎨 [SupportUI] Renderizando ${allFiles.length} arquivo(s) (${existingItems.length} existentes, ${newItems.length} novos)`);
         
         if (allFiles.length === 0) {
@@ -119,6 +135,7 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
                     <small style="font-size: 0.8rem;">Arraste ou clique para adicionar</small>
                 </div>
             `;
+            console.log('🔍 [DIAG] Container preenchido com mensagem vazia');
             return;
         }
         
@@ -191,6 +208,11 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         const container = document.getElementById('pdfUploadPreview');
         if (!container) {
             console.warn('⚠️ [SupportUI] Container #pdfUploadPreview não encontrado');
+            return;
+        }
+        
+        if (!mediaSystem) {
+            console.error('❌ [DIAG] mediaSystem é undefined em renderPdfPreview');
             return;
         }
         
@@ -269,6 +291,7 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         }
         
         console.log('🎨 [Support] Injetando UI completa no MediaSystem...');
+        console.log('🔍 [DIAG] MediaSystem.state atual:', mediaSystem.state);
         
         // ✅ CORREÇÃO: Sobrescrever o método updateUI diretamente
         mediaSystem.updateUI = function() {
@@ -287,10 +310,15 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         };
         
         // ✅ CORREÇÃO: Forçar renderização imediata se houver dados
-        if (mediaSystem.state.existing.length > 0 || mediaSystem.state.files.length > 0 ||
-            mediaSystem.state.existingPdfs.length > 0 || mediaSystem.state.pdfs.length > 0) {
+        const hasData = (mediaSystem.state.existing?.length > 0 || mediaSystem.state.files?.length > 0 ||
+                         mediaSystem.state.existingPdfs?.length > 0 || mediaSystem.state.pdfs?.length > 0);
+        
+        console.log(`🔍 [DIAG] Dados existentes detectados: ${hasData ? 'SIM' : 'NÃO'}`);
+        
+        if (hasData) {
             console.log('🎨 [Support] Dados existentes detectados, renderizando imediatamente...');
             setTimeout(() => {
+                console.log('🔍 [DIAG] Executando renderização agendada...');
                 renderMediaPreview(mediaSystem);
                 renderPdfPreview(mediaSystem);
             }, 100);
@@ -311,39 +339,65 @@ console.log('🎨 [Support] media-ui-full.js carregado - UI completa para MediaS
         version: '1.1'
     };
     
+    console.log('🔍 [DIAG] SupportUI exportado para window:', window.SupportUI ? 'SUCESSO' : 'FALHA');
+    
     // ========== AUTO-INICIALIZAÇÃO ==========
     
     function waitForMediaSystem() {
         let attempts = 0;
         const maxAttempts = 20;
         
+        console.log('🔍 [DIAG] Aguardando MediaSystem...');
+        
         const checkInterval = setInterval(() => {
             attempts++;
+            console.log(`🔍 [DIAG] Tentativa ${attempts}/${maxAttempts} - window.MediaSystem:`, window.MediaSystem ? 'EXISTE' : 'NÃO EXISTE');
             
             if (window.MediaSystem) {
                 clearInterval(checkInterval);
                 console.log('🎨 [Support] MediaSystem encontrado, injetando UI...');
+                console.log('🔍 [DIAG] window.MediaSystem completo:', window.MediaSystem);
                 injectUIIntoMediaSystem(window.MediaSystem);
+                
+                // 🔍 DIAGNÓSTICO ADICIONAL: Forçar renderização manual
+                console.log('🔍 [DIAG] Executando diagnóstico de renderização forçada...');
+                console.log('🔍 [DIAG] SupportUI disponível:', window.SupportUI ? 'SIM' : 'NÃO');
+                
+                if (window.MediaSystem) {
+                    console.log('🔍 [DIAG] Chamando SupportUI.renderMediaPreview manualmente...');
+                    window.SupportUI?.renderMediaPreview(window.MediaSystem);
+                    console.log('🔍 [DIAG] Chamando SupportUI.renderPdfPreview manualmente...');
+                    window.SupportUI?.renderPdfPreview(window.MediaSystem);
+                }
                 
                 // Disparar evento
                 if (window.dispatchEvent) {
                     window.dispatchEvent(new CustomEvent('media-ui-ready', {
                         detail: { source: 'media-ui-full', version: '1.1' }
                     }));
+                    console.log('🔍 [DIAG] Evento media-ui-ready disparado');
                 }
+                
+                console.log('🔍 [DIAG] Diagnóstico concluído. Verifique os logs acima.');
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
-                console.warn('⚠️ [Support] MediaSystem não encontrado');
+                console.warn('⚠️ [Support] MediaSystem não encontrado após 20 tentativas');
+                console.warn('🔍 [DIAG] Possível causa: MediaSystem não foi inicializado ou não está no window');
             }
         }, 500);
     }
     
     // Iniciar apenas em modo debug
     if (isDebugMode) {
-        waitForMediaSystem();
         console.log('✅ [Support] media-ui-full.js inicializado - Modo DEBUG ativo');
+        console.log('🔍 [DIAG] Iniciando waitForMediaSystem...');
+        waitForMediaSystem();
     } else {
         console.log('🎨 [Support] Modo produção - UI completa não carregada');
+        console.log('🔍 [DIAG] Para executar diagnóstico, adicione ?debug=true à URL');
+        console.log('🔍 [DIAG] Exemplo: http://seusite.com/pagina?debug=true');
     }
     
 })();
+
+console.log('🔍 [DIAG] Script media-ui-full.js finalizado');
