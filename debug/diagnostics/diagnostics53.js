@@ -1,6 +1,7 @@
-// debug/diagnostics/diagnostics53.js - VERSÃO 5.3.5 CORRIGIDA
+// debug/diagnostics/diagnostics53.js - VERSÃO 5.3.5 CORRIGIDA (DUPLICAÇÃO REMOVIDA)
 // CORREÇÃO RADICAL: Múltiplas camadas de proteção e monitoramento
 // + ADIÇÃO: Funções runSupportChecks(), checkModuleDuplications() e verifySystemFunctions()
+// + CORREÇÃO CRÍTICA: Removida duplicação da variável 'params'
 
 /* ================== FALLBACK SUPREMO - EXECUTA ANTES DE TUDO ================== */
 // Esta definição NÃO está em IIFE, é direta no escopo global
@@ -409,6 +410,7 @@ console.log('🔍 diagnostics.js – diagnóstico completo v5.3.1 CORRIGIDO (ord
 })();
 
 /* ================== FLAGS ================== */
+// ✅ CORRIGIDO: ÚNICA declaração da variável params (duplicação removida)
 const params = new URLSearchParams(location.search);
 const DEBUG_MODE = params.get('debug') === 'true';
 const DIAGNOSTICS_MODE = params.get('diagnostics') === 'true';
@@ -4284,7 +4286,7 @@ window.diagnosePdfIconProblem = function() {
         console.log('✅ Ícone de teste já existe');
     }
     
-    // ================== TESTE 6: VERIFICAR PROPERTY ID (CORRIGIDO) ==================
+    // ================== TESTE 6: VERIFICAR PROPERTY ID ==================
     console.log('\n✅ TESTE 6: VERIFICAR PROPERTY ID');
     
     // CORREÇÃO: Usar try-catch e verificar se é iterável
@@ -4861,7 +4863,7 @@ function updateOverview(data) {
     
     Object.entries(criticalElements).forEach(([element, domElement]) => {
         const exists = !!domElement;
-        html += `
+        html += `           
             <div style="background: #111; padding: 10px; border-radius: 4px; border-left: 3px solid ${exists ? '#00ff9c' : '#ff5555'};">
                 <div style="display: flex; justify-content: space-between;">
                     <span>${element}</span>
