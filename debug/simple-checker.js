@@ -1,5 +1,7 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO FINAL COM EVENTOS
-console.log('✅ simple-checker.js - Verificação Básica ATUALIZADA (com Eventos)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO FINAL COM FUNÇÕES DE VALIDAÇÃO CENTRALIZADA
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização (v2.0)');
+
+// ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
 
 window.runSupportChecks = function() {
     console.group('✅ VERIFICAÇÃO BÁSICA DO SISTEMA - SISTEMA ATUAL');
@@ -198,6 +200,349 @@ window.listDiagnosticFunctions = function(category = null) {
     window.DiagnosticRegistry.list({ category, detailed: true });
 };
 
+// ========== NOVAS FUNÇÕES DE VALIDAÇÃO (ADICIONADAS POR RECOMENDAÇÃO) ==========
+
+/**
+ * ✅ FUNÇÃO: Validar Centralização de Funções no SharedCore
+ * Verifica se funções essenciais estão centralizadas no SharedCore em vez de duplicadas globalmente
+ */
+window.validateCentralizedFunctions = function() {
+    console.group('🎯 VALIDAÇÃO DE FUNÇÕES CENTRALIZADAS NO SHAREDCORE');
+    
+    const resultados = {
+        centralizadas: [],
+        duplicadas: [],
+        ausentes: []
+    };
+    
+    // Lista de funções que DEVEM estar centralizadas no SharedCore
+    const funcoesEssenciais = [
+        { nome: 'formatPrice', central: 'PriceFormatter.formatForCard' },
+        { nome: 'formatPriceForInput', central: 'PriceFormatter.formatForInput' },
+        { nome: 'formatFeaturesForDisplay', central: 'formatFeaturesForDisplay' },
+        { nome: 'parseFeaturesForStorage', central: 'parseFeaturesForStorage' },
+        { nome: 'ensureBooleanVideo', central: 'ensureBooleanVideo' },
+        { nome: 'validateIdForSupabase', central: 'validateIdForSupabase' },
+        { nome: 'manageEditingState', central: 'manageEditingState' },
+        { nome: 'debounce', central: 'debounce' },
+        { nome: 'throttle', central: 'throttle' },
+        { nome: 'isMobileDevice', central: 'isMobileDevice' }
+    ];
+    
+    console.log('🔍 Verificando funções essenciais...');
+    
+    funcoesEssenciais.forEach(func => {
+        const estaNoSharedCore = typeof window.SharedCore?.[func.central.split('.')[0]]?.[func.central.split('.')[1]] === 'function' ||
+                                  typeof window.SharedCore?.[func.nome] === 'function';
+        const estaGlobal = typeof window[func.nome] === 'function';
+        
+        if (estaNoSharedCore) {
+            resultados.centralizadas.push(func.nome);
+            console.log(`✅ ${func.nome} - Centralizada no SharedCore`);
+        } else {
+            console.warn(`⚠️ ${func.nome} - NÃO encontrada no SharedCore`);
+            resultados.ausentes.push(func.nome);
+        }
+        
+        if (estaGlobal && func.nome !== 'SharedCore') {
+            // Verificar se a função global NÃO é apenas um proxy para SharedCore
+            const eProxy = window[func.nome]?.toString().includes('SharedCore.');
+            if (!eProxy) {
+                console.warn(`⚠️ ${func.nome} - Duplicada globalmente (fora do SharedCore)`);
+                resultados.duplicadas.push(func.nome);
+            }
+        }
+    });
+    
+    // Verificar PriceFormatter especificamente
+    if (window.SharedCore?.PriceFormatter) {
+        const metodosPrice = ['formatForCard', 'formatForInput', 'formatForAdmin', 'setupAutoFormat'];
+        metodosPrice.forEach(metodo => {
+            if (typeof window.SharedCore.PriceFormatter[metodo] === 'function') {
+                console.log(`✅ PriceFormatter.${metodo} - Disponível`);
+            } else {
+                console.warn(`⚠️ PriceFormatter.${metodo} - Ausente`);
+            }
+        });
+    } else {
+        console.error('❌ PriceFormatter NÃO encontrado no SharedCore!');
+    }
+    
+    console.log('\n📊 RESUMO DA CENTRALIZAÇÃO:');
+    console.log(`  Centralizadas: ${resultados.centralizadas.length}/${funcoesEssenciais.length}`);
+    console.log(`  Duplicadas: ${resultados.duplicadas.length}`);
+    console.log(`  Ausentes: ${resultados.ausentes.length}`);
+    
+    const status = resultados.ausentes.length === 0 && resultados.duplicadas.length === 0;
+    console.log(`\n${status ? '✅ SISTEMA CENTRALIZADO CORRETAMENTE' : '⚠️ SISTEMA COM CENTRALIZAÇÃO INCOMPLETA'}`);
+    
+    console.groupEnd();
+    
+    return resultados;
+};
+
+/**
+ * ✅ FUNÇÃO: Verificar Remoção de Duplicatas
+ * Verifica se funções duplicadas antigas foram removidas do escopo global
+ */
+window.checkDuplicateRemoval = function() {
+    console.group('🧹 VERIFICAÇÃO DE REMOÇÃO DE DUPLICATAS');
+    
+    // Funções que NÃO deveriam existir no escopo global (apenas via SharedCore)
+    const funcoesObsoletas = [
+        'oldFormatPrice',
+        'oldFormatFeatures',
+        'legacyParseFeatures',
+        'videoCheckLegacy',
+        'duplicateGalleryFunction',
+        'antigaFuncaoMedia'
+    ];
+    
+    // Funções que podem existir globalmente, mas devem ser apenas proxies
+    const funcoesProxies = [
+        'formatPrice',
+        'formatFeaturesForDisplay',
+        'parseFeaturesForStorage',
+        'ensureBooleanVideo',
+        'validateIdForSupabase',
+        'manageEditingState'
+    ];
+    
+    const resultado = {
+        encontradas: [],
+        proxysFuncionando: [],
+        problemaProxy: []
+    };
+    
+    // Verificar funções obsoletas
+    funcoesObsoletas.forEach(nome => {
+        if (typeof window[nome] !== 'undefined') {
+            console.warn(`❌ Função obsoleta AINDA PRESENTE: ${nome}`);
+            resultado.encontradas.push(nome);
+        }
+    });
+    
+    // Verificar se proxies estão funcionando corretamente
+    funcoesProxies.forEach(nome => {
+        if (typeof window[nome] === 'function') {
+            const corpo = window[nome].toString();
+            const eProxy = corpo.includes('SharedCore.') || corpo.includes('PriceFormatter.');
+            
+            if (eProxy) {
+                console.log(`✅ ${nome} - Proxy funcionando corretamente`);
+                resultado.proxysFuncionando.push(nome);
+            } else {
+                console.warn(`⚠️ ${nome} - Função global NÃO é proxy (possível duplicata)`);
+                resultado.problemaProxy.push(nome);
+            }
+        } else {
+            console.warn(`⚠️ ${nome} - Ausente (pode ser necessário)`);
+        }
+    });
+    
+    console.log('\n📊 RESUMO DA LIMPEZA:');
+    console.log(`  Funções obsoletas encontradas: ${resultado.encontradas.length}`);
+    console.log(`  Proxys funcionando: ${resultado.proxysFuncionando.length}/${funcoesProxies.length}`);
+    console.log(`  Proxys com problema: ${resultado.problemaProxy.length}`);
+    
+    const status = resultado.encontradas.length === 0 && resultado.problemaProxy.length === 0;
+    console.log(`\n${status ? '✅ NENHUMA DUPLICATA INDESEJADA ENCONTRADA' : '⚠️ DUPLICATAS ENCONTRADAS - REQUER LIMPEZA'}`);
+    
+    console.groupEnd();
+    
+    return resultado;
+};
+
+/**
+ * ✅ FUNÇÃO: Validar Estado do MediaSystem
+ * Verifica se MediaSystem está operacional com todas as funções necessárias
+ */
+window.validateMediaSystem = function() {
+    console.group('📸 VALIDAÇÃO DO MEDIASYSTEM');
+    
+    if (!window.MediaSystem) {
+        console.error('❌ MediaSystem NÃO disponível!');
+        console.groupEnd();
+        return { success: false, error: 'MediaSystem não encontrado' };
+    }
+    
+    const funcoesCriticas = [
+        'addFiles',
+        'addPdfs',
+        'uploadAll',
+        'deleteFileFromStorage',
+        'deleteFilesFromStorage',
+        'resetState',
+        'loadExisting'
+    ];
+    
+    const resultado = {
+        success: true,
+        funcoesDisponiveis: [],
+        funcoesAusentes: []
+    };
+    
+    // Verificar funções críticas
+    funcoesCriticas.forEach(nome => {
+        if (typeof window.MediaSystem[nome] === 'function') {
+            resultado.funcoesDisponiveis.push(nome);
+            console.log(`✅ MediaSystem.${nome} - Disponível`);
+        } else {
+            resultado.funcoesAusentes.push(nome);
+            resultado.success = false;
+            console.error(`❌ MediaSystem.${nome} - AUSENTE!`);
+        }
+    });
+    
+    // Verificar estado atual
+    console.log('\n📊 ESTADO ATUAL DO MEDIASYSTEM:');
+    console.log(`  Arquivos na fila: ${window.MediaSystem.state?.files?.length || 0}`);
+    console.log(`  PDFs na fila: ${window.MediaSystem.state?.pdfs?.length || 0}`);
+    console.log(`  Arquivos existentes: ${window.MediaSystem.state?.existing?.length || 0}`);
+    console.log(`  PDFs existentes: ${window.MediaSystem.state?.existingPdfs?.length || 0}`);
+    console.log(`  Upload em andamento: ${window.MediaSystem.state?.isUploading ? 'Sim' : 'Não'}`);
+    
+    // Verificar Supabase config
+    const supabaseConfig = window.SUPABASE_CONSTANTS;
+    if (supabaseConfig && supabaseConfig.URL && supabaseConfig.KEY) {
+        console.log('✅ Configuração Supabase encontrada');
+    } else {
+        console.warn('⚠️ Configuração Supabase ausente ou incompleta');
+        resultado.success = false;
+    }
+    
+    console.log(`\n${resultado.success ? '✅ MEDIASYSTEM OPERACIONAL' : '❌ MEDIASYSTEM COM PROBLEMAS'}`);
+    
+    console.groupEnd();
+    
+    return resultado;
+};
+
+/**
+ * ✅ FUNÇÃO: Validar Estado do FilterManager
+ * Verifica se FilterManager está inicializado e funcionando
+ */
+window.validateFilterManager = function() {
+    console.group('🎛️ VALIDAÇÃO DO FILTERMANAGER');
+    
+    if (!window.FilterManager) {
+        console.error('❌ FilterManager NÃO disponível!');
+        console.groupEnd();
+        return { success: false, error: 'FilterManager não encontrado' };
+    }
+    
+    const resultado = {
+        success: true,
+        initialized: false,
+        hasCallbacks: false
+    };
+    
+    // Verificar funções principais
+    const funcoesPrincipais = ['init', 'setActiveFilter', 'getCurrentFilter', 'setupWithFallback'];
+    
+    funcoesPrincipais.forEach(nome => {
+        if (typeof window.FilterManager[nome] === 'function') {
+            console.log(`✅ FilterManager.${nome} - Disponível`);
+        } else {
+            console.error(`❌ FilterManager.${nome} - AUSENTE!`);
+            resultado.success = false;
+        }
+    });
+    
+    // Verificar inicialização
+    resultado.initialized = window.FilterManager.isInitialized ? window.FilterManager.isInitialized() : false;
+    console.log(`📌 Estado de inicialização: ${resultado.initialized ? 'Inicializado' : 'Não inicializado'}`);
+    
+    // Verificar filtros na interface
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const filterContainer = document.querySelector('.filter-options');
+    
+    if (filterContainer) {
+        console.log(`✅ Container de filtros encontrado: ${filterButtons.length} botões`);
+        
+        if (filterButtons.length === 0) {
+            console.warn('⚠️ Nenhum botão de filtro encontrado');
+        }
+        
+        // Verificar se há filtro ativo
+        const activeButtons = document.querySelectorAll('.filter-btn.active');
+        if (activeButtons.length > 0) {
+            console.log(`✅ Filtro ativo: ${activeButtons[0].textContent.trim()}`);
+        } else {
+            console.warn('⚠️ Nenhum filtro ativo encontrado');
+        }
+    } else {
+        console.warn('⚠️ Container .filter-options não encontrado na página');
+        resultado.success = false;
+    }
+    
+    // Verificar configuração global de filtro
+    if (typeof window.currentFilter !== 'undefined') {
+        console.log(`📌 Filtro global atual: ${window.currentFilter || 'todos'}`);
+    }
+    
+    console.log(`\n${resultado.success ? '✅ FILTERMANAGER OPERACIONAL' : '❌ FILTERMANAGER COM PROBLEMAS'}`);
+    
+    console.groupEnd();
+    
+    return resultado;
+};
+
+/**
+ * ✅ FUNÇÃO: Executar Validação Rápida de Todas as Funções
+ * Executa todas as validações em sequência
+ */
+window.runQuickValidation = async function() {
+    console.log('🚀 INICIANDO VALIDAÇÃO RÁPIDA COMPLETA');
+    console.log('=========================================');
+    
+    const resultados = {
+        centralizacao: null,
+        duplicatas: null,
+        mediaSystem: null,
+        filterManager: null,
+        timestamp: new Date().toISOString(),
+        sucessoTotal: false
+    };
+    
+    // 1. Validar centralização
+    console.log('\n📍 PASSO 1/4: Validando centralização...');
+    resultados.centralizacao = window.validateCentralizedFunctions();
+    
+    // 2. Verificar duplicatas
+    console.log('\n📍 PASSO 2/4: Verificando duplicatas...');
+    resultados.duplicatas = window.checkDuplicateRemoval();
+    
+    // 3. Validar MediaSystem
+    console.log('\n📍 PASSO 3/4: Validando MediaSystem...');
+    resultados.mediaSystem = window.validateMediaSystem();
+    
+    // 4. Validar FilterManager
+    console.log('\n📍 PASSO 4/4: Validando FilterManager...');
+    resultados.filterManager = window.validateFilterManager();
+    
+    // Resumo final
+    console.log('\n=========================================');
+    console.log('📊 RESUMO DA VALIDAÇÃO RÁPIDA:');
+    console.log(`  Centralização: ${resultados.centralizacao?.ausentes?.length === 0 ? '✅ OK' : '⚠️ Pendente'}`);
+    console.log(`  Duplicatas: ${resultados.duplicatas?.encontradas?.length === 0 ? '✅ OK' : '⚠️ Pendente'}`);
+    console.log(`  MediaSystem: ${resultados.mediaSystem?.success ? '✅ OK' : '⚠️ Pendente'}`);
+    console.log(`  FilterManager: ${resultados.filterManager?.success ? '✅ OK' : '⚠️ Pendente'}`);
+    
+    resultados.sucessoTotal = 
+        resultados.centralizacao?.ausentes?.length === 0 &&
+        resultados.duplicatas?.encontradas?.length === 0 &&
+        resultados.mediaSystem?.success === true &&
+        resultados.filterManager?.success === true;
+    
+    console.log(`\n${resultados.sucessoTotal ? '🎉 VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS - VERIFICAR ACIMA'}`);
+    console.log('=========================================');
+    
+    return resultados;
+};
+
+// ========== FUNÇÕES DE SUPORTE ==========
+
 // ✅ FUNÇÃO: Aguardar registry e executar
 function waitForRegistryAndExecute() {
     console.log('⏳ Aguardando DiagnosticRegistry ficar pronto...');
@@ -257,14 +602,15 @@ function executeAllChecks(isPartial = false) {
             window.quickDiagnostic?.();
             
             // ✅ SUGESTÕES (sempre mostradas)
-            console.log('\n💡 DICA: Execute window.runSafeDiagnostics() para testar funções seguras');
+            console.log('\n💡 DICA: Execute window.runQuickValidation() para validar centralização e duplicatas');
+            console.log('💡 Ou window.runSafeDiagnostics() para testar funções seguras');
             console.log('💡 Ou window.listDiagnosticFunctions() para listar todas as funções');
-            console.log('💡 Ou window.DiagnosticRegistry.list({ detailed: true }) para detalhes');
         }, 500);
     }, 100);
 }
 
-// ✅ EXECUTAR AUTOMATICAMENTE EM MODO DEBUG (COM EVENTOS)
+// ========== INICIALIZAÇÃO AUTOMÁTICA ==========
+
 (function autoInitialize() {
     const isDebugMode = window.location.search.includes('debug=true') || 
                        window.location.search.includes('test=true') ||
@@ -272,7 +618,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (aguardando evento)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.0 com validações)');
         
         // Aguardar carregamento completo do DOM
         if (document.readyState === 'loading') {
@@ -283,7 +629,7 @@ function executeAllChecks(isPartial = false) {
             setTimeout(waitForRegistryAndExecute, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.0)');
     }
 })();
 
@@ -293,7 +639,13 @@ window.simpleChecker = {
     quickDiagnostic: window.quickDiagnostic,
     runSafeDiagnostics: window.runSafeDiagnostics,
     listFunctions: window.listDiagnosticFunctions,
+    // NOVAS FUNÇÕES EXPORTADAS
+    validateCentralizedFunctions: window.validateCentralizedFunctions,
+    checkDuplicateRemoval: window.checkDuplicateRemoval,
+    validateMediaSystem: window.validateMediaSystem,
+    validateFilterManager: window.validateFilterManager,
+    runQuickValidation: window.runQuickValidation,
     waitForRegistry: waitForRegistryAndExecute
 };
 
-console.log('✅ simple-checker.js ATUALIZADO - Versão Final com Eventos e Timeout Global');
+console.log('✅ simple-checker.js ATUALIZADO v2.0 - Versão com Funções de Centralização e Validação');
