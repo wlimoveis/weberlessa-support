@@ -1,13 +1,13 @@
-// debug/diagnostics/diagnostics64.js - v6.5.4
+// debug/diagnostics/diagnostics64.js - v6.5.5
 // ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros, Tipos, Comerciais)
 // ===================================================================
 // FINALIDADE: Diagnóstico e validação de dados dos imóveis cadastrados
 // Inclui: Análise de categorias vs badges, extração de bairros,
-//         distribuição de badges, validação de tipos, mapeamento completo
-//         e verificação específica de imóveis comerciais
+//         distribuição de badges, validação de tipos, mapeamento completo,
+//         verificação específica de imóveis comerciais e diagnóstico de bairros
 // ===================================================================
 
-console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
+console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
 
 (function() {
     'use strict';
@@ -17,7 +17,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     // ==========================================================
     const CONFIG = {
         debugEnabled: true,
-        version: '6.5.4',
+        version: '6.5.5',
         categories: {
             'Rural': { badges: ['Fazenda', 'Chácara', 'Sítio'], tipos: ['rural'] },
             'Residencial': { badges: ['Novo', 'Destaque', 'Luxo', 'Diamante'], tipos: ['residencial'] },
@@ -246,7 +246,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 4: Verificação de Imóveis Comerciais (NOVA)
+    // FUNÇÃO 4: Verificação de Imóveis Comerciais
     // ==========================================================
     window.checkComercialProperties = function() {
         console.group('🏢 VERIFICANDO IMÓVEIS COMERCIAIS');
@@ -260,7 +260,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
         
         const properties = window.properties;
         
-        // Buscar imóveis comerciais por type ou badge
         const comerciais = properties.filter(p => 
             p.type === 'comercial' || 
             (p.badge && (p.badge === 'Comercial' || p.badge === 'Empresarial'))
@@ -285,7 +284,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
                 console.log(`      - Preço: ${p.price || 'não definido'}`);
             });
             
-            // Resumo por badge
             const badgeCount = {};
             comerciais.forEach(p => {
                 const badge = p.badge || 'sem badge';
@@ -297,7 +295,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
                 console.log(`   - ${badge}: ${count} imóvel(is)`);
             });
             
-            // Resumo por type
             const typeCount = {};
             comerciais.forEach(p => {
                 const type = p.type || 'sem tipo';
@@ -315,7 +312,100 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 5: VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO
+    // FUNÇÃO 5: Diagnóstico de Bairros por Categoria (NOVA - Adaptada)
+    // ==========================================================
+    window.diagnoseBairrosPorCategoria = function(categoria = null) {
+        console.group('🔍 DIAGNÓSTICO DE BAIRROS POR CATEGORIA');
+        
+        if (!window.properties || !Array.isArray(window.properties)) {
+            console.error('❌ window.properties não encontrado!');
+            console.groupEnd();
+            return [];
+        }
+        
+        // Se nenhuma categoria foi especificada, mostrar todas
+        if (!categoria) {
+            console.log('📋 Analisando todas as categorias...\n');
+            const allResults = {};
+            
+            for (const [catName, catConfig] of Object.entries(CONFIG.categories)) {
+                allResults[catName] = window.diagnoseBairrosPorCategoria(catName);
+            }
+            
+            console.groupEnd();
+            return allResults;
+        }
+        
+        // Buscar configuração da categoria
+        const config = CONFIG.categories[categoria];
+        if (!config) {
+            console.error(`❌ Categoria "${categoria}" não encontrada!`);
+            console.log(`📋 Categorias disponíveis: ${Object.keys(CONFIG.categories).join(', ')}`);
+            console.groupEnd();
+            return [];
+        }
+        
+        console.log(`📊 Categoria selecionada: ${categoria}`);
+        console.log(`   Badges esperados: ${config.badges.join(', ')}`);
+        console.log(`   Tipos esperados: ${config.tipos.join(', ')}`);
+        
+        // Filtrar imóveis pela categoria
+        const filteredProperties = window.properties.filter(p => {
+            const hasCorrectBadge = p.badge && config.badges.includes(p.badge);
+            const hasCorrectType = p.type && config.tipos.includes(p.type);
+            
+            // Para categoria Comercial, considerar também type 'comercial'
+            if (categoria === 'Comercial') {
+                return hasCorrectBadge || hasCorrectType;
+            }
+            
+            return hasCorrectBadge && hasCorrectType;
+        });
+        
+        console.log(`📊 Total de imóveis na categoria: ${filteredProperties.length}`);
+        
+        if (filteredProperties.length === 0) {
+            console.warn(`⚠️ NENHUM imóvel encontrado para a categoria "${categoria}"!`);
+            console.warn(`💡 Para testar, cadastre um imóvel com:`);
+            console.warn(`   - Destaque: ${config.badges.join(' ou ')}`);
+            console.warn(`   - Tipo: ${config.tipos.join(' ou ')}`);
+            console.groupEnd();
+            return [];
+        }
+        
+        // Mapa de bairros com contagem
+        const bairrosMap = new Map();
+        
+        filteredProperties.forEach(property => {
+            if (property.location) {
+                const bairro = extractBairroFromLocation(property.location);
+                if (bairro && bairro !== '❓ NÃO IDENTIFICADO') {
+                    bairrosMap.set(bairro, (bairrosMap.get(bairro) || 0) + 1);
+                }
+            }
+        });
+        
+        console.log(`\n📌 BAIRROS QUE APARECERÃO NO DROPDOWN (${categoria}):`);
+        const sortedBairros = Array.from(bairrosMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        
+        if (sortedBairros.length === 0) {
+            console.warn('   ⚠️ Nenhum bairro encontrado! Verifique se os imóveis têm localização preenchida.');
+        } else {
+            sortedBairros.forEach(([nome, count]) => {
+                console.log(`   ✅ ${nome}: ${count} imóvel(is)`);
+            });
+        }
+        
+        console.log('\n📊 RESUMO:');
+        console.log(`   Total de bairros distintos: ${sortedBairros.length}`);
+        console.log(`   Total de imóveis analisados: ${filteredProperties.length}`);
+        
+        console.groupEnd();
+        return sortedBairros;
+    };
+    
+    // ==========================================================
+    // FUNÇÃO 6: VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO
     // ==========================================================
     window.validateCategoryBadgeTypeMapping = function() {
         console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO');
@@ -339,7 +429,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
             console.log(`   Badges esperados: ${config.badges.join(', ')}`);
             console.log(`   Tipos esperados: ${config.tipos.join(', ')}`);
             
-            // Imóveis corretos (badge E tipo corretos)
             const correctProperties = properties.filter(p => 
                 p.badge && config.badges.includes(p.badge) &&
                 p.type && config.tipos.includes(p.type)
@@ -347,7 +436,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
             
             console.log(`   ✅ IMÓVEIS CORRETOS: ${correctProperties.length}`);
             
-            // Imóveis com badge correto mas tipo incorreto
             const wrongTypeProperties = properties.filter(p => 
                 p.badge && config.badges.includes(p.badge) &&
                 (!p.type || !config.tipos.includes(p.type))
@@ -387,7 +475,6 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
             };
         }
         
-        // Resumo final
         console.log('\n📊 RESUMO DA VALIDAÇÃO:');
         if (results.issues.length === 0) {
             console.log('✅ TODOS OS IMÓVEIS ESTÃO CORRETOS!');
@@ -404,7 +491,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 6: Diagnóstico Completo (Todas as Análises)
+    // FUNÇÃO 7: Diagnóstico Completo (Todas as Análises)
     // ==========================================================
     window.runPropertyDataDiagnostic = function() {
         console.log('🏠 Iniciando diagnóstico completo de dados de propriedades...\n');
@@ -421,16 +508,15 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
             return results;
         }
         
-        // Executar todos os diagnósticos
         console.log('📋 Executando diagnósticos...\n');
         
         results.categoryBairros = window.diagnoseCategoryBairros();
         results.missingBairros = window.diagnoseMissingBairros();
         results.badgeDistribution = window.diagnoseBadgeDistribution();
         results.comercialProperties = window.checkComercialProperties();
+        results.bairrosPorCategoria = window.diagnoseBairrosPorCategoria();
         results.categoryBadgeTypeMapping = window.validateCategoryBadgeTypeMapping();
         
-        // Resumo final
         console.group('\n🎯 RESUMO FINAL DO DIAGNÓSTICO');
         console.log(`📊 Total de imóveis analisados: ${results.totalProperties}`);
         console.log(`🏷️ Categorias configuradas: ${Object.keys(CONFIG.categories).length}`);
@@ -469,7 +555,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 7: Validação Legado (Apenas Badges)
+    // FUNÇÃO 8: Validação Legado (Apenas Badges)
     // ==========================================================
     window.validateCategoryBadgeMapping = function() {
         console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA vs BADGE (Legado)');
@@ -513,7 +599,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 8: Exportar Relatório de Dados
+    // FUNÇÃO 9: Exportar Relatório de Dados
     // ==========================================================
     window.exportPropertyDataReport = function() {
         console.log('📊 Exportando relatório de dados de propriedades...');
@@ -528,6 +614,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
                 missingBairros: window.diagnoseMissingBairros(),
                 badgeDistribution: window.diagnoseBadgeDistribution(),
                 comercialProperties: window.checkComercialProperties(),
+                bairrosPorCategoria: window.diagnoseBairrosPorCategoria(),
                 categoryBadgeTypeMapping: window.validateCategoryBadgeTypeMapping(),
                 categoryBadgeMapping: window.validateCategoryBadgeMapping()
             }
@@ -681,7 +768,12 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
         
         window.DiagnosticRegistry.register('checkComercialProperties', window.checkComercialProperties, 'data', {
             isSafe: true,
-            description: 'Verifica imóveis comerciais cadastrados (NOVO)'
+            description: 'Verifica imóveis comerciais cadastrados'
+        });
+        
+        window.DiagnosticRegistry.register('diagnoseBairrosPorCategoria', window.diagnoseBairrosPorCategoria, 'data', {
+            isSafe: true,
+            description: 'Diagnostica bairros que aparecerão no dropdown por categoria (NOVO)'
         });
         
         window.DiagnosticRegistry.register('validateCategoryBadgeTypeMapping', window.validateCategoryBadgeTypeMapping, 'data', {
@@ -720,7 +812,7 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
                 if (buttonContainer && !document.getElementById('property-data-diagnostic-btn-panel')) {
                     const dataBtn = document.createElement('button');
                     dataBtn.id = 'property-data-diagnostic-btn-panel';
-                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.4';
+                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.5';
                     dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, tipos, bairros, comerciais)';
                     dataBtn.style.cssText = `
                         background: linear-gradient(45deg, #27ae60, #2ecc71);
@@ -779,26 +871,27 @@ console.log('🏠 diagnostics64.js v6.5.4 - Análise de Dados de Propriedades');
     // ==========================================================
     // LOG FINAL
     // ==========================================================
-    console.log('%c✅ diagnostics64.js v6.5.4 carregado - Análise de Dados de Propriedades', 
+    console.log('%c✅ diagnostics64.js v6.5.5 carregado - Análise de Dados de Propriedades', 
                 'color: #27ae60; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px;');
     
     console.log('📋 COMANDOS DISPONÍVEIS:');
-    console.log('   - window.diagnoseCategoryBairros()          → Diagnóstico de bairros por categoria');
-    console.log('   - window.diagnoseMissingBairros()           → Identifica imóveis sem bairro');
-    console.log('   - window.diagnoseBadgeDistribution()        → Distribuição de badges');
-    console.log('   - window.checkComercialProperties()         → Verifica imóveis COMERCIAIS (NOVO)');
-    console.log('   - window.validateCategoryBadgeTypeMapping() → Valida CATEGORIA → BADGE + TIPO');
-    console.log('   - window.runPropertyDataDiagnostic()        → Diagnóstico COMPLETO');
-    console.log('   - window.validateCategoryBadgeMapping()     → Valida mapeamento (legado)');
-    console.log('   - window.exportPropertyDataReport()         → Exporta relatório JSON');
+    console.log('   - window.diagnoseCategoryBairros()           → Diagnóstico de bairros por categoria');
+    console.log('   - window.diagnoseMissingBairros()            → Identifica imóveis sem bairro');
+    console.log('   - window.diagnoseBadgeDistribution()         → Distribuição de badges');
+    console.log('   - window.checkComercialProperties()          → Verifica imóveis COMERCIAIS');
+    console.log('   - window.diagnoseBairrosPorCategoria()       → Diagnostica bairros do dropdown (NOVO)');
+    console.log('   - window.validateCategoryBadgeTypeMapping()  → Valida CATEGORIA → BADGE + TIPO');
+    console.log('   - window.runPropertyDataDiagnostic()         → Diagnóstico COMPLETO');
+    console.log('   - window.validateCategoryBadgeMapping()      → Valida mapeamento (legado)');
+    console.log('   - window.exportPropertyDataReport()          → Exporta relatório JSON');
     
 })();
 
 // ===================================================================
-// FIM DO ARQUIVO diagnostics64.js v6.5.4
-// FINALIDADE: Análise de dados de propriedades (categorias, badges, bairros, tipos, comerciais)
-// NOVIDADE v6.5.4: Função checkComercialProperties (verificação de imóveis comerciais)
+// FIM DO ARQUIVO diagnostics64.js v6.5.5
+// FINALIDADE: Análise de dados de propriedades
+// NOVIDADE v6.5.5: Função diagnoseBairrosPorCategoria (bairros do dropdown)
 // AUTOR: Weber Lessa Support System
-// VERSÃO: 6.5.4
+// VERSÃO: 6.5.5
 // DATA: 28/04/2026
 // ===================================================================
