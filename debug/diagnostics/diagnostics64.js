@@ -1,4 +1,4 @@
-// debug/diagnostics/diagnostics64.js - v6.5.6
+// debug/diagnostics/diagnostics64.js - v6.5.7
 // ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros, Tipos, Comerciais, UI)
 // ===================================================================
 // FINALIDADE: Diagnóstico e validação de dados dos imóveis cadastrados
@@ -8,7 +8,7 @@
 //         e diagnóstico de botões de filtro da UI
 // ===================================================================
 
-console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e UI');
+console.log('🏠 diagnostics64.js v6.5.7 - Análise de Dados de Propriedades e UI');
 
 (function() {
     'use strict';
@@ -18,7 +18,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
     // ==========================================================
     const CONFIG = {
         debugEnabled: true,
-        version: '6.5.6',
+        version: '6.5.7',
         categories: {
             'Rural': { badges: ['Fazenda', 'Chácara', 'Sítio'], tipos: ['rural'] },
             'Residencial': { badges: ['Novo', 'Destaque', 'Luxo', 'Diamante'], tipos: ['residencial'] },
@@ -28,26 +28,50 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
     };
     
     // ==========================================================
-    // FUNÇÃO AUXILIAR: Extrair bairro da localização
+    // FUNÇÃO AUXILIAR: Extrair bairro da localização (VERSÃO CORRIGIDA)
     // ==========================================================
     function extractBairroFromLocation(location) {
-        if (!location || typeof location !== 'string') return '❓ NÃO IDENTIFICADO';
+        if (!location || typeof location !== 'string') return null;
         
         let bairro = location.trim();
         
+        // Remover sufixos como ", Maceió/AL", "- Maceió", etc.
+        // Primeiro, remover tudo após vírgula
         if (bairro.includes(',')) {
             bairro = bairro.split(',')[0];
         }
+        // Depois, remover tudo após hífen
         if (bairro.includes('-')) {
             bairro = bairro.split('-')[0];
         }
+        // Remover " - " 
         if (bairro.includes(' - ')) {
             bairro = bairro.split(' - ')[0];
+        }
+        // Remover "/AL", "/AL", etc.
+        if (bairro.includes('/')) {
+            bairro = bairro.split('/')[0];
         }
         
         bairro = bairro.trim();
         
-        return bairro || '❓ NÃO IDENTIFICADO';
+        // Verificar se o resultado é válido (não vazio e não tem apenas números)
+        if (!bairro || bairro.length === 0) return null;
+        if (/^\d+$/.test(bairro)) return null;
+        
+        return bairro;
+    }
+    
+    // ==========================================================
+    // FUNÇÃO AUXILIAR: Extrair bairro com log de debug
+    // ==========================================================
+    function extractBairroWithDebug(location) {
+        const original = location;
+        const clean = extractBairroFromLocation(location);
+        if (clean && clean !== original) {
+            console.log(`   🔄 Limpeza: "${original}" → "${clean}"`);
+        }
+        return clean;
     }
     
     // ==========================================================
@@ -91,15 +115,18 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             } else {
                 matchingProperties.forEach(p => {
                     const bairro = extractBairroFromLocation(p.location);
-                    bairrosCount[bairro] = (bairrosCount[bairro] || 0) + 1;
+                    if (bairro) {
+                        bairrosCount[bairro] = (bairrosCount[bairro] || 0) + 1;
+                    }
                     propertiesList.push({
                         id: p.id,
                         title: p.title,
                         badge: p.badge,
                         location: p.location,
-                        bairro: bairro
+                        bairro: bairro || '❓ NÃO IDENTIFICADO'
                     });
-                    console.log(`   ✓ "${p.title}" - Badge: ${p.badge} - Local: ${p.location} → Bairro: ${bairro}`);
+                    const bairroDisplay = bairro || '❓ NÃO IDENTIFICADO';
+                    console.log(`   ✓ "${p.title}" - Badge: ${p.badge} - Local: ${p.location} → Bairro: ${bairroDisplay}`);
                 });
             }
             
@@ -141,7 +168,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
         
         properties.forEach(property => {
             const bairro = extractBairroFromLocation(property.location);
-            if (bairro === '❓ NÃO IDENTIFICADO' || !property.location || property.location.trim() === '') {
+            if (!bairro || !property.location || property.location.trim() === '') {
                 missingBairros.push({
                     id: property.id,
                     title: property.title,
@@ -171,7 +198,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
         }
         
         const uniqueBairros = [...new Set(validBairros.map(v => v.bairro))].sort();
-        console.log('\n📌 BAIRROS IDENTIFICADOS:');
+        console.log('\n📌 BAIRROS IDENTIFICADOS (VERSÃO LIMPA):');
         uniqueBairros.forEach(bairro => {
             const count = validBairros.filter(v => v.bairro === bairro).length;
             console.log(`   - ${bairro}: ${count} imóvel(is)`);
@@ -186,6 +213,32 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             missingList: missingBairros,
             uniqueBairros: uniqueBairros
         };
+    };
+    
+    // ==========================================================
+    // FUNÇÃO 2.1: Diagnóstico de Localizações (NOVA - Para debug de extração)
+    // ==========================================================
+    window.diagnoseLocations = function() {
+        console.group('🔍 DIAGNÓSTICO DE LOCALIZAÇÕES (EXTRAÇÃO DE BAIRROS)');
+        
+        if (!window.properties || !Array.isArray(window.properties)) {
+            console.error('❌ window.properties não encontrado!');
+            console.groupEnd();
+            return;
+        }
+        
+        const properties = window.properties;
+        console.log(`📊 Total de imóveis: ${properties.length}\n`);
+        
+        console.log('📋 LOCALIZAÇÕES ORIGINAIS → BAIRROS EXTRAÍDOS:');
+        properties.forEach((p, index) => {
+            const original = p.location;
+            const extracted = extractBairroFromLocation(original);
+            const status = extracted ? '✅' : '⚠️';
+            console.log(`${status} ${index + 1}. "${original}" → "${extracted || 'NÃO IDENTIFICADO'}"`);
+        });
+        
+        console.groupEnd();
     };
     
     // ==========================================================
@@ -313,10 +366,10 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
     };
     
     // ==========================================================
-    // FUNÇÃO 5: Diagnóstico de Bairros por Categoria
+    // FUNÇÃO 5: Diagnóstico de Bairros por Categoria (Para dropdown)
     // ==========================================================
     window.diagnoseBairrosPorCategoria = function(categoria = null) {
-        console.group('🔍 DIAGNÓSTICO DE BAIRROS POR CATEGORIA');
+        console.group('🔍 DIAGNÓSTICO DE BAIRROS NO DROPDOWN');
         
         if (!window.properties || !Array.isArray(window.properties)) {
             console.error('❌ window.properties não encontrado!');
@@ -324,6 +377,10 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             return [];
         }
         
+        const properties = window.properties;
+        console.log(`📊 Total de imóveis na base: ${properties.length}`);
+        
+        // Se nenhuma categoria foi especificada, mostrar todas
         if (!categoria) {
             console.log('📋 Analisando todas as categorias...\n');
             const allResults = {};
@@ -336,6 +393,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             return allResults;
         }
         
+        // Buscar configuração da categoria
         const config = CONFIG.categories[categoria];
         if (!config) {
             console.error(`❌ Categoria "${categoria}" não encontrada!`);
@@ -344,14 +402,16 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             return [];
         }
         
-        console.log(`📊 Categoria selecionada: ${categoria}`);
+        console.log(`\n📌 Categoria: ${categoria}`);
         console.log(`   Badges esperados: ${config.badges.join(', ')}`);
         console.log(`   Tipos esperados: ${config.tipos.join(', ')}`);
         
-        const filteredProperties = window.properties.filter(p => {
+        // Filtrar imóveis pela categoria
+        const filteredProperties = properties.filter(p => {
             const hasCorrectBadge = p.badge && config.badges.includes(p.badge);
             const hasCorrectType = p.type && config.tipos.includes(p.type);
             
+            // Para categoria Comercial, considerar também type 'comercial'
             if (categoria === 'Comercial') {
                 return hasCorrectBadge || hasCorrectType;
             }
@@ -359,49 +419,45 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             return hasCorrectBadge && hasCorrectType;
         });
         
-        console.log(`📊 Total de imóveis na categoria: ${filteredProperties.length}`);
+        console.log(`   Imóveis na categoria: ${filteredProperties.length}`);
         
         if (filteredProperties.length === 0) {
-            console.warn(`⚠️ NENHUM imóvel encontrado para a categoria "${categoria}"!`);
-            console.warn(`💡 Para testar, cadastre um imóvel com:`);
-            console.warn(`   - Destaque: ${config.badges.join(' ou ')}`);
-            console.warn(`   - Tipo: ${config.tipos.join(' ou ')}`);
+            console.warn(`   ⚠️ NENHUM imóvel encontrado para esta categoria!`);
             console.groupEnd();
             return [];
         }
         
+        // Mapa de bairros com contagem (VERSÃO LIMPA)
         const bairrosMap = new Map();
         
         filteredProperties.forEach(property => {
             if (property.location) {
                 const bairro = extractBairroFromLocation(property.location);
-                if (bairro && bairro !== '❓ NÃO IDENTIFICADO') {
+                if (bairro) {
                     bairrosMap.set(bairro, (bairrosMap.get(bairro) || 0) + 1);
+                } else {
+                    console.log(`   ⚠️ Location problemática: "${property.location}"`);
                 }
             }
         });
         
-        console.log(`\n📌 BAIRROS QUE APARECERÃO NO DROPDOWN (${categoria}):`);
-        const sortedBairros = Array.from(bairrosMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-        
-        if (sortedBairros.length === 0) {
-            console.warn('   ⚠️ Nenhum bairro encontrado! Verifique se os imóveis têm localização preenchida.');
+        if (bairrosMap.size > 0) {
+            console.log(`   Bairros encontrados (${bairrosMap.size}):`);
+            Array.from(bairrosMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .forEach(([nome, count]) => {
+                    console.log(`      - ${nome}: ${count} imóvel(is)`);
+                });
         } else {
-            sortedBairros.forEach(([nome, count]) => {
-                console.log(`   ✅ ${nome}: ${count} imóvel(is)`);
-            });
+            console.log(`   ⚠️ Nenhum bairro encontrado para esta categoria`);
         }
         
-        console.log('\n📊 RESUMO:');
-        console.log(`   Total de bairros distintos: ${sortedBairros.length}`);
-        console.log(`   Total de imóveis analisados: ${filteredProperties.length}`);
-        
         console.groupEnd();
-        return sortedBairros;
+        return Array.from(bairrosMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     };
     
     // ==========================================================
-    // FUNÇÃO 6: Diagnóstico de Botões de Filtro (NOVA - UI)
+    // FUNÇÃO 6: Diagnóstico de Botões de Filtro
     // ==========================================================
     window.diagnoseFilterButtons = function() {
         console.group('🔍 DIAGNÓSTICO DOS BOTÕES DE FILTRO');
@@ -462,13 +518,6 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             console.warn('   → O botão "Todos" deveria estar ativo por padrão.');
         } else {
             console.log(`\n✅ OK: Apenas 1 botão ativo ("${results.activeButton}")`);
-        }
-        
-        // Verificar estilos inline vs CSS
-        const hasInlineStyles = results.buttons.some(b => b.inlineBgColor || b.inlineColor);
-        if (hasInlineStyles) {
-            console.log(`\n📝 Observação: Botões com estilos inline detectados.`);
-            console.log('   → Estilos inline podem estar vindo de JavaScript.');
         }
         
         console.groupEnd();
@@ -583,6 +632,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
         
         results.categoryBairros = window.diagnoseCategoryBairros();
         results.missingBairros = window.diagnoseMissingBairros();
+        results.locations = window.diagnoseLocations();
         results.badgeDistribution = window.diagnoseBadgeDistribution();
         results.comercialProperties = window.checkComercialProperties();
         results.bairrosPorCategoria = window.diagnoseBairrosPorCategoria();
@@ -691,6 +741,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             diagnostics: {
                 categoryBairros: window.diagnoseCategoryBairros(),
                 missingBairros: window.diagnoseMissingBairros(),
+                locations: window.diagnoseLocations(),
                 badgeDistribution: window.diagnoseBadgeDistribution(),
                 comercialProperties: window.checkComercialProperties(),
                 bairrosPorCategoria: window.diagnoseBairrosPorCategoria(),
@@ -843,6 +894,11 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
             description: 'Identifica imóveis sem bairro identificado'
         });
         
+        window.DiagnosticRegistry.register('diagnoseLocations', window.diagnoseLocations, 'data', {
+            isSafe: true,
+            description: 'Mostra localizações originais e bairros extraídos'
+        });
+        
         window.DiagnosticRegistry.register('diagnoseBadgeDistribution', window.diagnoseBadgeDistribution, 'data', {
             isSafe: true,
             description: 'Analisa distribuição de badges por categoria'
@@ -860,7 +916,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
         
         window.DiagnosticRegistry.register('diagnoseFilterButtons', window.diagnoseFilterButtons, 'ui', {
             isSafe: true,
-            description: 'Diagnostica o estado dos botões de filtro (classe active, cores)'
+            description: 'Diagnostica o estado dos botões de filtro'
         });
         
         window.DiagnosticRegistry.register('validateCategoryBadgeTypeMapping', window.validateCategoryBadgeTypeMapping, 'data', {
@@ -899,7 +955,7 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
                 if (buttonContainer && !document.getElementById('property-data-diagnostic-btn-panel')) {
                     const dataBtn = document.createElement('button');
                     dataBtn.id = 'property-data-diagnostic-btn-panel';
-                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.6';
+                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.7';
                     dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, tipos, bairros, comerciais, UI)';
                     dataBtn.style.cssText = `
                         background: linear-gradient(45deg, #27ae60, #2ecc71);
@@ -958,16 +1014,17 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
     // ==========================================================
     // LOG FINAL
     // ==========================================================
-    console.log('%c✅ diagnostics64.js v6.5.6 carregado - Análise de Dados de Propriedades e UI', 
+    console.log('%c✅ diagnostics64.js v6.5.7 carregado - Análise de Dados de Propriedades e UI', 
                 'color: #27ae60; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px;');
     
     console.log('📋 COMANDOS DISPONÍVEIS:');
     console.log('   - window.diagnoseCategoryBairros()           → Diagnóstico de bairros por categoria');
     console.log('   - window.diagnoseMissingBairros()            → Identifica imóveis sem bairro');
+    console.log('   - window.diagnoseLocations()                 → Mostra limpeza de localizações (NOVO)');
     console.log('   - window.diagnoseBadgeDistribution()         → Distribuição de badges');
     console.log('   - window.checkComercialProperties()          → Verifica imóveis COMERCIAIS');
     console.log('   - window.diagnoseBairrosPorCategoria()       → Diagnostica bairros do dropdown');
-    console.log('   - window.diagnoseFilterButtons()             → Diagnostica botões de filtro (NOVO)');
+    console.log('   - window.diagnoseFilterButtons()             → Diagnostica botões de filtro');
     console.log('   - window.validateCategoryBadgeTypeMapping()  → Valida CATEGORIA → BADGE + TIPO');
     console.log('   - window.runPropertyDataDiagnostic()         → Diagnóstico COMPLETO');
     console.log('   - window.validateCategoryBadgeMapping()      → Valida mapeamento (legado)');
@@ -976,10 +1033,10 @@ console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e 
 })();
 
 // ===================================================================
-// FIM DO ARQUIVO diagnostics64.js v6.5.6
+// FIM DO ARQUIVO diagnostics64.js v6.5.7
 // FINALIDADE: Análise de dados de propriedades e diagnóstico de UI
-// NOVIDADE v6.5.6: Função diagnoseFilterButtons (diagnóstico de botões de filtro)
+// NOVIDADE v6.5.7: Função diagnoseLocations (debug de extração de bairros)
 // AUTOR: Weber Lessa Support System
-// VERSÃO: 6.5.6
+// VERSÃO: 6.5.7
 // DATA: 28/04/2026
 // ===================================================================
