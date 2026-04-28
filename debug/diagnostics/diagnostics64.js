@@ -1,13 +1,14 @@
-// debug/diagnostics/diagnostics64.js - v6.5.5
-// ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros, Tipos, Comerciais)
+// debug/diagnostics/diagnostics64.js - v6.5.6
+// ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros, Tipos, Comerciais, UI)
 // ===================================================================
 // FINALIDADE: Diagnóstico e validação de dados dos imóveis cadastrados
 // Inclui: Análise de categorias vs badges, extração de bairros,
 //         distribuição de badges, validação de tipos, mapeamento completo,
-//         verificação específica de imóveis comerciais e diagnóstico de bairros
+//         verificação específica de imóveis comerciais, diagnóstico de bairros
+//         e diagnóstico de botões de filtro da UI
 // ===================================================================
 
-console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
+console.log('🏠 diagnostics64.js v6.5.6 - Análise de Dados de Propriedades e UI');
 
 (function() {
     'use strict';
@@ -17,7 +18,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     // ==========================================================
     const CONFIG = {
         debugEnabled: true,
-        version: '6.5.5',
+        version: '6.5.6',
         categories: {
             'Rural': { badges: ['Fazenda', 'Chácara', 'Sítio'], tipos: ['rural'] },
             'Residencial': { badges: ['Novo', 'Destaque', 'Luxo', 'Diamante'], tipos: ['residencial'] },
@@ -312,7 +313,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 5: Diagnóstico de Bairros por Categoria (NOVA - Adaptada)
+    // FUNÇÃO 5: Diagnóstico de Bairros por Categoria
     // ==========================================================
     window.diagnoseBairrosPorCategoria = function(categoria = null) {
         console.group('🔍 DIAGNÓSTICO DE BAIRROS POR CATEGORIA');
@@ -323,7 +324,6 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
             return [];
         }
         
-        // Se nenhuma categoria foi especificada, mostrar todas
         if (!categoria) {
             console.log('📋 Analisando todas as categorias...\n');
             const allResults = {};
@@ -336,7 +336,6 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
             return allResults;
         }
         
-        // Buscar configuração da categoria
         const config = CONFIG.categories[categoria];
         if (!config) {
             console.error(`❌ Categoria "${categoria}" não encontrada!`);
@@ -349,12 +348,10 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
         console.log(`   Badges esperados: ${config.badges.join(', ')}`);
         console.log(`   Tipos esperados: ${config.tipos.join(', ')}`);
         
-        // Filtrar imóveis pela categoria
         const filteredProperties = window.properties.filter(p => {
             const hasCorrectBadge = p.badge && config.badges.includes(p.badge);
             const hasCorrectType = p.type && config.tipos.includes(p.type);
             
-            // Para categoria Comercial, considerar também type 'comercial'
             if (categoria === 'Comercial') {
                 return hasCorrectBadge || hasCorrectType;
             }
@@ -373,7 +370,6 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
             return [];
         }
         
-        // Mapa de bairros com contagem
         const bairrosMap = new Map();
         
         filteredProperties.forEach(property => {
@@ -405,7 +401,82 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 6: VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO
+    // FUNÇÃO 6: Diagnóstico de Botões de Filtro (NOVA - UI)
+    // ==========================================================
+    window.diagnoseFilterButtons = function() {
+        console.group('🔍 DIAGNÓSTICO DOS BOTÕES DE FILTRO');
+        
+        const buttons = document.querySelectorAll('.filter-btn');
+        console.log(`📊 Total de botões encontrados: ${buttons.length}`);
+        
+        if (buttons.length === 0) {
+            console.warn('⚠️ Nenhum botão .filter-btn encontrado na página!');
+            console.log('💡 Verifique se os filtros foram renderizados corretamente.');
+            console.groupEnd();
+            return { error: 'Botões não encontrados' };
+        }
+        
+        const results = {
+            totalButtons: buttons.length,
+            activeButton: null,
+            buttons: []
+        };
+        
+        buttons.forEach(btn => {
+            const text = btn.textContent.trim();
+            const hasActiveClass = btn.classList.contains('active');
+            const computedStyle = window.getComputedStyle(btn);
+            const bgColor = computedStyle.backgroundColor;
+            const color = computedStyle.color;
+            
+            const buttonInfo = {
+                text: text,
+                hasActiveClass: hasActiveClass,
+                bgColor: bgColor,
+                color: color,
+                inlineBgColor: btn.style.backgroundColor,
+                inlineColor: btn.style.color
+            };
+            
+            results.buttons.push(buttonInfo);
+            
+            const statusIcon = hasActiveClass ? '✅ ATIVO' : '⚪ INATIVO';
+            console.log(`${statusIcon} - "${text}"`);
+            
+            if (hasActiveClass) {
+                results.activeButton = text;
+                console.log(`   → Classe .active aplicada`);
+                console.log(`   → Background: ${bgColor}`);
+                console.log(`   → Texto: ${color}`);
+            }
+        });
+        
+        // Verificar se há múltiplos botões ativos (problema comum)
+        const activeCount = results.buttons.filter(b => b.hasActiveClass).length;
+        if (activeCount > 1) {
+            console.warn(`\n⚠️ PROBLEMA DETECTADO: ${activeCount} botões com classe .active!`);
+            console.warn('   → Apenas UM botão deve estar ativo por vez.');
+            console.warn('   → Verifique a lógica do FilterManager.js');
+        } else if (activeCount === 0) {
+            console.warn(`\n⚠️ NENHUM botão ativo encontrado!`);
+            console.warn('   → O botão "Todos" deveria estar ativo por padrão.');
+        } else {
+            console.log(`\n✅ OK: Apenas 1 botão ativo ("${results.activeButton}")`);
+        }
+        
+        // Verificar estilos inline vs CSS
+        const hasInlineStyles = results.buttons.some(b => b.inlineBgColor || b.inlineColor);
+        if (hasInlineStyles) {
+            console.log(`\n📝 Observação: Botões com estilos inline detectados.`);
+            console.log('   → Estilos inline podem estar vindo de JavaScript.');
+        }
+        
+        console.groupEnd();
+        return results;
+    };
+    
+    // ==========================================================
+    // FUNÇÃO 7: VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO
     // ==========================================================
     window.validateCategoryBadgeTypeMapping = function() {
         console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO');
@@ -491,7 +562,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 7: Diagnóstico Completo (Todas as Análises)
+    // FUNÇÃO 8: Diagnóstico Completo (Todas as Análises)
     // ==========================================================
     window.runPropertyDataDiagnostic = function() {
         console.log('🏠 Iniciando diagnóstico completo de dados de propriedades...\n');
@@ -515,6 +586,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
         results.badgeDistribution = window.diagnoseBadgeDistribution();
         results.comercialProperties = window.checkComercialProperties();
         results.bairrosPorCategoria = window.diagnoseBairrosPorCategoria();
+        results.filterButtons = window.diagnoseFilterButtons();
         results.categoryBadgeTypeMapping = window.validateCategoryBadgeTypeMapping();
         
         console.group('\n🎯 RESUMO FINAL DO DIAGNÓSTICO');
@@ -538,6 +610,13 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
             console.warn(`⚠️ NENHUM imóvel comercial encontrado!`);
         }
         
+        const activeButtons = results.filterButtons?.buttons?.filter(b => b.hasActiveClass).length || 0;
+        if (activeButtons === 1) {
+            console.log(`🔘 Botão ativo: "${results.filterButtons?.activeButton}"`);
+        } else if (activeButtons > 1) {
+            console.warn(`⚠️ ${activeButtons} botões ativos detectados (deveria ser apenas 1)!`);
+        }
+        
         const issuesCount = results.categoryBadgeTypeMapping?.issues?.length || 0;
         if (issuesCount > 0) {
             console.warn(`⚠️ ${issuesCount} problema(s) de mapeamento categoria-badge-tipo encontrado(s)`);
@@ -555,7 +634,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 8: Validação Legado (Apenas Badges)
+    // FUNÇÃO 9: Validação Legado (Apenas Badges)
     // ==========================================================
     window.validateCategoryBadgeMapping = function() {
         console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA vs BADGE (Legado)');
@@ -599,7 +678,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 9: Exportar Relatório de Dados
+    // FUNÇÃO 10: Exportar Relatório de Dados
     // ==========================================================
     window.exportPropertyDataReport = function() {
         console.log('📊 Exportando relatório de dados de propriedades...');
@@ -615,6 +694,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
                 badgeDistribution: window.diagnoseBadgeDistribution(),
                 comercialProperties: window.checkComercialProperties(),
                 bairrosPorCategoria: window.diagnoseBairrosPorCategoria(),
+                filterButtons: window.diagnoseFilterButtons(),
                 categoryBadgeTypeMapping: window.validateCategoryBadgeTypeMapping(),
                 categoryBadgeMapping: window.validateCategoryBadgeMapping()
             }
@@ -656,6 +736,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
         const issuesCount = results.categoryBadgeTypeMapping?.issues?.length || 0;
         const missingCount = results.missingBairros?.missing || 0;
         const comerciaisCount = results.comercialProperties?.length || 0;
+        const activeButtons = results.filterButtons?.buttons?.filter(b => b.hasActiveClass).length || 0;
         
         notification.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -665,6 +746,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
                     <div style="font-size: 10px; opacity: 0.8;">
                         ${results.totalProperties} imóveis | 
                         🏢 ${comerciaisCount} comerciais |
+                        🔘 ${activeButtons} ativo(s) |
                         ${issuesCount > 0 ? `⚠️ ${issuesCount} problemas` : '✅ OK'}
                         ${missingCount > 0 ? ` | ⚠️ ${missingCount} sem bairro` : ''}
                     </div>
@@ -705,7 +787,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
         const btn = document.createElement('div');
         btn.id = 'property-data-diagnostic-btn';
         btn.innerHTML = '🏠';
-        btn.title = 'Diagnóstico de Dados de Propriedades (Categorias, Badges, Tipos, Bairros, Comerciais)';
+        btn.title = 'Diagnóstico de Dados de Propriedades (Categorias, Badges, Tipos, Bairros, Comerciais, UI)';
         btn.style.cssText = `
             position: fixed;
             bottom: 20px;
@@ -773,7 +855,12 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
         
         window.DiagnosticRegistry.register('diagnoseBairrosPorCategoria', window.diagnoseBairrosPorCategoria, 'data', {
             isSafe: true,
-            description: 'Diagnostica bairros que aparecerão no dropdown por categoria (NOVO)'
+            description: 'Diagnostica bairros que aparecerão no dropdown por categoria'
+        });
+        
+        window.DiagnosticRegistry.register('diagnoseFilterButtons', window.diagnoseFilterButtons, 'ui', {
+            isSafe: true,
+            description: 'Diagnostica o estado dos botões de filtro (classe active, cores)'
         });
         
         window.DiagnosticRegistry.register('validateCategoryBadgeTypeMapping', window.validateCategoryBadgeTypeMapping, 'data', {
@@ -812,8 +899,8 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
                 if (buttonContainer && !document.getElementById('property-data-diagnostic-btn-panel')) {
                     const dataBtn = document.createElement('button');
                     dataBtn.id = 'property-data-diagnostic-btn-panel';
-                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.5';
-                    dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, tipos, bairros, comerciais)';
+                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.6';
+                    dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, tipos, bairros, comerciais, UI)';
                     dataBtn.style.cssText = `
                         background: linear-gradient(45deg, #27ae60, #2ecc71);
                         color: white;
@@ -871,7 +958,7 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     // ==========================================================
     // LOG FINAL
     // ==========================================================
-    console.log('%c✅ diagnostics64.js v6.5.5 carregado - Análise de Dados de Propriedades', 
+    console.log('%c✅ diagnostics64.js v6.5.6 carregado - Análise de Dados de Propriedades e UI', 
                 'color: #27ae60; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px;');
     
     console.log('📋 COMANDOS DISPONÍVEIS:');
@@ -879,7 +966,8 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
     console.log('   - window.diagnoseMissingBairros()            → Identifica imóveis sem bairro');
     console.log('   - window.diagnoseBadgeDistribution()         → Distribuição de badges');
     console.log('   - window.checkComercialProperties()          → Verifica imóveis COMERCIAIS');
-    console.log('   - window.diagnoseBairrosPorCategoria()       → Diagnostica bairros do dropdown (NOVO)');
+    console.log('   - window.diagnoseBairrosPorCategoria()       → Diagnostica bairros do dropdown');
+    console.log('   - window.diagnoseFilterButtons()             → Diagnostica botões de filtro (NOVO)');
     console.log('   - window.validateCategoryBadgeTypeMapping()  → Valida CATEGORIA → BADGE + TIPO');
     console.log('   - window.runPropertyDataDiagnostic()         → Diagnóstico COMPLETO');
     console.log('   - window.validateCategoryBadgeMapping()      → Valida mapeamento (legado)');
@@ -888,10 +976,10 @@ console.log('🏠 diagnostics64.js v6.5.5 - Análise de Dados de Propriedades');
 })();
 
 // ===================================================================
-// FIM DO ARQUIVO diagnostics64.js v6.5.5
-// FINALIDADE: Análise de dados de propriedades
-// NOVIDADE v6.5.5: Função diagnoseBairrosPorCategoria (bairros do dropdown)
+// FIM DO ARQUIVO diagnostics64.js v6.5.6
+// FINALIDADE: Análise de dados de propriedades e diagnóstico de UI
+// NOVIDADE v6.5.6: Função diagnoseFilterButtons (diagnóstico de botões de filtro)
 // AUTOR: Weber Lessa Support System
-// VERSÃO: 6.5.5
+// VERSÃO: 6.5.6
 // DATA: 28/04/2026
 // ===================================================================
