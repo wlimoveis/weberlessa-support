@@ -1,26 +1,27 @@
-// debug/diagnostics/diagnostics64.js - v6.5.2
-// ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros)
+// debug/diagnostics/diagnostics64.js - v6.5.3
+// ANÁLISE DE DADOS DE PROPRIEDADES (Categorias, Badges, Bairros, Tipos)
 // ===================================================================
 // FINALIDADE: Diagnóstico e validação de dados dos imóveis cadastrados
-// Inclui: Análise de categorias vs badges, extração de bairros, 
-//         distribuição de badges e validação de dados
+// Inclui: Análise de categorias vs badges, extração de bairros,
+//         distribuição de badges, validação de tipos e mapeamento completo
 // ===================================================================
 
-console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
+console.log('🏠 diagnostics64.js v6.5.3 - Análise de Dados de Propriedades');
 
 (function() {
     'use strict';
     
     // ==========================================================
-    // CONFIGURAÇÃO
+    // CONFIGURAÇÃO ATUALIZADA COM MAPEAMENTO COMPLETO
     // ==========================================================
     const CONFIG = {
         debugEnabled: true,
+        version: '6.5.3',
         categories: {
-            'Rural': ['Fazenda', 'Chácara', 'Sítio'],
-            'Residencial': ['Novo', 'Destaque', 'Luxo', 'Diamante'],
-            'Comercial': ['Comercial', 'Empresarial'],
-            'Minha Casa Minha Vida': ['MCMV', 'MCMV - Minha Casa Minha Vida']
+            'Rural': { badges: ['Fazenda', 'Chácara', 'Sítio'], tipos: ['rural'] },
+            'Residencial': { badges: ['Novo', 'Destaque', 'Luxo', 'Diamante'], tipos: ['residencial'] },
+            'Comercial': { badges: ['Comercial', 'Empresarial'], tipos: ['comercial'] },
+            'Minha Casa Minha Vida': { badges: ['MCMV', 'MCMV - Minha Casa Minha Vida'], tipos: ['residencial'] }
         }
     };
     
@@ -30,18 +31,14 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     function extractBairroFromLocation(location) {
         if (!location || typeof location !== 'string') return '❓ NÃO IDENTIFICADO';
         
-        // Padrão: "Bairro, Cidade-UF" ou "Bairro - Cidade"
         let bairro = location.trim();
         
-        // Remover texto após vírgula (cidade/UF)
         if (bairro.includes(',')) {
             bairro = bairro.split(',')[0];
         }
-        // Remover texto após hífen
         if (bairro.includes('-')) {
             bairro = bairro.split('-')[0];
         }
-        // Remover texto após " - "
         if (bairro.includes(' - ')) {
             bairro = bairro.split(' - ')[0];
         }
@@ -57,7 +54,6 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     window.diagnoseCategoryBairros = function() {
         console.group('🔍 DIAGNÓSTICO DE BAIRROS POR CATEGORIA');
         
-        // Verificar se window.properties existe
         if (!window.properties || !Array.isArray(window.properties)) {
             console.error('❌ window.properties não encontrado ou não é um array!');
             console.log('💡 Certifique-se de que os imóveis já foram carregados.');
@@ -74,7 +70,8 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             categories: {}
         };
         
-        for (const [category, badges] of Object.entries(CONFIG.categories)) {
+        for (const [category, config] of Object.entries(CONFIG.categories)) {
+            const badges = config.badges;
             console.log(`\n📌 Categoria: ${category}`);
             console.log(`   Badges esperados: ${badges.join(', ')}`);
             
@@ -114,7 +111,6 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         
         console.groupEnd();
         
-        // Exibir resumo
         console.group('📊 RESUMO DO DIAGNÓSTICO');
         for (const [category, data] of Object.entries(results.categories)) {
             const status = data.foundProperties > 0 ? '✅' : '⚠️';
@@ -172,7 +168,6 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             console.log('✅ Todos os imóveis têm localização válida!');
         }
         
-        // Listar bairros encontrados
         const uniqueBairros = [...new Set(validBairros.map(v => v.bairro))].sort();
         console.log('\n📌 BAIRROS IDENTIFICADOS:');
         uniqueBairros.forEach(bairro => {
@@ -206,24 +201,22 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         const properties = window.properties;
         const distribution = {};
         
-        // Inicializar contadores
-        for (const [category, badges] of Object.entries(CONFIG.categories)) {
+        for (const [category, config] of Object.entries(CONFIG.categories)) {
             distribution[category] = {
-                expectedBadges: badges,
+                expectedBadges: config.badges,
                 found: {},
                 total: 0
             };
-            badges.forEach(badge => {
+            config.badges.forEach(badge => {
                 distribution[category].found[badge] = 0;
             });
         }
         
-        // Contar badges
         properties.forEach(property => {
             if (!property.badge) return;
             
-            for (const [category, badges] of Object.entries(CONFIG.categories)) {
-                if (badges.includes(property.badge)) {
+            for (const [category, config] of Object.entries(CONFIG.categories)) {
+                if (config.badges.includes(property.badge)) {
                     distribution[category].found[property.badge]++;
                     distribution[category].total++;
                     break;
@@ -231,22 +224,15 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             }
         });
         
-        // Exibir resultados
         let hasIssues = false;
         for (const [category, data] of Object.entries(distribution)) {
             console.log(`\n📌 ${category}:`);
             console.log(`   Total: ${data.total} imóvel(is)`);
             
-            let categoryHasIssues = false;
             for (const [badge, count] of Object.entries(data.found)) {
                 const status = count > 0 ? '✅' : '⚠️';
                 console.log(`   ${status} ${badge}: ${count} imóvel(is)`);
-                if (count === 0) categoryHasIssues = true;
-            }
-            
-            if (categoryHasIssues && data.total === 0) {
-                console.warn(`   ⚠️ NENHUM imóvel encontrado para esta categoria!`);
-                hasIssues = true;
+                if (count === 0) hasIssues = true;
             }
         }
         
@@ -259,14 +245,109 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 4: Diagnóstico Completo (Todas as Análises)
+    // FUNÇÃO 4: VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO (NOVA)
+    // ==========================================================
+    window.validateCategoryBadgeTypeMapping = function() {
+        console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA → BADGE + TIPO');
+        
+        if (!window.properties || !Array.isArray(window.properties)) {
+            console.error('❌ window.properties não encontrado!');
+            console.groupEnd();
+            return { error: 'Propriedades não carregadas' };
+        }
+        
+        const properties = window.properties;
+        const results = {
+            timestamp: new Date().toISOString(),
+            totalProperties: properties.length,
+            categories: {},
+            issues: []
+        };
+        
+        for (const [category, config] of Object.entries(CONFIG.categories)) {
+            console.log(`\n📌 Categoria: ${category}`);
+            console.log(`   Badges esperados: ${config.badges.join(', ')}`);
+            console.log(`   Tipos esperados: ${config.tipos.join(', ')}`);
+            
+            // Imóveis corretos (badge E tipo corretos)
+            const correctProperties = properties.filter(p => 
+                p.badge && config.badges.includes(p.badge) &&
+                p.type && config.tipos.includes(p.type)
+            );
+            
+            console.log(`   ✅ IMÓVEIS CORRETOS: ${correctProperties.length}`);
+            
+            // Imóveis com badge correto mas tipo incorreto
+            const wrongTypeProperties = properties.filter(p => 
+                p.badge && config.badges.includes(p.badge) &&
+                (!p.type || !config.tipos.includes(p.type))
+            );
+            
+            if (wrongTypeProperties.length > 0) {
+                console.warn(`   ⚠️ IMÓVEIS COM BADGE MAS TIPO INCORRETO: ${wrongTypeProperties.length}`);
+                wrongTypeProperties.forEach(p => {
+                    console.warn(`      - "${p.title}" (badge: ${p.badge}, type: ${p.type || 'não definido'})`);
+                    results.issues.push({
+                        category,
+                        title: p.title,
+                        badge: p.badge,
+                        type: p.type || 'não definido',
+                        issue: 'Badge correto mas tipo incorreto ou não definido'
+                    });
+                });
+            }
+            
+            // Imóveis com badge que não pertence a esta categoria (mas podem estar em outra)
+            const unrelatedProperties = properties.filter(p => 
+                p.badge && config.badges.includes(p.badge) &&
+                p.type && !config.tipos.includes(p.type)
+            );
+            
+            results.categories[category] = {
+                expectedBadges: config.badges,
+                expectedTypes: config.tipos,
+                correctCount: correctProperties.length,
+                wrongTypeCount: wrongTypeProperties.length,
+                correctProperties: correctProperties.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    badge: p.badge,
+                    type: p.type
+                })),
+                wrongTypeProperties: wrongTypeProperties.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    badge: p.badge,
+                    type: p.type || 'não definido'
+                }))
+            };
+        }
+        
+        // Resumo final
+        console.log('\n📊 RESUMO DA VALIDAÇÃO:');
+        if (results.issues.length === 0) {
+            console.log('✅ TODOS OS IMÓVEIS ESTÃO CORRETOS!');
+            console.log('   (Badges e tipos consistentes com as categorias)');
+        } else {
+            console.warn(`⚠️ ${results.issues.length} PROBLEMA(S) ENCONTRADO(S):`);
+            results.issues.forEach(issue => {
+                console.warn(`   - ${issue.category}: "${issue.title}" - Badge: ${issue.badge}, Tipo: ${issue.type}`);
+            });
+        }
+        
+        console.groupEnd();
+        return results;
+    };
+    
+    // ==========================================================
+    // FUNÇÃO 5: Diagnóstico Completo (Todas as Análises)
     // ==========================================================
     window.runPropertyDataDiagnostic = function() {
         console.log('🏠 Iniciando diagnóstico completo de dados de propriedades...\n');
         
         const results = {
             timestamp: new Date().toISOString(),
-            version: '6.5.2',
+            version: CONFIG.version,
             propertiesLoaded: !!(window.properties && Array.isArray(window.properties)),
             totalProperties: window.properties?.length || 0
         };
@@ -277,16 +358,19 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         }
         
         // Executar todos os diagnósticos
+        console.log('📋 Executando diagnósticos...\n');
+        
         results.categoryBairros = window.diagnoseCategoryBairros();
         results.missingBairros = window.diagnoseMissingBairros();
         results.badgeDistribution = window.diagnoseBadgeDistribution();
+        results.categoryBadgeTypeMapping = window.validateCategoryBadgeTypeMapping();
         
         // Resumo final
         console.group('\n🎯 RESUMO FINAL DO DIAGNÓSTICO');
         console.log(`📊 Total de imóveis analisados: ${results.totalProperties}`);
         console.log(`🏷️ Categorias configuradas: ${Object.keys(CONFIG.categories).length}`);
         
-        const totalBadges = Object.values(CONFIG.categories).flat().length;
+        const totalBadges = Object.values(CONFIG.categories).flatMap(c => c.badges).length;
         console.log(`🎖️ Total de badges mapeados: ${totalBadges}`);
         
         const missingCount = results.missingBairros?.missing || 0;
@@ -296,9 +380,15 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             console.log('✅ Todos os imóveis têm localização válida!');
         }
         
+        const issuesCount = results.categoryBadgeTypeMapping?.issues?.length || 0;
+        if (issuesCount > 0) {
+            console.warn(`⚠️ ${issuesCount} problema(s) de mapeamento categoria-badge-tipo encontrado(s)`);
+        } else {
+            console.log('✅ Mapeamento categoria-badge-tipo está consistente!');
+        }
+        
         console.groupEnd();
         
-        // Exibir notificação visual se estiver em modo debug
         if (window.location.search.includes('debug=true')) {
             showDiagnosticNotification(results);
         }
@@ -307,19 +397,19 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 5: Validação de Categorias vs Badges
+    // FUNÇÃO 6: Validação Legado (Apenas Badges)
     // ==========================================================
     window.validateCategoryBadgeMapping = function() {
-        console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA vs BADGE');
+        console.group('🔍 VALIDAÇÃO DE MAPEAMENTO CATEGORIA vs BADGE (Legado)');
         
         const issues = [];
         const validMappings = [];
         
-        for (const [category, badges] of Object.entries(CONFIG.categories)) {
+        for (const [category, config] of Object.entries(CONFIG.categories)) {
+            const badges = config.badges;
             console.log(`\n📌 Validando ${category}:`);
             
             badges.forEach(badge => {
-                // Verificar se o badge é usado em algum imóvel
                 const usedInProperties = window.properties?.filter(p => p.badge === badge).length || 0;
                 const status = usedInProperties > 0 ? '✅' : '⚠️';
                 console.log(`   ${status} Badge "${badge}" usado em ${usedInProperties} imóvel(is)`);
@@ -351,20 +441,21 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     };
     
     // ==========================================================
-    // FUNÇÃO 6: Exportar Relatório de Dados
+    // FUNÇÃO 7: Exportar Relatório de Dados
     // ==========================================================
     window.exportPropertyDataReport = function() {
         console.log('📊 Exportando relatório de dados de propriedades...');
         
         const report = {
             exportDate: new Date().toISOString(),
-            version: '6.5.2',
+            version: CONFIG.version,
             totalProperties: window.properties?.length || 0,
             categories: CONFIG.categories,
             diagnostics: {
                 categoryBairros: window.diagnoseCategoryBairros(),
                 missingBairros: window.diagnoseMissingBairros(),
                 badgeDistribution: window.diagnoseBadgeDistribution(),
+                categoryBadgeTypeMapping: window.validateCategoryBadgeTypeMapping(),
                 categoryBadgeMapping: window.validateCategoryBadgeMapping()
             }
         };
@@ -402,12 +493,19 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             cursor: pointer;
         `;
         
+        const issuesCount = results.categoryBadgeTypeMapping?.issues?.length || 0;
+        const missingCount = results.missingBairros?.missing || 0;
+        
         notification.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span>🏠</span>
                 <div>
                     <div style="font-weight: bold;">Diagnóstico de Dados Concluído</div>
-                    <div style="font-size: 10px; opacity: 0.8;">${results.totalProperties} imóveis analisados</div>
+                    <div style="font-size: 10px; opacity: 0.8;">
+                        ${results.totalProperties} imóveis | 
+                        ${issuesCount > 0 ? `⚠️ ${issuesCount} problemas` : '✅ OK'}
+                        ${missingCount > 0 ? ` | ⚠️ ${missingCount} sem bairro` : ''}
+                    </div>
                 </div>
                 <button style="background: none; border: none; color: white; cursor: pointer; margin-left: 10px;">✕</button>
             </div>
@@ -437,7 +535,7 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     }
     
     // ==========================================================
-    // BOTÃO FLUTUANTE DE DIAGNÓSTICO (MODO DEBUG)
+    // BOTÃO FLUTUANTE DE DIAGNÓSTICO
     // ==========================================================
     function createDiagnosticButton() {
         if (document.getElementById('property-data-diagnostic-btn')) return;
@@ -445,7 +543,7 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         const btn = document.createElement('div');
         btn.id = 'property-data-diagnostic-btn';
         btn.innerHTML = '🏠';
-        btn.title = 'Diagnóstico de Dados de Propriedades';
+        btn.title = 'Diagnóstico de Dados de Propriedades (Categorias, Badges, Tipos, Bairros)';
         btn.style.cssText = `
             position: fixed;
             bottom: 20px;
@@ -506,6 +604,11 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             description: 'Analisa distribuição de badges por categoria'
         });
         
+        window.DiagnosticRegistry.register('validateCategoryBadgeTypeMapping', window.validateCategoryBadgeTypeMapping, 'data', {
+            isSafe: true,
+            description: 'Valida mapeamento de categorias vs badges e tipos (NOVO)'
+        });
+        
         window.DiagnosticRegistry.register('runPropertyDataDiagnostic', window.runPropertyDataDiagnostic, 'data', {
             isSafe: true,
             description: 'Executa diagnóstico completo de dados de propriedades'
@@ -513,7 +616,7 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         
         window.DiagnosticRegistry.register('validateCategoryBadgeMapping', window.validateCategoryBadgeMapping, 'data', {
             isSafe: true,
-            description: 'Valida mapeamento de categorias vs badges'
+            description: 'Valida mapeamento de categorias vs badges (legado)'
         });
         
         window.DiagnosticRegistry.register('exportPropertyDataReport', window.exportPropertyDataReport, 'data', {
@@ -537,8 +640,8 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
                 if (buttonContainer && !document.getElementById('property-data-diagnostic-btn-panel')) {
                     const dataBtn = document.createElement('button');
                     dataBtn.id = 'property-data-diagnostic-btn-panel';
-                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.2';
-                    dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, bairros)';
+                    dataBtn.innerHTML = '🏠 ANALISAR DADOS v6.5.3';
+                    dataBtn.title = 'Diagnóstico de dados de propriedades (categorias, badges, tipos, bairros)';
                     dataBtn.style.cssText = `
                         background: linear-gradient(45deg, #27ae60, #2ecc71);
                         color: white;
@@ -567,12 +670,10 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     // INICIALIZAÇÃO
     // ==========================================================
     function init() {
-        console.log('🔧 Inicializando módulo de análise de dados de propriedades v6.5.2');
+        console.log(`🔧 Inicializando módulo de análise de dados de propriedades ${CONFIG.version}`);
         
-        // Registrar funções
         registerDiagnosticFunctions();
         
-        // Adicionar ao painel unificado apenas em modo debug
         if (window.location.search.includes('debug=true')) {
             setTimeout(() => {
                 createDiagnosticButton();
@@ -580,7 +681,6 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
             }, 2000);
         }
         
-        // Auto-execução em modo debug (opcional)
         if (window.location.search.includes('debug=true') && 
             window.location.search.includes('diagnose-data=true')) {
             setTimeout(() => {
@@ -590,7 +690,6 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
         }
     }
     
-    // Inicializar quando o DOM estiver pronto
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
@@ -600,23 +699,25 @@ console.log('🏠 diagnostics64.js v6.5.2 - Análise de Dados de Propriedades');
     // ==========================================================
     // LOG FINAL
     // ==========================================================
-    console.log('%c✅ diagnostics64.js v6.5.2 carregado - Análise de Dados de Propriedades', 
+    console.log('%c✅ diagnostics64.js v6.5.3 carregado - Análise de Dados de Propriedades', 
                 'color: #27ae60; font-weight: bold; font-size: 14px; background: #001a33; padding: 5px;');
     
     console.log('📋 COMANDOS DISPONÍVEIS:');
-    console.log('   - window.diagnoseCategoryBairros()     → Diagnóstico de bairros por categoria');
-    console.log('   - window.diagnoseMissingBairros()      → Identifica imóveis sem bairro');
-    console.log('   - window.diagnoseBadgeDistribution()   → Distribuição de badges');
-    console.log('   - window.runPropertyDataDiagnostic()   → Diagnóstico COMPLETO');
-    console.log('   - window.validateCategoryBadgeMapping() → Valida mapeamento');
-    console.log('   - window.exportPropertyDataReport()    → Exporta relatório JSON');
+    console.log('   - window.diagnoseCategoryBairros()          → Diagnóstico de bairros por categoria');
+    console.log('   - window.diagnoseMissingBairros()           → Identifica imóveis sem bairro');
+    console.log('   - window.diagnoseBadgeDistribution()        → Distribuição de badges');
+    console.log('   - window.validateCategoryBadgeTypeMapping() → Valida CATEGORIA → BADGE + TIPO (NOVO)');
+    console.log('   - window.runPropertyDataDiagnostic()        → Diagnóstico COMPLETO');
+    console.log('   - window.validateCategoryBadgeMapping()     → Valida mapeamento (legado)');
+    console.log('   - window.exportPropertyDataReport()         → Exporta relatório JSON');
     
 })();
 
 // ===================================================================
-// FIM DO ARQUIVO diagnostics64.js v6.5.2
-// FINALIDADE: Análise de dados de propriedades (categorias, badges, bairros)
+// FIM DO ARQUIVO diagnostics64.js v6.5.3
+// FINALIDADE: Análise de dados de propriedades (categorias, badges, bairros, tipos)
+// NOVIDADE v6.5.3: Função validateCategoryBadgeTypeMapping (valida badge + tipo)
 // AUTOR: Weber Lessa Support System
-// VERSÃO: 6.5.2
+// VERSÃO: 6.5.3
 // DATA: 28/04/2026
 // ===================================================================
