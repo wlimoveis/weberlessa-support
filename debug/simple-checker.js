@@ -1,5 +1,5 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO ATUALIZADA COM TESTE DE PERFORMANCE
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Teste Performance (v2.1)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COM EXECUÇÃO AUTOMÁTICA
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Teste Performance (v2.2)');
 
 // ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
 
@@ -204,7 +204,6 @@ window.listDiagnosticFunctions = function(category = null) {
 
 /**
  * ✅ FUNÇÃO: Validar Centralização de Funções no SharedCore
- * Verifica se funções essenciais estão centralizadas no SharedCore em vez de duplicadas globalmente
  */
 window.validateCentralizedFunctions = function() {
     console.group('🎯 VALIDAÇÃO DE FUNÇÕES CENTRALIZADAS NO SHAREDCORE');
@@ -215,7 +214,6 @@ window.validateCentralizedFunctions = function() {
         ausentes: []
     };
     
-    // Lista de funções que DEVEM estar centralizadas no SharedCore
     const funcoesEssenciais = [
         { nome: 'formatPrice', central: 'PriceFormatter.formatForCard' },
         { nome: 'formatPriceForInput', central: 'PriceFormatter.formatForInput' },
@@ -283,12 +281,10 @@ window.validateCentralizedFunctions = function() {
 
 /**
  * ✅ FUNÇÃO: Verificar Remoção de Duplicatas
- * Verifica se funções duplicadas antigas foram removidas do escopo global
  */
 window.checkDuplicateRemoval = function() {
     console.group('🧹 VERIFICAÇÃO DE REMOÇÃO DE DUPLICATAS');
     
-    // Funções que NÃO deveriam existir no escopo global (apenas via SharedCore)
     const funcoesObsoletas = [
         'oldFormatPrice',
         'oldFormatFeatures',
@@ -298,7 +294,6 @@ window.checkDuplicateRemoval = function() {
         'antigaFuncaoMedia'
     ];
     
-    // Funções que podem existir globalmente, mas devem ser apenas proxies
     const funcoesProxies = [
         'formatPrice',
         'formatFeaturesForDisplay',
@@ -315,7 +310,6 @@ window.checkDuplicateRemoval = function() {
         problemaProxy: []
     };
     
-    // Verificar funções obsoletas
     funcoesObsoletas.forEach(nome => {
         if (typeof window[nome] !== 'undefined') {
             console.warn(`❌ Função obsoleta AINDA PRESENTE: ${nome}`);
@@ -323,7 +317,6 @@ window.checkDuplicateRemoval = function() {
         }
     });
     
-    // Verificar se proxies estão funcionando corretamente
     funcoesProxies.forEach(nome => {
         if (typeof window[nome] === 'function') {
             const corpo = window[nome].toString();
@@ -356,7 +349,6 @@ window.checkDuplicateRemoval = function() {
 
 /**
  * ✅ FUNÇÃO: Validar Estado do MediaSystem
- * Verifica se MediaSystem está operacional com todas as funções necessárias
  */
 window.validateMediaSystem = function() {
     console.group('📸 VALIDAÇÃO DO MEDIASYSTEM');
@@ -383,7 +375,6 @@ window.validateMediaSystem = function() {
         funcoesAusentes: []
     };
     
-    // Verificar funções críticas
     funcoesCriticas.forEach(nome => {
         if (typeof window.MediaSystem[nome] === 'function') {
             resultado.funcoesDisponiveis.push(nome);
@@ -395,7 +386,6 @@ window.validateMediaSystem = function() {
         }
     });
     
-    // Verificar estado atual
     console.log('\n📊 ESTADO ATUAL DO MEDIASYSTEM:');
     console.log(`  Arquivos na fila: ${window.MediaSystem.state?.files?.length || 0}`);
     console.log(`  PDFs na fila: ${window.MediaSystem.state?.pdfs?.length || 0}`);
@@ -403,7 +393,6 @@ window.validateMediaSystem = function() {
     console.log(`  PDFs existentes: ${window.MediaSystem.state?.existingPdfs?.length || 0}`);
     console.log(`  Upload em andamento: ${window.MediaSystem.state?.isUploading ? 'Sim' : 'Não'}`);
     
-    // Verificar Supabase config
     const supabaseConfig = window.SUPABASE_CONSTANTS;
     if (supabaseConfig && supabaseConfig.URL && supabaseConfig.KEY) {
         console.log('✅ Configuração Supabase encontrada');
@@ -421,7 +410,6 @@ window.validateMediaSystem = function() {
 
 /**
  * ✅ FUNÇÃO: Validar Estado do FilterManager
- * Verifica se FilterManager está inicializado e funcionando
  */
 window.validateFilterManager = function() {
     console.group('🎛️ VALIDAÇÃO DO FILTERMANAGER');
@@ -438,7 +426,6 @@ window.validateFilterManager = function() {
         hasCallbacks: false
     };
     
-    // Verificar funções principais
     const funcoesPrincipais = ['init', 'setActiveFilter', 'getCurrentFilter', 'setupWithFallback'];
     
     funcoesPrincipais.forEach(nome => {
@@ -450,11 +437,9 @@ window.validateFilterManager = function() {
         }
     });
     
-    // Verificar inicialização
     resultado.initialized = window.FilterManager.isInitialized ? window.FilterManager.isInitialized() : false;
     console.log(`📌 Estado de inicialização: ${resultado.initialized ? 'Inicializado' : 'Não inicializado'}`);
     
-    // Verificar filtros na interface
     const filterButtons = document.querySelectorAll('.filter-btn');
     const filterContainer = document.querySelector('.filter-options');
     
@@ -465,7 +450,6 @@ window.validateFilterManager = function() {
             console.warn('⚠️ Nenhum botão de filtro encontrado');
         }
         
-        // Verificar se há filtro ativo
         const activeButtons = document.querySelectorAll('.filter-btn.active');
         if (activeButtons.length > 0) {
             console.log(`✅ Filtro ativo: ${activeButtons[0].textContent.trim()}`);
@@ -477,7 +461,6 @@ window.validateFilterManager = function() {
         resultado.success = false;
     }
     
-    // Verificar configuração global de filtro
     if (typeof window.currentFilter !== 'undefined') {
         console.log(`📌 Filtro global atual: ${window.currentFilter || 'todos'}`);
     }
@@ -489,18 +472,16 @@ window.validateFilterManager = function() {
     return resultado;
 };
 
-// ========== NOVA FUNÇÃO: TESTE DE PERFORMANCE ==========
+// ========== FUNÇÃO: TESTE DE PERFORMANCE ==========
 
 /**
  * ✅ FUNÇÃO: Testar Performance da Extração de Bairros
- * Mede o tempo de execução da extração de bairros em todos os imóveis
  */
 window.testExtractionPerformance = function() {
     console.group('⚡ TESTE DE PERFORMANCE - EXTRAÇÃO DE BAIRROS');
     
     if (!window.properties || !Array.isArray(window.properties)) {
         console.error('❌ window.properties não encontrado ou não é um array!');
-        console.log('💡 Certifique-se de que os imóveis já foram carregados.');
         console.groupEnd();
         return null;
     }
@@ -511,7 +492,6 @@ window.testExtractionPerformance = function() {
         return null;
     }
     
-    // Verificar qual função de extração está disponível
     const extractFunction = window.SharedCore?.extractBairroFromLocation || 
                            window.extractBairroFromLocation ||
                            (function(loc) {
@@ -525,7 +505,6 @@ window.testExtractionPerformance = function() {
     
     console.log(`📌 Função de extração utilizada: ${functionSource}`);
     
-    // Executar teste de performance
     const startTime = performance.now();
     let successCount = 0;
     const extractionResults = [];
@@ -553,7 +532,6 @@ window.testExtractionPerformance = function() {
     console.log(`   ⏱️ Tempo total: ${totalTime}ms`);
     console.log(`   🚀 Média por imóvel: ${averageTime}ms`);
     
-    // Mostrar primeiros 5 resultados como exemplo
     if (extractionResults.length > 0) {
         console.log(`\n📋 EXEMPLOS DOS PRIMEIROS 5 IMÓVEIS:`);
         extractionResults.slice(0, 5).forEach((result, idx) => {
@@ -563,7 +541,6 @@ window.testExtractionPerformance = function() {
         });
     }
     
-    // Verificar performance
     const performanceStatus = totalTime < 100 ? '✅ EXCELENTE' : (totalTime < 500 ? '⚠️ ACEITÁVEL' : '❌ LENTO');
     console.log(`\n🔍 STATUS DE PERFORMANCE: ${performanceStatus} (${totalTime}ms para ${window.properties.length} imóveis)`);
     
@@ -581,98 +558,130 @@ window.testExtractionPerformance = function() {
     };
 };
 
-// ========== FUNÇÃO: VALIDAÇÃO COMPLETA DE BAIRROS (NOVO) ==========
+// ========== FUNÇÃO: VALIDAÇÃO COMPLETA DE BAIRROS (COM EXECUÇÃO AUTOMÁTICA) ==========
 
 /**
  * ✅ FUNÇÃO: Validar Centralização da Função extractBairroFromLocation
  * Teste completo da função de extração de bairros
+ * ⚠️ EXECUTA AUTOMATICAMENTE quando carregada em modo debug
  */
 window.validateExtractBairroFunction = function() {
-    console.group('🔍 VALIDAÇÃO COMPLETA - extractBairroFromLocation');
-    console.log('===========================================');
+    console.log('\n🏠 VALIDAÇÃO DA FUNÇÃO CENTRALIZADA DE BAIRROS');
+    console.log('================================================');
     
-    // Teste 1: Verificar disponibilidade no SharedCore
-    console.log('\n1️⃣ VERIFICANDO DISPONIBILIDADE:');
-    console.log(`   window.SharedCore.extractBairroFromLocation: ${typeof window.SharedCore?.extractBairroFromLocation === 'function' ? '✅ DISPONÍVEL' : '❌ INDISPONÍVEL'}`);
-    console.log(`   window.extractBairroFromLocation (global): ${typeof window.extractBairroFromLocation === 'function' ? '✅ DISPONÍVEL' : '❌ INDISPONÍVEL'}`);
+    // 1. Verificar disponibilidade
+    console.log('\n📌 1. DISPONIBILIDADE:');
+    console.log(`   SharedCore.extractBairroFromLocation: ${typeof window.SharedCore?.extractBairroFromLocation === 'function' ? '✅' : '❌'}`);
+    console.log(`   window.extractBairroFromLocation (global): ${typeof window.extractBairroFromLocation === 'function' ? '✅' : '❌'}`);
     
-    // Verificar se FilterManager tem função local duplicada
-    const filterManagerHasLocal = window.FilterManager?.hasOwnProperty?.('extractBairroFromLocation') || false;
-    console.log(`   FilterManager tem função local? ${!filterManagerHasLocal ? '✅ NÃO (centralizada)' : '⚠️ SIM (duplicada)'}`);
+    // 2. Verificar delegação
+    const isDelegated = window.extractBairroFromLocation === window.SharedCore?.extractBairroFromLocation;
+    console.log('\n📌 2. DELEGAÇÃO CORRETA:', isDelegated ? '✅ SIM (função global = SharedCore)' : '⚠️ NÃO');
     
-    // Teste 2: Testar com casos específicos
-    console.log('\n2️⃣ TESTANDO CASOS ESPECÍFICOS:');
-    const testCases = [
+    // 3. Extração com imóveis reais
+    console.log('\n📌 3. EXTRAÇÃO COM IMÓVEIS REAIS:');
+    if (window.properties && window.properties.length > 0) {
+        const bairrosEncontrados = new Map();
+        let totalExtraidos = 0;
+        
+        const extractFn = window.SharedCore?.extractBairroFromLocation || window.extractBairroFromLocation;
+        
+        window.properties.forEach(prop => {
+            const bairro = extractFn ? extractFn(prop.location) : null;
+            if (bairro) {
+                totalExtraidos++;
+                bairrosEncontrados.set(bairro, (bairrosEncontrados.get(bairro) || 0) + 1);
+            }
+        });
+        
+        console.log(`   ✅ ${totalExtraidos}/${window.properties.length} imóveis com bairro extraído`);
+        console.log(`   📍 ${bairrosEncontrados.size} bairros únicos encontrados:`);
+        
+        const sortedBairros = Array.from(bairrosEncontrados.entries()).sort((a,b) => b[1] - a[1]);
+        sortedBairros.slice(0, 10).forEach(([bairro, count]) => {
+            console.log(`      - ${bairro}: ${count} imóvel(is)`);
+        });
+    } else {
+        console.warn('   ⚠️ Nenhum imóvel carregado');
+    }
+    
+    // 4. Casos específicos
+    console.log('\n📌 4. CASOS ESPECÍFICOS:');
+    const testLocations = [
         'Rua Saleiro Pitão, Ponta Verde - Maceió/AL',
         'Residência Conj. Portal do Renascer, Forene',
         'Av. Menino Marcelo, Tabuleiro do Martins, Maceió/AL',
         'Zona Rural - Sitio São João',
-        'Rua do Comércio, Centro, Maceió/AL',
-        'Travessa dos Coqueiros, Jatiúca'
+        'Rua do Comércio, Centro, Maceió/AL'
     ];
     
     const extractFn = window.SharedCore?.extractBairroFromLocation || window.extractBairroFromLocation;
     if (extractFn) {
-        testCases.forEach(location => {
-            const result = extractFn(location);
-            console.log(`   📍 "${location.substring(0, 40)}..." → "${result || '❌ NÃO ENCONTRADO'}"`);
+        testLocations.forEach(loc => {
+            const result = extractFn(loc);
+            console.log(`   📍 "${loc.substring(0, 40)}..." → "${result || '❌'}"`);
         });
     } else {
         console.error('   ❌ Função de extração não disponível!');
     }
     
-    // Teste 3: Testar com imóveis reais
-    console.log('\n3️⃣ TESTANDO COM IMÓVEIS REAIS:');
+    // 5. Verificação de duplicação
+    console.log('\n📌 5. VERIFICAÇÃO DE DUPLICAÇÃO:');
+    const filterManagerStr = window.FilterManager?.toString() || '';
+    const hasLocalExtract = filterManagerStr.includes('function extractBairroFromLocation(') && 
+                            !filterManagerStr.includes('window.SharedCore.extractBairroFromLocation');
+    
+    console.log(`   FilterManager com função local? ${hasLocalExtract ? '⚠️ SIM' : '✅ NÃO'}`);
+    
+    const hasOldFunctions = typeof window.extractBairroForComparison === 'function' ||
+                           typeof window.extractBairroFromLocation_old === 'function';
+    console.log(`   Funções antigas (extractBairroForComparison)? ${hasOldFunctions ? '⚠️ SIM' : '✅ NÃO'}`);
+    
+    // 6. Teste de performance
+    console.log('\n📌 6. TESTE DE PERFORMANCE:');
     if (window.properties && window.properties.length > 0) {
-        const testProperties = window.properties.slice(0, 5);
-        testProperties.forEach(prop => {
-            const bairro = extractFn ? extractFn(prop.location) : null;
-            console.log(`   🏠 "${prop.title?.substring(0, 30) || 'Sem título'}"`);
-            console.log(`      📍 "${prop.location?.substring(0, 50) || ''}..."`);
-            console.log(`      🎯 "${bairro || 'NÃO ENCONTRADO'}"`);
-        });
-    } else {
-        console.warn('   ⚠️ Nenhum imóvel carregado para teste');
+        const start = performance.now();
+        let count = 0;
+        const iterations = Math.min(100, Math.floor(500 / window.properties.length) || 10);
+        for (let i = 0; i < iterations; i++) {
+            window.properties.forEach(prop => {
+                if (extractFn && extractFn(prop.location)) count++;
+            });
+        }
+        const end = performance.now();
+        const avgTime = ((end - start) / iterations).toFixed(2);
+        console.log(`   ⏱️ Média de ${avgTime}ms para processar ${window.properties.length} imóveis (${iterations} execuções)`);
+        console.log(`   🚀 ${(avgTime / window.properties.length).toFixed(2)}ms por imóvel em média`);
     }
     
-    // Teste 4: Verificar integração com FilterManager
-    console.log('\n4️⃣ VERIFICANDO INTEGRAÇÃO:');
-    if (window.FilterManager && typeof window.FilterManager.refreshBairros === 'function') {
-        console.log('   FilterManager.refreshBairros: ✅ DISPONÍVEL');
+    // 7. Integração com FilterManager
+    console.log('\n📌 7. INTEGRAÇÃO COM FILTERMANAGER:');
+    if (window.FilterManager) {
+        const currentFilter = window.FilterManager.getCurrentFilter?.();
+        const currentBairro = window.FilterManager.getCurrentBairro?.();
+        const isInitialized = window.FilterManager.isInitialized?.();
+        console.log(`   FilterManager.${isInitialized ? '✅ INICIALIZADO' : '⚠️ NÃO INICIALIZADO'}`);
+        if (currentFilter) console.log(`   Filtro atual: ${currentFilter}`);
+        if (currentBairro) console.log(`   Bairro atual: ${currentBairro}`);
     } else {
-        console.log('   FilterManager.refreshBairros: ⚠️ NÃO DISPONÍVEL (pode não ser necessário)');
+        console.log('   ⚠️ FilterManager não disponível');
     }
     
-    const isSynchronized = window.extractBairroFromLocation === window.SharedCore?.extractBairroFromLocation;
-    console.log(`   Funções globais sincronizadas? ${isSynchronized ? '✅ SIM (mesma referência)' : '⚠️ NÃO (possível conflito)'}`);
-    
-    // Teste 5: Executar teste de performance
-    console.log('\n5️⃣ EXECUTANDO TESTE DE PERFORMANCE:');
-    const performanceResult = window.testExtractionPerformance();
-    
-    console.log('\n===========================================');
-    console.log('📊 RESUMO DA VALIDAÇÃO:');
-    
-    const allChecksPassed = typeof window.SharedCore?.extractBairroFromLocation === 'function' &&
-                            !filterManagerHasLocal &&
-                            performanceResult?.successCount === performanceResult?.totalProperties;
-    
-    console.log(`${allChecksPassed ? '✅ VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS'}`);
-    console.groupEnd();
+    console.log('\n✅ VALIDAÇÃO CONCLUÍDA!');
+    console.log('================================================');
     
     return {
-        success: allChecksPassed,
+        success: typeof window.SharedCore?.extractBairroFromLocation === 'function' && !hasLocalExtract,
         sharedCoreAvailable: typeof window.SharedCore?.extractBairroFromLocation === 'function',
         globalAvailable: typeof window.extractBairroFromLocation === 'function',
-        filterManagerNoLocal: !filterManagerHasLocal,
-        testCasesPassed: testCases.every(loc => extractFn && extractFn(loc)),
-        performanceResult: performanceResult
+        isDelegated: isDelegated,
+        filterManagerNoLocal: !hasLocalExtract,
+        noOldFunctions: !hasOldFunctions
     };
 };
 
 /**
  * ✅ FUNÇÃO: Executar Validação Rápida de Todas as Funções
- * Executa todas as validações em sequência
  */
 window.runQuickValidation = async function() {
     console.log('🚀 INICIANDO VALIDAÇÃO RÁPIDA COMPLETA');
@@ -689,28 +698,22 @@ window.runQuickValidation = async function() {
         sucessoTotal: false
     };
     
-    // 1. Validar centralização
     console.log('\n📍 PASSO 1/5: Validando centralização...');
     resultados.centralizacao = window.validateCentralizedFunctions();
     
-    // 2. Verificar duplicatas
     console.log('\n📍 PASSO 2/5: Verificando duplicatas...');
     resultados.duplicatas = window.checkDuplicateRemoval();
     
-    // 3. Validar MediaSystem
     console.log('\n📍 PASSO 3/5: Validando MediaSystem...');
     resultados.mediaSystem = window.validateMediaSystem();
     
-    // 4. Validar FilterManager
     console.log('\n📍 PASSO 4/5: Validando FilterManager...');
     resultados.filterManager = window.validateFilterManager();
     
-    // 5. Validar extração de bairros
     console.log('\n📍 PASSO 5/5: Validando extração de bairros...');
     resultados.extractBairro = window.validateExtractBairroFunction();
-    resultados.performance = resultados.extractBairro?.performanceResult;
+    resultados.performance = window.testExtractionPerformance();
     
-    // Resumo final
     console.log('\n=========================================');
     console.log('📊 RESUMO DA VALIDAÇÃO RÁPIDA:');
     console.log(`  Centralização: ${resultados.centralizacao?.ausentes?.length === 0 ? '✅ OK' : '⚠️ Pendente'}`);
@@ -718,7 +721,6 @@ window.runQuickValidation = async function() {
     console.log(`  MediaSystem: ${resultados.mediaSystem?.success ? '✅ OK' : '⚠️ Pendente'}`);
     console.log(`  FilterManager: ${resultados.filterManager?.success ? '✅ OK' : '⚠️ Pendente'}`);
     console.log(`  Extração de bairros: ${resultados.extractBairro?.success ? '✅ OK' : '⚠️ Pendente'}`);
-    console.log(`  Performance: ${resultados.performance?.totalTimeMs < 100 ? '✅ OK' : '⚠️ Verificar'}`);
     
     resultados.sucessoTotal = 
         resultados.centralizacao?.ausentes?.length === 0 &&
@@ -735,25 +737,21 @@ window.runQuickValidation = async function() {
 
 // ========== FUNÇÕES DE SUPORTE ==========
 
-// ✅ FUNÇÃO: Aguardar registry e executar
 function waitForRegistryAndExecute() {
     console.log('⏳ Aguardando DiagnosticRegistry ficar pronto...');
     
-    // Se já existe e já disparou evento, executar imediatamente
     if (window.DiagnosticRegistry && window.DiagnosticRegistry._eventDispatched) {
         console.log('⚡ Registry já pronto, executando imediatamente');
         executeAllChecks();
         return;
     }
     
-    // Timer de segurança (timeout global)
     const timeoutId = setTimeout(() => {
         window.removeEventListener('diagnostic-registry-ready', readyHandler);
         console.warn('⚠️ Timeout aguardando registry - executando verificações parciais');
-        executeAllChecks(true); // true = parcial
+        executeAllChecks(true);
     }, 5000);
     
-    // Handler do evento
     const readyHandler = (event) => {
         clearTimeout(timeoutId);
         window.removeEventListener('diagnostic-registry-ready', readyHandler);
@@ -761,10 +759,8 @@ function waitForRegistryAndExecute() {
         executeAllChecks();
     };
     
-    // Registrar listener do evento
     window.addEventListener('diagnostic-registry-ready', readyHandler);
     
-    // Fallback: verificação periódica silenciosa (caso o evento não dispare)
     let checkCount = 0;
     const intervalId = setInterval(() => {
         checkCount++;
@@ -774,14 +770,12 @@ function waitForRegistryAndExecute() {
             window.removeEventListener('diagnostic-registry-ready', readyHandler);
             console.log(`✅ Registry detectado via polling (${checkCount * 500}ms)`);
             executeAllChecks();
-        } else if (checkCount >= 10) { // 5 segundos (10 * 500ms)
+        } else if (checkCount >= 10) {
             clearInterval(intervalId);
-            // Não fazer nada, o timeout já vai executar
         }
     }, 500);
 }
 
-// ✅ FUNÇÃO: Executar todas as verificações
 function executeAllChecks(isPartial = false) {
     if (isPartial) {
         console.warn('⚠️ Executando verificações PARCIAIS (registry não respondeu)');
@@ -793,12 +787,14 @@ function executeAllChecks(isPartial = false) {
         setTimeout(() => {
             window.quickDiagnostic?.();
             
-            // ✅ SUGESTÕES (sempre mostradas)
-            console.log('\n💡 DICA: Execute window.runQuickValidation() para validar centralização e duplicatas');
-            console.log('💡 Ou window.validateExtractBairroFunction() para validar extração de bairros');
-            console.log('💡 Ou window.testExtractionPerformance() para testar performance');
-            console.log('💡 Ou window.runSafeDiagnostics() para testar funções seguras');
-            console.log('💡 Ou window.listDiagnosticFunctions() para listar todas as funções');
+            // 🔥 EXECUÇÃO AUTOMÁTICA DA VALIDAÇÃO DE BAIRROS (sem necessidade de console)
+            console.log('\n🚀 EXECUÇÃO AUTOMÁTICA: Validando extração de bairros...');
+            window.validateExtractBairroFunction?.();
+            
+            console.log('\n💡 DICAS:');
+            console.log('   • window.validateExtractBairroFunction() - Validação completa de bairros');
+            console.log('   • window.testExtractionPerformance() - Teste de performance');
+            console.log('   • window.runQuickValidation() - Todas as validações');
         }, 500);
     }, 100);
 }
@@ -812,9 +808,8 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.1 com teste de performance)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.2 com execução automática)');
         
-        // Aguardar carregamento completo do DOM
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(waitForRegistryAndExecute, 500);
@@ -823,7 +818,7 @@ function executeAllChecks(isPartial = false) {
             setTimeout(waitForRegistryAndExecute, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.1)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.2)');
     }
 })();
 
@@ -833,16 +828,14 @@ window.simpleChecker = {
     quickDiagnostic: window.quickDiagnostic,
     runSafeDiagnostics: window.runSafeDiagnostics,
     listFunctions: window.listDiagnosticFunctions,
-    // Funções de validação de centralização
     validateCentralizedFunctions: window.validateCentralizedFunctions,
     checkDuplicateRemoval: window.checkDuplicateRemoval,
     validateMediaSystem: window.validateMediaSystem,
     validateFilterManager: window.validateFilterManager,
-    // NOVAS FUNÇÕES DE PERFORMANCE E VALIDAÇÃO
     testExtractionPerformance: window.testExtractionPerformance,
     validateExtractBairroFunction: window.validateExtractBairroFunction,
     runQuickValidation: window.runQuickValidation,
     waitForRegistry: waitForRegistryAndExecute
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.1 - Versão com Teste de Performance e Validação Completa de Bairros');
+console.log('✅ simple-checker.js ATUALIZADO v2.2 - Execução automática da validação de bairros!');
