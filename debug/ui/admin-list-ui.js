@@ -1,181 +1,15 @@
-// debug/ui/admin-list-ui.js - UI COMPLETA DA LISTA ADMINISTRATIVA
+// debug/ui/admin-list-ui.js - UI COMPLETA DA LISTA ADMINISTRATIVA COM AUTO-VALIDAÇÃO
 console.log('📋 admin-list-ui.js carregado - UI completa para lista de propriedades');
 
-// ========== IMPLEMENTAÇÃO COMPLETA DO window.loadPropertyList ==========
-window.loadPropertyList = function(page = window.adminCurrentPage) {
-    if (!window.properties || typeof window.properties.forEach !== 'function') {
-        console.error('❌ window.properties não é um array válido');
-        return;
-    }
-    
-    const container = document.getElementById('propertyList');
-    const countElement = document.getElementById('propertyCount');
-    
-    if (!container) return;
-    
-    // Salvar página atual
-    window.adminCurrentPage = page;
-    
-    // Calcular paginação
-    const totalItems = window.properties.length;
-    const totalPages = Math.ceil(totalItems / window.adminItemsPerPage);
-    const startIndex = (page - 1) * window.adminItemsPerPage;
-    const endIndex = Math.min(startIndex + window.adminItemsPerPage, totalItems);
-    const paginatedProperties = window.properties.slice(startIndex, endIndex);
-    
-    // Limpar container mas manter estrutura para paginação
-    container.innerHTML = '';
-    
-    if (countElement) {
-        countElement.textContent = totalItems;
-    }
-    
-    if (totalItems === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">Nenhum imóvel cadastrado</p>';
-        return;
-    }
-    
-    // Adicionar estilo para scroll suave na lista
-    container.style.maxHeight = '600px';
-    container.style.overflowY = 'auto';
-    container.style.paddingRight = '5px';
-    
-    // Calcular total de visualizações
-    const totalViews = window.getTotalGalleryViews ? window.getTotalGalleryViews() : 0;
-    
-    // ========== CABEÇALHO COM ESTATÍSTICAS ==========
-    const statsHeader = document.createElement('div');
-    statsHeader.style.cssText = 'background: #e8f4fd; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;';
-    statsHeader.innerHTML = `
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
-            <span><i class="fas fa-eye"></i> <strong>Total de visualizações:</strong> ${totalViews}</span>
-            <span><i class="fas fa-building"></i> <strong>Total de imóveis:</strong> ${totalItems}</span>
-            <span><i class="fas fa-images"></i> <strong>Exibindo:</strong> ${startIndex + 1}-${endIndex} de ${totalItems}</span>
-        </div>
-        <button onclick="if(window.resetAllGalleryViews) window.resetAllGalleryViews()" style="background: #e67e22; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.75rem;">
-            <i class="fas fa-trash-alt"></i> Zerar TODAS
-        </button>
-    `;
-    container.appendChild(statsHeader);
-    
-    // ========== CONTROLES DE PAGINAÇÃO (TOPO) ==========
-    if (totalPages > 1) {
-        const paginationTop = createPaginationControls(totalPages, page);
-        container.appendChild(paginationTop);
-    }
-    
-    // ========== LISTA DE IMÓVEIS (APENAS PÁGINA ATUAL) ==========
-    const listContainer = document.createElement('div');
-    listContainer.id = 'propertyListItems';
-    listContainer.style.cssText = 'margin: 1rem 0;';
-    
-    const defaultImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80';
-    
-    paginatedProperties.forEach(property => {
-        const viewCount = window.getGalleryViews ? window.getGalleryViews(property.id) : 0;
-        const lastView = window.getLastGalleryView ? window.getLastGalleryView(property.id) : null;
-        
-        // Extrair a primeira imagem do imóvel
-        let firstImage = defaultImage;
-        let isVideo = false;
-        
-        if (property.images && property.images !== 'EMPTY') {
-            const imageUrls = property.images.split(',').filter(url => url && url.trim() !== '');
-            if (imageUrls.length > 0) {
-                firstImage = imageUrls[0];
-                // Verificar se é vídeo
-                isVideo = window.isVideoUrl ? window.isVideoUrl(firstImage) : 
-                          (firstImage.toLowerCase().includes('.mp4') || firstImage.toLowerCase().includes('.mov') || firstImage.toLowerCase().includes('video/'));
-            }
-        }
-        
-        const item = document.createElement('div');
-        item.className = 'property-item';
-        item.style.cssText = 'background: #f5f5f5; padding: 1rem; margin: 0.5rem 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-left: 4px solid var(--primary); transition: all 0.3s ease;';
-        
-        item.innerHTML = `
-            <!-- MINIATURA DA IMAGEM -->
-            <div style="flex-shrink: 0; width: 70px; height: 70px; border-radius: 8px; overflow: hidden; background: #2c3e50; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" 
-                 onclick="if(window.openGalleryAtCurrentIndex) window.openGalleryAtCurrentIndex(${property.id})"
-                 onmouseenter="this.style.transform='scale(1.05)'"
-                 onmouseleave="this.style.transform='scale(1)'"
-                 title="Clique para abrir galeria">
-                ${isVideo ? `
-                    <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #1a5276, #2c3e50); display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-video" style="font-size: 1.8rem; color: rgba(255,255,255,0.8);"></i>
-                        <div style="position: absolute; bottom: 2px; right: 4px; background: rgba(0,0,0,0.6); border-radius: 3px; padding: 1px 4px; font-size: 0.6rem; color: white;">
-                            <i class="fas fa-play"></i>
-                        </div>
-                    </div>
-                ` : `
-                    <img src="${firstImage}" 
-                         loading="lazy"
-                         style="width: 100%; height: 100%; object-fit: cover;"
-                         onerror="this.src='${defaultImage}'; this.onerror=null;"
-                         alt="${window.SharedCore?.escapeHtml(property.title) || property.title}">
-                `}
-            </div>
-            
-            <!-- INFORMAÇÕES DO IMÓVEL -->
-            <div style="flex: 3; min-width: 200px;">
-                <strong style="color: var(--primary); font-size: 1rem; display: block; margin-bottom: 0.3rem;">
-                    ${window.SharedCore?.escapeHtml(property.title) || property.title}
-                </strong>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.3rem;">
-                    <small style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px;">
-                        <i class="fas fa-tag"></i> ${property.price}
-                    </small>
-                    <small style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px;">
-                        <i class="fas fa-map-marker-alt"></i> ${property.location.substring(0, 40)}${property.location.length > 40 ? '...' : ''}
-                    </small>
-                </div>
-                <div style="font-size: 0.7rem; color: #666; display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.2rem;">
-                    <span><i class="fas fa-id-card"></i> ID: ${property.id}</span>
-                    ${property.has_video ? '<span style="color: #9b59b6;"><i class="fas fa-video"></i> Tem vídeo</span>' : ''}
-                    <span><i class="fas fa-images"></i> Imagens: ${property.images ? property.images.split(',').filter(i => i && i.trim() && i !== 'EMPTY').length : 0}</span>
-                    ${property.pdfs && property.pdfs !== 'EMPTY' ? `<span><i class="fas fa-file-pdf"></i> PDFs: ${property.pdfs.split(',').filter(p => p && p.trim() && p !== 'EMPTY').length}</span>` : ''}
-                    <span><i class="fas fa-eye"></i> <strong>Visualizações: ${viewCount}</strong></span>
-                    ${lastView ? `<span><i class="fas fa-clock"></i> Última: ${new Date(lastView).toLocaleDateString('pt-BR')}</span>` : ''}
-                </div>
-            </div>
-            
-            <!-- BOTÕES DE AÇÃO -->
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
-                <button onclick="editProperty(${property.id})" 
-                        style="background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
-                        onmouseenter="this.style.transform='translateY(-2px)'"
-                        onmouseleave="this.style.transform='translateY(0)'">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                <button onclick="if(window.resetGalleryViews) window.resetGalleryViews(${property.id}, '${property.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" 
-                        style="background: #e67e22; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
-                        onmouseenter="this.style.transform='translateY(-2px)'"
-                        onmouseleave="this.style.transform='translateY(0)'">
-                    <i class="fas fa-eye-slash"></i> Zerar views
-                </button>
-                <button onclick="deleteProperty(${property.id})" 
-                        style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
-                        onmouseenter="this.style.transform='translateY(-2px)'"
-                        onmouseleave="this.style.transform='translateY(0)'">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            </div>
-        `;
-        listContainer.appendChild(item);
-    });
-    
-    container.appendChild(listContainer);
-    
-    // ========== CONTROLES DE PAGINAÇÃO (RODAPÉ) ==========
-    if (totalPages > 1) {
-        const paginationBottom = createPaginationControls(totalPages, page);
-        container.appendChild(paginationBottom);
-    }
-    
-    console.log(`✅ [Support] Página ${page}/${totalPages} - ${paginatedProperties.length} imóveis exibidos (total: ${totalItems})`);
-};
+// ========== VARIÁVEIS GLOBAIS DE PAGINAÇÃO (com fallback) ==========
+if (typeof window.adminCurrentPage === 'undefined') {
+    window.adminCurrentPage = 1;
+}
+if (typeof window.adminItemsPerPage === 'undefined') {
+    window.adminItemsPerPage = 4; // Padrão: 4 itens por página
+}
 
-// ========== IMPLEMENTAÇÃO COMPLETA DO createPaginationControls ==========
+// ========== FUNÇÃO AUXILIAR: createPaginationControls ==========
 function createPaginationControls(totalPages, currentPage) {
     const paginationDiv = document.createElement('div');
     paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap;';
@@ -263,7 +97,7 @@ function createPaginationControls(totalPages, currentPage) {
     lastBtn.onclick = () => window.loadPropertyList(totalPages);
     paginationDiv.appendChild(lastBtn);
     
-    // Selector de itens por página (4/8/12/16) - Padrão 4 selecionado
+    // Selector de itens por página (4/8/12/16)
     const perPageSelect = document.createElement('select');
     perPageSelect.style.cssText = 'background: white; border: 1px solid var(--primary); padding: 0.3rem 0.5rem; border-radius: 5px; font-size: 0.75rem; margin-left: 0.5rem; cursor: pointer;';
     perPageSelect.innerHTML = `
@@ -274,7 +108,7 @@ function createPaginationControls(totalPages, currentPage) {
     `;
     perPageSelect.onchange = (e) => {
         window.adminItemsPerPage = parseInt(e.target.value);
-        window.adminCurrentPage = 1; // Reset para primeira página
+        window.adminCurrentPage = 1;
         window.loadPropertyList(1);
     };
     paginationDiv.appendChild(perPageSelect);
@@ -282,4 +116,279 @@ function createPaginationControls(totalPages, currentPage) {
     return paginationDiv;
 }
 
+// ========== IMPLEMENTAÇÃO COMPLETA DO window.loadPropertyList ==========
+window.loadPropertyList = function(page = window.adminCurrentPage) {
+    console.log('📋 [Support] loadPropertyList chamado - página:', page);
+    
+    if (!window.properties || typeof window.properties.forEach !== 'function') {
+        console.error('❌ window.properties não é um array válido');
+        return;
+    }
+    
+    const container = document.getElementById('propertyList');
+    const countElement = document.getElementById('propertyCount');
+    
+    if (!container) {
+        console.warn('⚠️ Container propertyList não encontrado');
+        return;
+    }
+    
+    // Salvar página atual
+    window.adminCurrentPage = page;
+    
+    // Calcular paginação
+    const totalItems = window.properties.length;
+    const totalPages = Math.ceil(totalItems / window.adminItemsPerPage);
+    const startIndex = (page - 1) * window.adminItemsPerPage;
+    const endIndex = Math.min(startIndex + window.adminItemsPerPage, totalItems);
+    const paginatedProperties = window.properties.slice(startIndex, endIndex);
+    
+    // Limpar container
+    container.innerHTML = '';
+    
+    if (countElement) {
+        countElement.textContent = totalItems;
+    }
+    
+    if (totalItems === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">Nenhum imóvel cadastrado</p>';
+        return;
+    }
+    
+    // Estilo para scroll suave
+    container.style.maxHeight = '600px';
+    container.style.overflowY = 'auto';
+    container.style.paddingRight = '5px';
+    
+    // Calcular total de visualizações
+    const totalViews = window.getTotalGalleryViews ? window.getTotalGalleryViews() : 0;
+    const defaultImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80';
+    
+    // Cabeçalho com estatísticas
+    const statsHeader = document.createElement('div');
+    statsHeader.style.cssText = 'background: #e8f4fd; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;';
+    statsHeader.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+            <span><i class="fas fa-eye"></i> <strong>Total de visualizações:</strong> ${totalViews}</span>
+            <span><i class="fas fa-building"></i> <strong>Total de imóveis:</strong> ${totalItems}</span>
+            <span><i class="fas fa-images"></i> <strong>Exibindo:</strong> ${startIndex + 1}-${endIndex} de ${totalItems}</span>
+        </div>
+        <button onclick="if(window.resetAllGalleryViews) window.resetAllGalleryViews()" style="background: #e67e22; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.75rem;">
+            <i class="fas fa-trash-alt"></i> Zerar TODAS
+        </button>
+    `;
+    container.appendChild(statsHeader);
+    
+    // Controles de paginação (topo)
+    if (totalPages > 1) {
+        const paginationTop = createPaginationControls(totalPages, page);
+        container.appendChild(paginationTop);
+    }
+    
+    // Lista de imóveis
+    const listContainer = document.createElement('div');
+    listContainer.id = 'propertyListItems';
+    listContainer.style.cssText = 'margin: 1rem 0;';
+    
+    paginatedProperties.forEach(property => {
+        const viewCount = window.getGalleryViews ? window.getGalleryViews(property.id) : 0;
+        
+        // Extrair primeira imagem
+        let firstImage = defaultImage;
+        let isVideo = false;
+        
+        if (property.images && property.images !== 'EMPTY') {
+            const imageUrls = property.images.split(',').filter(url => url && url.trim() !== '');
+            if (imageUrls.length > 0) {
+                firstImage = imageUrls[0];
+                isVideo = window.isVideoUrl ? window.isVideoUrl(firstImage) : 
+                          (firstImage.toLowerCase().includes('.mp4') || firstImage.toLowerCase().includes('.mov'));
+            }
+        }
+        
+        const item = document.createElement('div');
+        item.className = 'property-item';
+        item.style.cssText = 'background: #f5f5f5; padding: 1rem; margin: 0.5rem 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-left: 4px solid var(--primary); transition: all 0.3s ease;';
+        
+        const escapeTitle = window.SharedCore?.escapeHtml ? window.SharedCore.escapeHtml(property.title) : (property.title || '').replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+        
+        item.innerHTML = `
+            <div style="flex-shrink: 0; width: 70px; height: 70px; border-radius: 8px; overflow: hidden; background: #2c3e50; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" 
+                 onclick="if(window.openGalleryAtCurrentIndex) window.openGalleryAtCurrentIndex(${property.id})"
+                 onmouseenter="this.style.transform='scale(1.05)'"
+                 onmouseleave="this.style.transform='scale(1)'"
+                 title="Clique para abrir galeria">
+                ${isVideo ? `
+                    <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #1a5276, #2c3e50); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-video" style="font-size: 1.8rem; color: rgba(255,255,255,0.8);"></i>
+                        <div style="position: absolute; bottom: 2px; right: 4px; background: rgba(0,0,0,0.6); border-radius: 3px; padding: 1px 4px; font-size: 0.6rem; color: white;">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                ` : `
+                    <img src="${firstImage}" 
+                         loading="lazy"
+                         style="width: 100%; height: 100%; object-fit: cover;"
+                         onerror="this.src='${defaultImage}'; this.onerror=null;"
+                         alt="${escapeTitle}">
+                `}
+            </div>
+            
+            <div style="flex: 3; min-width: 200px;">
+                <strong style="color: var(--primary); font-size: 1rem; display: block; margin-bottom: 0.3rem;">
+                    ${escapeTitle}
+                </strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.3rem;">
+                    <small style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                        <i class="fas fa-tag"></i> ${property.price}
+                    </small>
+                    <small style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                        <i class="fas fa-map-marker-alt"></i> ${property.location.substring(0, 40)}${property.location.length > 40 ? '...' : ''}
+                    </small>
+                </div>
+                <div style="font-size: 0.7rem; color: #666; display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.2rem;">
+                    <span><i class="fas fa-id-card"></i> ID: ${property.id}</span>
+                    ${property.has_video ? '<span style="color: #9b59b6;"><i class="fas fa-video"></i> Tem vídeo</span>' : ''}
+                    <span><i class="fas fa-images"></i> Imagens: ${property.images ? property.images.split(',').filter(i => i && i.trim() && i !== 'EMPTY').length : 0}</span>
+                    ${property.pdfs && property.pdfs !== 'EMPTY' ? `<span><i class="fas fa-file-pdf"></i> PDFs: ${property.pdfs.split(',').filter(p => p && p.trim() && p !== 'EMPTY').length}</span>` : ''}
+                    <span><i class="fas fa-eye"></i> <strong>Visualizações: ${viewCount}</strong></span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
+                <button onclick="editProperty(${property.id})" 
+                        style="background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
+                        onmouseenter="this.style.transform='translateY(-2px)'"
+                        onmouseleave="this.style.transform='translateY(0)'">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button onclick="if(window.resetGalleryViews) window.resetGalleryViews(${property.id}, '${escapeTitle.replace(/'/g, "\\'")}')" 
+                        style="background: #e67e22; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
+                        onmouseenter="this.style.transform='translateY(-2px)'"
+                        onmouseleave="this.style.transform='translateY(0)'">
+                    <i class="fas fa-eye-slash"></i> Zerar views
+                </button>
+                <button onclick="deleteProperty(${property.id})" 
+                        style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease;"
+                        onmouseenter="this.style.transform='translateY(-2px)'"
+                        onmouseleave="this.style.transform='translateY(0)'">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(item);
+    });
+    
+    container.appendChild(listContainer);
+    
+    // Controles de paginação (rodapé)
+    if (totalPages > 1) {
+        const paginationBottom = createPaginationControls(totalPages, page);
+        container.appendChild(paginationBottom);
+    }
+    
+    console.log(`✅ [Support] Página ${page}/${totalPages} - ${paginatedProperties.length} imóveis exibidos (total: ${totalItems})`);
+};
+
+// ========== AUTO-VALIDAÇÃO E TESTES AUTOMÁTICOS ==========
+// Como o console não permite inserção manual, a validação é executada automaticamente
+
+(function runAutoValidation() {
+    console.log('🧪 [admin-list-ui] Iniciando auto-validação...');
+    
+    const resultados = {
+        moduloCarregado: true,
+        funcoesDisponiveis: [],
+        funcoesAusentes: [],
+        modoDebugAtivo: false,
+        containerExiste: false,
+        fallbackAtivo: false
+    };
+    
+    // 1. Verificar funções principais
+    if (typeof window.loadPropertyList === 'function') {
+        resultados.funcoesDisponiveis.push('loadPropertyList');
+        console.log('✅ loadPropertyList disponível');
+    } else {
+        resultados.funcoesAusentes.push('loadPropertyList');
+        console.error('❌ loadPropertyList NÃO disponível');
+    }
+    
+    // 2. Verificar se createPaginationControls NÃO está no escopo global (deve ser local)
+    if (typeof window.createPaginationControls !== 'function') {
+        console.log('✅ createPaginationControls NÃO está no escopo global (correto - função local)');
+    } else {
+        resultados.funcoesDisponiveis.push('createPaginationControls (global)');
+        console.warn('⚠️ createPaginationControls está no escopo global - deveria ser local');
+    }
+    
+    // 3. Verificar modo debug
+    const isDebugMode = window.location.search.includes('debug=true') || 
+                        window.location.search.includes('test=true') ||
+                        window.location.hostname.includes('localhost') ||
+                        window.location.hostname.includes('127.0.0.1');
+    resultados.modoDebugAtivo = isDebugMode;
+    console.log(`🔧 Modo debug: ${isDebugMode ? 'ATIVO' : 'INATIVO'}`);
+    
+    // 4. Verificar container propertyList
+    const container = document.getElementById('propertyList');
+    resultados.containerExiste = !!container;
+    console.log(`📦 Container propertyList: ${resultados.containerExiste ? '✅ Encontrado' : '❌ Não encontrado'}`);
+    
+    // 5. Verificar qual implementação está ativa
+    if (typeof window.loadPropertyList === 'function') {
+        const funcStr = window.loadPropertyList.toString();
+        if (funcStr.includes('[Support]')) {
+            console.log('✅ Implementação COMPLETA do Support System ativa');
+        } else if (funcStr.includes('fallback') || funcStr.includes('Lista detalhada')) {
+            resultados.fallbackAtivo = true;
+            console.log('⚠️ Implementação FALLBACK do Core ativa (sem debug)');
+        } else {
+            console.log('ℹ️ Implementação personalizada detectada');
+        }
+    }
+    
+    // 6. Verificar variáveis de paginação
+    console.log(`📄 Configuração de paginação: página=${window.adminCurrentPage || 1}, itens/página=${window.adminItemsPerPage || 4}`);
+    
+    // 7. Resumo da validação
+    console.log('\n📊 RESUMO DA AUTO-VALIDAÇÃO:');
+    console.log(`   Módulo carregado: ${resultados.moduloCarregado ? '✅ Sim' : '❌ Não'}`);
+    console.log(`   Funções disponíveis: ${resultados.funcoesDisponiveis.length > 0 ? resultados.funcoesDisponiveis.join(', ') : 'nenhuma'}`);
+    console.log(`   Funções ausentes: ${resultados.funcoesAusentes.length > 0 ? resultados.funcoesAusentes.join(', ') : 'nenhuma'}`);
+    console.log(`   Container propertyList: ${resultados.containerExiste ? '✅ Existe' : '❌ Não existe'}`);
+    console.log(`   Modo produção (fallback): ${resultados.fallbackAtivo ? '✅ Sim' : '❌ Não'}`);
+    
+    const sucesso = resultados.funcoesDisponiveis.includes('loadPropertyList') && resultados.containerExiste;
+    console.log(`\n${sucesso ? '✅ AUTO-VALIDAÇÃO CONCLUÍDA COM SUCESSO' : '⚠️ AUTO-VALIDAÇÃO COM PENDÊNCIAS'}`);
+    
+    // 8. EXECUTAR TESTE RÁPIDO (apenas se container existir e não estiver em fallback)
+    if (resultados.containerExiste && !resultados.fallbackAtivo && resultados.modoDebugAtivo) {
+        console.log('\n🧪 Executando teste rápido da UI...');
+        setTimeout(() => {
+            try {
+                const currentPage = window.adminCurrentPage || 1;
+                window.loadPropertyList(currentPage);
+                console.log('✅ Teste rápido executado - UI renderizada');
+            } catch (error) {
+                console.error('❌ Erro no teste rápido:', error.message);
+            }
+        }, 1000);
+    } else if (resultados.fallbackAtivo) {
+        console.log('\nℹ️ Modo produção ativo - UI completa será carregada apenas com ?debug=true');
+        console.log('   Para testar, acesse: https://wlimoveis.github.io/imoveis-maceio/?debug=true');
+    } else if (!resultados.containerExiste) {
+        console.warn('\n⚠️ Container propertyList não encontrado - verifique se o painel admin está presente no HTML');
+    }
+    
+    // Expor resultados para diagnóstico posterior
+    window.__adminListUIDiagnostic = resultados;
+})();
+
 console.log('✅ Módulo admin-list-ui: Funções loadPropertyList e createPaginationControls injetadas.');
+console.log('🔧 Auto-validação executada automaticamente (console bloqueado)');
