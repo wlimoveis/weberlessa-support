@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.5
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.6
 // Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics (v2.5)');
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics (v2.6)');
 
 // ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
 
@@ -1309,6 +1309,284 @@ window.diagnoseLoadPropertyListCode = function() {
 };
 
 /**
+ * ✅ DIAGNÓSTICO COMPLETO DE ANALYTICS (baseado no log)
+ * Executa verificação detalhada e fornece recomendações
+ */
+window.diagnoseAnalyticsComplete = function() {
+    console.log('\n🔍 ========================================');
+    console.log('🔍 DIAGNÓSTICO COMPLETO - ANALYTICS DO ADMIN');
+    console.log('🔍 ========================================\n');
+    
+    const results = {
+        adminVisible: false,
+        loadPropertyListExists: false,
+        codeAnalytics: {
+            hasStatsHeader: false,
+            hasZerarTodas: false,
+            hasViewCount: false,
+            hasZerarViews: false,
+            hasLastView: false
+        },
+        uiAnalytics: {
+            statsHeader: false,
+            totalViewsElement: false,
+            zerarTodasButton: false,
+            viewCountInCards: false,
+            zerarViewsButton: false,
+            lastViewInfo: false
+        },
+        supportFunctions: {},
+        localStorageData: null,
+        recommendations: [],
+        status: 'unknown'
+    };
+    
+    // 1. Verificar painel admin
+    const adminPanel = document.getElementById('adminPanel');
+    results.adminVisible = adminPanel && (adminPanel.style.display === 'block' || window.getComputedStyle(adminPanel).display === 'block');
+    console.log(`📁 PAINEL ADMIN: ${results.adminVisible ? '✅ VISÍVEL' : '❌ FECHADO'}`);
+    
+    if (!results.adminVisible) {
+        results.recommendations.push('Abra o painel admin (botão 🔧, senha wl654)');
+    }
+    
+    // 2. Verificar função loadPropertyList
+    const loadPropertyListSrc = window.loadPropertyList?.toString();
+    results.loadPropertyListExists = !!loadPropertyListSrc;
+    
+    if (loadPropertyListSrc) {
+        console.log(`\n📋 FUNÇÃO loadPropertyList:`);
+        
+        results.codeAnalytics.hasStatsHeader = loadPropertyListSrc.includes('Total de visualizações');
+        results.codeAnalytics.hasZerarTodas = loadPropertyListSrc.includes('Zerar TODAS');
+        results.codeAnalytics.hasViewCount = loadPropertyListSrc.includes('viewCount') || loadPropertyListSrc.includes('Visualizações:');
+        results.codeAnalytics.hasZerarViews = loadPropertyListSrc.includes('resetGalleryViews');
+        results.codeAnalytics.hasLastView = loadPropertyListSrc.includes('lastView') || loadPropertyListSrc.includes('Última:');
+        
+        console.log(`   - Cabeçalho com total de visualizações: ${results.codeAnalytics.hasStatsHeader ? '✅' : '❌'}`);
+        console.log(`   - Botão "Zerar TODAS": ${results.codeAnalytics.hasZerarTodas ? '✅' : '❌'}`);
+        console.log(`   - Contador por imóvel: ${results.codeAnalytics.hasViewCount ? '✅' : '❌'}`);
+        console.log(`   - Botão "Zerar views": ${results.codeAnalytics.hasZerarViews ? '✅' : '❌'}`);
+        console.log(`   - Última visualização: ${results.codeAnalytics.hasLastView ? '✅' : '❌'}`);
+        
+        if (!results.codeAnalytics.hasStatsHeader && !results.codeAnalytics.hasViewCount) {
+            results.recommendations.push('Atualizar admin-list-ui.js no Support System com a versão que contém Analytics');
+        }
+    } else {
+        console.log(`\n❌ Função loadPropertyList NÃO ENCONTRADA!`);
+        results.recommendations.push('Verificar se admin-list-ui.js foi carregado corretamente');
+    }
+    
+    // 3. Verificar elementos da interface (se admin visível)
+    const propertyList = document.getElementById('propertyList');
+    if (propertyList && results.adminVisible) {
+        console.log(`\n📋 INTERFACE DO ADMIN:`);
+        
+        // Verificar cabeçalho de estatísticas
+        const statsHeader = propertyList.querySelector('div[style*="background: #e8f4fd"], div[style*="background:#e8f4fd"]');
+        if (statsHeader) {
+            results.uiAnalytics.statsHeader = true;
+            results.uiAnalytics.totalViewsElement = statsHeader.innerHTML.includes('Total de visualizações');
+            results.uiAnalytics.zerarTodasButton = statsHeader.innerHTML.includes('Zerar TODAS');
+            
+            console.log(`   - Cabeçalho de estatísticas: ✅ ENCONTRADO`);
+            console.log(`     • Total de visualizações: ${results.uiAnalytics.totalViewsElement ? '✅' : '❌'}`);
+            console.log(`     • Botão Zerar TODAS: ${results.uiAnalytics.zerarTodasButton ? '✅' : '❌'}`);
+            
+            if (results.uiAnalytics.totalViewsElement) {
+                const totalMatch = statsHeader.innerHTML.match(/Total de visualizações:<\/strong> (\d+)/);
+                if (totalMatch) console.log(`     • Valor atual: ${totalMatch[1]} visualizações`);
+            }
+        } else {
+            console.log(`   - Cabeçalho de estatísticas: ❌ NÃO ENCONTRADO`);
+        }
+        
+        // Verificar cards de imóveis
+        const propertyItems = propertyList.querySelectorAll('.property-item');
+        if (propertyItems.length > 0) {
+            const firstItem = propertyItems[0];
+            results.uiAnalytics.viewCountInCards = firstItem.innerHTML.includes('Visualizações:');
+            results.uiAnalytics.zerarViewsButton = firstItem.innerHTML.includes('Zerar views');
+            results.uiAnalytics.lastViewInfo = firstItem.innerHTML.includes('Última:');
+            
+            console.log(`   - Cards de imóveis (${propertyItems.length} encontrados):`);
+            console.log(`     • Contador de visualizações: ${results.uiAnalytics.viewCountInCards ? '✅' : '❌'}`);
+            console.log(`     • Botão "Zerar views": ${results.uiAnalytics.zerarViewsButton ? '✅' : '❌'}`);
+            console.log(`     • Última visualização: ${results.uiAnalytics.lastViewInfo ? '✅' : '❌'}`);
+        }
+    }
+    
+    // 4. Verificar funções de suporte
+    console.log(`\n🔧 FUNÇÕES DE SUPORTE:`);
+    const supportFunctionsList = [
+        'getGalleryViews', 'getLastGalleryView', 'resetGalleryViews',
+        'getTotalGalleryViews', 'resetAllGalleryViews', 'openGalleryAtCurrentIndex',
+        'registerGalleryView'
+    ];
+    
+    supportFunctionsList.forEach(fn => {
+        const exists = typeof window[fn] === 'function';
+        results.supportFunctions[fn] = exists;
+        console.log(`   - window.${fn}: ${exists ? '✅' : '❌'}`);
+    });
+    
+    // 5. Verificar dados no localStorage
+    console.log(`\n💾 DADOS DE VISUALIZAÇÃO:`);
+    try {
+        const galleryViews = localStorage.getItem('gallery_views') || localStorage.getItem('galleryViews');
+        if (galleryViews) {
+            results.localStorageData = JSON.parse(galleryViews);
+            const total = Object.values(results.localStorageData).reduce((a, b) => a + b, 0);
+            console.log(`   - Registros: ${Object.keys(results.localStorageData).length} imóveis`);
+            console.log(`   - Total de visualizações: ${total}`);
+            
+            const sorted = Object.entries(results.localStorageData).sort((a,b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                console.log(`   - Top 5 imóveis com mais visualizações:`);
+                sorted.slice(0, 5).forEach(([id, count]) => {
+                    const property = window.properties?.find(p => p.id == id);
+                    const title = property?.title?.substring(0, 30) || `ID ${id}`;
+                    console.log(`     • ${title}: ${count} views`);
+                });
+            }
+        } else {
+            console.log(`   - Nenhum dado de visualização encontrado`);
+            results.recommendations.push('Nenhuma visualização registrada ainda - abra algumas galerias para gerar dados');
+        }
+    } catch(e) {
+        console.log(`   - Erro ao ler: ${e.message}`);
+    }
+    
+    // 6. Determinar status
+    const hasAnalyticsCode = results.codeAnalytics.hasStatsHeader && results.codeAnalytics.hasViewCount;
+    const hasAnalyticsUI = results.uiAnalytics.statsHeader && results.uiAnalytics.totalViewsElement && results.uiAnalytics.viewCountInCards;
+    
+    if (hasAnalyticsUI) {
+        console.log('\n✅ ANALYTICS ESTÁ FUNCIONANDO CORRETAMENTE!');
+        console.log('   As estatísticas de visualizações estão visíveis no admin.');
+        results.status = 'functional';
+    } else if (hasAnalyticsCode && !hasAnalyticsUI) {
+        console.log('\n⚠️ ANALYTICS PARCIAL - O código existe mas a UI não está visível.');
+        console.log('   Tente recarregar a página (Ctrl+F5) e abrir o admin novamente.');
+        results.recommendations.push('Recarregar a página (Ctrl+F5) e reabrir o painel admin');
+        results.status = 'partial';
+    } else if (!hasAnalyticsCode) {
+        console.log('\n❌ ANALYTICS AUSENTE - O recurso não está no código da loadPropertyList.');
+        console.log('\n💡 SOLUÇÃO: O Analytics está disponível APENAS no Support System (modo debug).');
+        console.log('   Para ter Analytics em produção, é necessário:');
+        console.log('   1. Acessar com ?debug=true para usar a UI completa');
+        console.log('   2. OU migrar a função loadPropertyList do Support para o Core');
+        results.recommendations.push('Usar ?debug=true para acessar a UI completa com Analytics');
+        results.recommendations.push('OU migrar admin-list-ui.js para o Core System');
+        results.status = 'missing';
+    }
+    
+    // 7. Verificar modo atual
+    const isDebugMode = window.location.search.includes('debug=true');
+    console.log(`\n🔧 MODO ATUAL: ${isDebugMode ? 'DEBUG (Support System ativo)' : 'PRODUÇÃO (apenas Core)'}`);
+    
+    if (!isDebugMode && results.status !== 'functional') {
+        console.log('\n💡 O Analytics completo está disponível APENAS no Support System.');
+        console.log('   Acesse: ' + window.location.origin + window.location.pathname + '?debug=true');
+    }
+    
+    if (results.recommendations.length > 0) {
+        console.log('\n📋 RECOMENDAÇÕES:');
+        results.recommendations.forEach((rec, i) => {
+            console.log(`   ${i+1}. ${rec}`);
+        });
+    }
+    
+    console.log('\n🔍 FIM DO DIAGNÓSTICO');
+    
+    return results;
+};
+
+/**
+ * ✅ CORREÇÃO RÁPIDA: Forçar recriação da lista admin com Analytics
+ * (se o Support System estiver carregado)
+ */
+window.fixAdminAnalytics = function() {
+    console.group('🔧 CORREÇÃO RÁPIDA - ADMIN ANALYTICS');
+    
+    const isDebugMode = window.location.search.includes('debug=true');
+    
+    if (!isDebugMode) {
+        console.warn('⚠️ Modo produção ativo. O Analytics completo está disponível apenas em modo debug.');
+        console.log('💡 Acesse: ' + window.location.origin + window.location.pathname + '?debug=true');
+        console.groupEnd();
+        return { success: false, error: 'Modo produção' };
+    }
+    
+    if (typeof window.loadPropertyList !== 'function') {
+        console.error('❌ window.loadPropertyList não disponível');
+        console.groupEnd();
+        return { success: false, error: 'loadPropertyList não encontrada' };
+    }
+    
+    // Forçar recriação da lista
+    console.log('🔄 Recriando lista admin com Analytics...');
+    
+    try {
+        // Resetar página atual
+        window.adminCurrentPage = 1;
+        window.adminItemsPerPage = window.adminItemsPerPage || 4;
+        
+        // Executar recriação
+        window.loadPropertyList(1);
+        
+        console.log('✅ Lista admin recriada! Verifique se o Analytics apareceu.');
+    } catch (error) {
+        console.error('❌ Erro ao recriar lista:', error.message);
+        console.groupEnd();
+        return { success: false, error: error.message };
+    }
+    
+    console.groupEnd();
+    return { success: true, message: 'Lista admin recriada' };
+};
+
+/**
+ * ✅ VERIFICAR E CORRIGIR: Função para diagnosticar e sugerir correção
+ */
+window.diagnoseAndFixAnalytics = async function() {
+    console.log('\n🚀 =========================================');
+    console.log('🚀 DIAGNÓSTICO E CORREÇÃO DE ANALYTICS');
+    console.log('🚀 =========================================\n');
+    
+    // Executar diagnóstico completo
+    const diagnosis = window.diagnoseAnalyticsComplete();
+    
+    // Se estiver em modo debug e o Analytics não estiver visível, tentar corrigir
+    const isDebugMode = window.location.search.includes('debug=true');
+    
+    if (isDebugMode && diagnosis.status !== 'functional') {
+        console.log('\n🔧 Tentando correção automática...');
+        
+        // Tentar recriar a lista
+        const fixResult = window.fixAdminAnalytics();
+        
+        if (fixResult.success) {
+            // Aguardar e verificar novamente
+            await new Promise(r => setTimeout(r, 1000));
+            const recheck = window.diagnoseAnalyticsComplete();
+            
+            if (recheck.status === 'functional') {
+                console.log('\n✅ CORREÇÃO BEM-SUCEDIDA! Analytics agora está visível.');
+            } else {
+                console.log('\n⚠️ Correção aplicada, mas Analytics ainda não visível.');
+                console.log('   Tente recarregar a página manualmente (Ctrl+F5)');
+            }
+        }
+    } else if (!isDebugMode && diagnosis.status !== 'functional') {
+        console.log('\n💡 Para usar o Analytics, acesse o modo debug:');
+        console.log('   ' + window.location.origin + window.location.pathname + '?debug=true');
+    }
+    
+    return diagnosis;
+};
+
+/**
  * ✅ Executar todos os diagnósticos de Analytics
  */
 window.runAnalyticsDiagnostic = async function() {
@@ -1429,7 +1707,9 @@ function executeAllChecks(isPartial = false) {
             console.log('   • window.preRemovalVerification() - Verifica se é seguro remover fallbacks');
             console.log('   • window.runPostRemovalTests() - Executa todos os testes pós-remoção');
             console.log('   • window.runAnalyticsDiagnostic() - Diagnóstico completo de Analytics');
-            console.log('   • window.diagnoseAnalyticsQuick() - Diagnóstico rápido de Analytics');
+            console.log('   • window.diagnoseAnalyticsComplete() - Diagnóstico completo com recomendações');
+            console.log('   • window.diagnoseAndFixAnalytics() - Diagnóstico e correção automática');
+            console.log('   • window.fixAdminAnalytics() - Força recriação da lista admin');
             console.log('   • window.validateExtractBairroFunction() - Validação completa de bairros');
             console.log('   • window.testExtractionPerformance() - Teste de performance');
             console.log('   • window.runQuickValidation() - Todas as validações');
@@ -1446,7 +1726,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.5 com Analytics Diagnostic)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.6 com Analytics Diagnostic)');
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -1500,7 +1780,7 @@ function executeAllChecks(isPartial = false) {
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.5)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.6)');
     }
 })();
 
@@ -1532,7 +1812,12 @@ window.simpleChecker = {
     diagnoseAnalyticsQuick: window.diagnoseAnalyticsQuick,
     diagnoseAnalyticsFull: window.diagnoseAnalyticsFull,
     diagnoseLoadPropertyListCode: window.diagnoseLoadPropertyListCode,
-    runAnalyticsDiagnostic: window.runAnalyticsDiagnostic
+    runAnalyticsDiagnostic: window.runAnalyticsDiagnostic,
+    
+    // Funções de Analytics (v2.6)
+    diagnoseAnalyticsComplete: window.diagnoseAnalyticsComplete,
+    fixAdminAnalytics: window.fixAdminAnalytics,
+    diagnoseAndFixAnalytics: window.diagnoseAndFixAnalytics
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.5 - Diagnóstico de Analytics + Verificação completa!');
+console.log('✅ simple-checker.js ATUALIZADO v2.6 - Diagnóstico completo de Analytics + Correção automática!');
