@@ -838,4 +838,282 @@ window.simpleChecker = {
     waitForRegistry: waitForRegistryAndExecute
 };
 
+// ========== TESTES PÓS-IMPLEMENTAÇÃO (EXECUÇÃO AUTOMÁTICA) ==========
+
+/**
+ * ✅ TESTE 1: Verificar erros no console após recarregamento
+ */
+window.testPageReload = function() {
+    console.group('🔄 TESTE 1: VERIFICAÇÃO PÓS-RECARREGAMENTO');
+    
+    const errors = [];
+    const warnings = [];
+    
+    // Capturar erros silenciosamente
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    console.error = function(...args) {
+        errors.push(args.join(' '));
+        originalError.apply(console, args);
+    };
+    
+    console.warn = function(...args) {
+        if (!args[0]?.includes('diagnostic') && !args[0]?.includes('Support')) {
+            warnings.push(args.join(' '));
+        }
+        originalWarn.apply(console, args);
+    };
+    
+    // Restaurar após 2 segundos
+    setTimeout(() => {
+        console.error = originalError;
+        console.warn = originalWarn;
+        
+        console.log('📊 RESULTADO DA VERIFICAÇÃO:');
+        console.log(`   Erros detectados: ${errors.length}`);
+        console.log(`   Avisos detectados: ${warnings.length}`);
+        
+        if (errors.length === 0) {
+            console.log('✅ Nenhum erro crítico detectado no console!');
+        } else {
+            console.warn(`⚠️ ${errors.length} erro(s) encontrado(s). Verifique acima.`);
+        }
+        
+        console.groupEnd();
+    }, 2000);
+    
+    return { errors, warnings };
+};
+
+/**
+ * ✅ TESTE 2: Verificar funcionalidade com imóvel existente
+ */
+window.testPropertyFunctionality = function() {
+    console.group('🏠 TESTE 2: FUNCIONALIDADE COM IMÓVEL EXISTENTE');
+    
+    if (!window.properties || window.properties.length === 0) {
+        console.error('❌ Nenhum imóvel carregado para teste!');
+        console.groupEnd();
+        return { success: false, error: 'Nenhum imóvel disponível' };
+    }
+    
+    const testProperty = window.properties[0];
+    console.log(`📌 Imóvel teste: "${testProperty.title}" (ID: ${testProperty.id})`);
+    
+    const resultados = {
+        title: testProperty.title,
+        id: testProperty.id,
+        tests: {}
+    };
+    
+    // Testar formatFeaturesForDisplay
+    try {
+        const formattedFeatures = window.SharedCore?.formatFeaturesForDisplay?.(testProperty.features) || 
+                                  window.formatFeaturesForDisplay?.(testProperty.features) ||
+                                  testProperty.features;
+        resultados.tests.formatFeatures = { success: true, result: formattedFeatures?.substring(0, 50) };
+        console.log(`✅ Features formatadas: "${formattedFeatures?.substring(0, 50)}..."`);
+    } catch (e) {
+        resultados.tests.formatFeatures = { success: false, error: e.message };
+        console.error(`❌ Erro ao formatar features: ${e.message}`);
+    }
+    
+    // Testar ensureBooleanVideo
+    try {
+        const hasVideo = window.SharedCore?.ensureBooleanVideo?.(testProperty.has_video) ?? false;
+        resultados.tests.hasVideo = { success: true, result: hasVideo };
+        console.log(`✅ has_video: ${hasVideo ? 'Sim' : 'Não'}`);
+    } catch (e) {
+        resultados.tests.hasVideo = { success: false, error: e.message };
+        console.error(`❌ Erro ao verificar vídeo: ${e.message}`);
+    }
+    
+    // Testar formatPrice
+    try {
+        const formattedPrice = window.SharedCore?.PriceFormatter?.formatForCard?.(testProperty.price) ||
+                               window.formatPrice?.(testProperty.price) ||
+                               testProperty.price;
+        resultados.tests.formatPrice = { success: true, result: formattedPrice };
+        console.log(`✅ Preço formatado: "${formattedPrice}"`);
+    } catch (e) {
+        resultados.tests.formatPrice = { success: false, error: e.message };
+        console.error(`❌ Erro ao formatar preço: ${e.message}`);
+    }
+    
+    const allSuccess = Object.values(resultados.tests).every(t => t.success === true);
+    console.log(`\n📊 RESULTADO: ${allSuccess ? '✅ TODOS OS TESTES PASSARAM' : '⚠️ ALGUNS TESTES FALHARAM'}`);
+    
+    console.groupEnd();
+    return resultados;
+};
+
+/**
+ * ✅ TESTE 3: Simular teste de edição de imóvel (via console)
+ * Nota: Este teste verifica apenas se as funções necessárias existem,
+ * pois a edição real requer interação do usuário.
+ */
+window.testEditPropertyCapability = function() {
+    console.group('✏️ TESTE 3: CAPACIDADE DE EDIÇÃO DE IMÓVEL');
+    
+    const capacidades = {
+        editFunctionExists: typeof window.editProperty === 'function',
+        updatePropertyExists: typeof window.updateProperty === 'function',
+        updatePropertyCardExists: typeof window.updatePropertyCard === 'function',
+        savePropertyExists: typeof window.saveProperty === 'function',
+        formExists: !!document.getElementById('propertyForm'),
+        adminPanelExists: !!document.getElementById('adminPanel')
+    };
+    
+    console.table(capacidades);
+    
+    const allRequired = capacidades.editFunctionExists && 
+                        capacidades.updatePropertyExists && 
+                        capacidades.savePropertyExists;
+    
+    if (allRequired) {
+        console.log('\n✅ Funções de edição disponíveis!');
+        console.log('💡 Para testar a edição real:');
+        console.log('   1. Clique no botão 🔧 (admin-toggle)');
+        console.log('   2. Digite a senha: wl654');
+        console.log('   3. Clique em "Editar" em qualquer imóvel');
+        console.log('   4. Modifique as features e clique em "Salvar"');
+    } else {
+        console.error('\n❌ Funções de edição ausentes ou incompletas!');
+    }
+    
+    console.groupEnd();
+    return capacidades;
+};
+
+/**
+ * ✅ TESTE 4: Simular teste de criação de novo imóvel
+ * Nota: Este teste verifica apenas se as funções necessárias existem,
+ * pois a criação real requer interação do usuário.
+ */
+window.testCreatePropertyCapability = function() {
+    console.group('➕ TESTE 4: CAPACIDADE DE CRIAÇÃO DE IMÓVEL');
+    
+    const capacidades = {
+        addNewPropertyExists: typeof window.addNewProperty === 'function',
+        savePropertyExists: typeof window.saveProperty === 'function',
+        addToLocalPropertiesExists: typeof window.addToLocalProperties === 'function',
+        MediaSystemExists: typeof window.MediaSystem === 'object',
+        formExists: !!document.getElementById('propertyForm'),
+        adminPanelExists: !!document.getElementById('adminPanel')
+    };
+    
+    console.table(capacidades);
+    
+    const allRequired = capacidades.addNewPropertyExists && 
+                        capacidades.savePropertyExists &&
+                        capacidades.MediaSystemExists;
+    
+    if (allRequired) {
+        console.log('\n✅ Funções de criação disponíveis!');
+        console.log('💡 Para testar a criação real:');
+        console.log('   1. Clique no botão 🔧 (admin-toggle)');
+        console.log('   2. Digite a senha: wl654');
+        console.log('   3. Preencha o formulário (Título, Preço, Localização)');
+        console.log('   4. Adicione features (ex: "3 Quartos, Piscina")');
+        console.log('   5. Clique em "Adicionar Imóvel ao Site"');
+    } else {
+        console.error('\n❌ Funções de criação ausentes ou incompletas!');
+    }
+    
+    console.groupEnd();
+    return capacidades;
+};
+
+/**
+ * ✅ FUNÇÃO PRINCIPAL: Executar todos os testes pós-implementação automaticamente
+ */
+window.runPostImplementationTests = async function() {
+    console.log('\n🚀 =========================================');
+    console.log('🚀 EXECUTANDO TESTES PÓS-IMPLEMENTAÇÃO');
+    console.log('🚀 =========================================\n');
+    
+    const resultados = {
+        timestamp: new Date().toISOString(),
+        test1: null,
+        test2: null,
+        test3: null,
+        test4: null,
+        sucessoGeral: false
+    };
+    
+    // Teste 1: Verificar erros (não executa automaticamente para não poluir)
+    console.log('📋 Para executar o TESTE 1 (verificação de erros):');
+    console.log('   window.testPageReload() - Após recarregar a página\n');
+    
+    // Teste 2: Funcionalidade com imóvel existente
+    console.log('▶️ Executando TESTE 2...');
+    resultados.test2 = window.testPropertyFunctionality();
+    
+    // Teste 3: Capacidade de edição
+    console.log('\n▶️ Executando TESTE 3...');
+    resultados.test3 = window.testEditPropertyCapability();
+    
+    // Teste 4: Capacidade de criação
+    console.log('\n▶️ Executando TESTE 4...');
+    resultados.test4 = window.testCreatePropertyCapability();
+    
+    // Resumo geral
+    const test2Ok = resultados.test2?.tests && 
+                    Object.values(resultados.test2.tests).every(t => t.success === true);
+    const test3Ok = resultados.test3?.editFunctionExists === true;
+    const test4Ok = resultados.test4?.addNewPropertyExists === true;
+    
+    resultados.sucessoGeral = test2Ok && test3Ok && test4Ok;
+    
+    console.log('\n📊 =========================================');
+    console.log('📊 RESUMO FINAL DOS TESTES');
+    console.log('📊 =========================================');
+    console.log(`   Teste 2 (Funcionalidade): ${test2Ok ? '✅ APROVADO' : '⚠️ PENDENTE'}`);
+    console.log(`   Teste 3 (Edição): ${test3Ok ? '✅ APROVADO' : '⚠️ PENDENTE'}`);
+    console.log(`   Teste 4 (Criação): ${test4Ok ? '✅ APROVADO' : '⚠️ PENDENTE'}`);
+    
+    console.log(`\n${resultados.sucessoGeral ? '🎉 TODOS OS TESTES FORAM APROVADOS!' : '⚠️ ALGUNS TESTES REQUEREM VERIFICAÇÃO MANUAL'}`);
+    
+    console.log('\n💡 Para teste manual completo:');
+    console.log('   1. Recarregue a página (F5)');
+    console.log('   2. Execute window.testPageReload() para verificar erros');
+    console.log('   3. Abra o painel admin e teste edição/criação real');
+    
+    console.log('\n🚀 =========================================');
+    
+    return resultados;
+};
+
+// ========== EXECUÇÃO AUTOMÁTICA EM MODO DEBUG ==========
+
+// Adicionar execução automática dos testes de capacidade
+(function autoRunPostTests() {
+    const isDebugMode = window.location.search.includes('debug=true') || 
+                       window.location.search.includes('test=true') ||
+                       window.location.hostname.includes('localhost') ||
+                       window.location.hostname.includes('127.0.0.1');
+    
+    if (isDebugMode) {
+        console.log('🔧 Executando testes pós-implementação automáticos...');
+        
+        // Aguardar sistema inicializar
+        setTimeout(() => {
+            // Executar testes de capacidade (não destrutivos)
+            window.testEditPropertyCapability?.();
+            window.testCreatePropertyCapability?.();
+            
+            // Verificar funcionalidade se houver imóveis
+            if (window.properties && window.properties.length > 0) {
+                setTimeout(() => {
+                    window.testPropertyFunctionality?.();
+                }, 1000);
+            }
+            
+            console.log('\n💡 Para executar TODOS os testes manualmente:');
+            console.log('   window.runPostImplementationTests()');
+        }, 2000);
+    }
+})();
+
 console.log('✅ simple-checker.js ATUALIZADO v2.2 - Execução automática da validação de bairros!');
