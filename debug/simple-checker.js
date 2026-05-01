@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.6
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics (v2.6)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.7
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection (v2.7)');
 
 // ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
 
@@ -1382,7 +1382,6 @@ window.diagnoseAnalyticsComplete = function() {
     if (propertyList && results.adminVisible) {
         console.log(`\n📋 INTERFACE DO ADMIN:`);
         
-        // Verificar cabeçalho de estatísticas
         const statsHeader = propertyList.querySelector('div[style*="background: #e8f4fd"], div[style*="background:#e8f4fd"]');
         if (statsHeader) {
             results.uiAnalytics.statsHeader = true;
@@ -1401,7 +1400,6 @@ window.diagnoseAnalyticsComplete = function() {
             console.log(`   - Cabeçalho de estatísticas: ❌ NÃO ENCONTRADO`);
         }
         
-        // Verificar cards de imóveis
         const propertyItems = propertyList.querySelectorAll('.property-item');
         if (propertyItems.length > 0) {
             const firstItem = propertyItems[0];
@@ -1481,7 +1479,6 @@ window.diagnoseAnalyticsComplete = function() {
         results.status = 'missing';
     }
     
-    // 7. Verificar modo atual
     const isDebugMode = window.location.search.includes('debug=true');
     console.log(`\n🔧 MODO ATUAL: ${isDebugMode ? 'DEBUG (Support System ativo)' : 'PRODUÇÃO (apenas Core)'}`);
     
@@ -1524,17 +1521,12 @@ window.fixAdminAnalytics = function() {
         return { success: false, error: 'loadPropertyList não encontrada' };
     }
     
-    // Forçar recriação da lista
     console.log('🔄 Recriando lista admin com Analytics...');
     
     try {
-        // Resetar página atual
         window.adminCurrentPage = 1;
         window.adminItemsPerPage = window.adminItemsPerPage || 4;
-        
-        // Executar recriação
         window.loadPropertyList(1);
-        
         console.log('✅ Lista admin recriada! Verifique se o Analytics apareceu.');
     } catch (error) {
         console.error('❌ Erro ao recriar lista:', error.message);
@@ -1554,23 +1546,16 @@ window.diagnoseAndFixAnalytics = async function() {
     console.log('🚀 DIAGNÓSTICO E CORREÇÃO DE ANALYTICS');
     console.log('🚀 =========================================\n');
     
-    // Executar diagnóstico completo
     const diagnosis = window.diagnoseAnalyticsComplete();
-    
-    // Se estiver em modo debug e o Analytics não estiver visível, tentar corrigir
     const isDebugMode = window.location.search.includes('debug=true');
     
     if (isDebugMode && diagnosis.status !== 'functional') {
         console.log('\n🔧 Tentando correção automática...');
-        
-        // Tentar recriar a lista
         const fixResult = window.fixAdminAnalytics();
         
         if (fixResult.success) {
-            // Aguardar e verificar novamente
             await new Promise(r => setTimeout(r, 1000));
             const recheck = window.diagnoseAnalyticsComplete();
-            
             if (recheck.status === 'functional') {
                 console.log('\n✅ CORREÇÃO BEM-SUCEDIDA! Analytics agora está visível.');
             } else {
@@ -1602,15 +1587,12 @@ window.runAnalyticsDiagnostic = async function() {
         sucessoGeral: false
     };
     
-    // Diagnóstico rápido
     console.log('▶️ DIAGNÓSTICO RÁPIDO:');
     resultados.quick = window.diagnoseAnalyticsQuick();
     
-    // Análise do código
     console.log('\n▶️ ANÁLISE DO CÓDIGO:');
     resultados.codeAnalysis = window.diagnoseLoadPropertyListCode();
     
-    // Diagnóstico completo (se o painel estiver visível)
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel && adminPanel.style.display === 'block') {
         console.log('\n▶️ DIAGNÓSTICO COMPLETO (UI):');
@@ -1620,7 +1602,6 @@ window.runAnalyticsDiagnostic = async function() {
         console.log('💡 Abra o painel admin (botão 🔧, senha wl654) e execute novamente');
     }
     
-    // Resumo
     console.log('\n📊 =========================================');
     console.log('📊 RESUMO DO DIAGNÓSTICO DE ANALYTICS');
     console.log('📊 =========================================');
@@ -1646,6 +1627,144 @@ window.runAnalyticsDiagnostic = async function() {
     resultados.sucessoGeral = analyticsPresent && codeComplete;
     
     return resultados;
+};
+
+// ========== VERIFICAÇÃO DA VERSÃO ATIVA DO loadPropertyList (v2.7) ==========
+
+/**
+ * ✅ VERIFICAÇÃO RÁPIDA - Qual loadPropertyList está ativa?
+ * Analisa a função atual e identifica se vem do Core ou Support System
+ */
+window.diagnoseActiveLoadPropertyList = function() {
+    console.group('🔍 ANÁLISE DA FUNÇÃO loadPropertyList ATIVA');
+    
+    const loadPropertyListSrc = window.loadPropertyList?.toString();
+    
+    if (!loadPropertyListSrc) {
+        console.error('❌ window.loadPropertyList NÃO está definida!');
+        console.groupEnd();
+        return { success: false, error: 'Função não encontrada' };
+    }
+    
+    const hasAnalytics = {
+        statsHeader: loadPropertyListSrc.includes('Total de visualizações'),
+        zerarTodas: loadPropertyListSrc.includes('Zerar TODAS'),
+        viewCountInCard: loadPropertyListSrc.includes('Visualizações:'),
+        zerarViews: loadPropertyListSrc.includes('resetGalleryViews'),
+        lastView: loadPropertyListSrc.includes('lastView'),
+        statsHeaderDiv: loadPropertyListSrc.includes('background: #e8f4fd')
+    };
+    
+    console.log('📊 COMPONENTES DO ANALYTICS:');
+    console.log(`   - Cabeçalho "Total de visualizações": ${hasAnalytics.statsHeader ? '✅' : '❌'}`);
+    console.log(`   - Botão "Zerar TODAS": ${hasAnalytics.zerarTodas ? '✅' : '❌'}`);
+    console.log(`   - Contador "Visualizações:" no card: ${hasAnalytics.viewCountInCard ? '✅' : '❌'}`);
+    console.log(`   - Botão "Zerar views": ${hasAnalytics.zerarViews ? '✅' : '❌'}`);
+    console.log(`   - "Última visualização": ${hasAnalytics.lastView ? '✅' : '❌'}`);
+    
+    const analyticsComplete = hasAnalytics.statsHeader && hasAnalytics.zerarTodas && 
+                              hasAnalytics.viewCountInCard && hasAnalytics.zerarViews;
+    
+    console.log(`\n${analyticsComplete ? '✅ ANALYTICS COMPLETO na função ativa!' : '❌ ANALYTICS INCOMPLETO na função ativa!'}`);
+    
+    const isCoreVersion = loadPropertyListSrc.includes('background: #e8f4fd') && 
+                          !loadPropertyListSrc.includes('[Support]');
+    const isSupportVersion = loadPropertyListSrc.includes('[Support]') || 
+                            loadPropertyListSrc.includes('admin-list-ui');
+    
+    let origin = 'DESCONHECIDA';
+    if (isCoreVersion) {
+        origin = 'CORE SYSTEM (properties.js)';
+        console.log('\n📌 Origem: CORE SYSTEM (properties.js) - Analytics presente!');
+    } else if (isSupportVersion) {
+        origin = 'SUPPORT SYSTEM (admin-list-ui.js)';
+        console.log('\n📌 Origem: SUPPORT SYSTEM (admin-list-ui.js)');
+        if (!analyticsComplete) {
+            console.log('   ⚠️ Esta versão NÃO contém o Analytics completo!');
+        }
+    } else {
+        console.log('\n📌 Origem: DESCONHECIDA');
+    }
+    
+    const isDebugMode = window.location.search.includes('debug=true');
+    console.log(`\n🔧 MODO ATUAL: ${isDebugMode ? 'DEBUG (Support System carregado)' : 'PRODUÇÃO (apenas Core)'}`);
+    
+    if (!analyticsComplete) {
+        console.log('\n💡 RECOMENDAÇÃO:');
+        if (isDebugMode) {
+            console.log('   O Support System está sobrescrevendo a função com uma versão sem Analytics.');
+            console.log('   Para ver o Analytics, acesse em MODO PRODUÇÃO (sem ?debug=true)');
+            console.log('   OU atualize o arquivo admin-list-ui.js no Support System');
+        } else {
+            console.log('   O Analytics NÃO está completo na função atual.');
+            console.log('   Verifique se o properties.js foi atualizado corretamente.');
+        }
+    } else {
+        console.log('\n✅ ANALYTICS FUNCIONANDO CORRETAMENTE!');
+        if (isDebugMode && isSupportVersion) {
+            console.log('   Nota: O Support System tem uma versão com Analytics (verificar se é a mais recente)');
+        }
+    }
+    
+    console.groupEnd();
+    
+    return {
+        success: analyticsComplete,
+        hasAnalytics,
+        origin,
+        isDebugMode,
+        isCoreVersion,
+        isSupportVersion,
+        recommendation: !analyticsComplete ? 
+            (isDebugMode ? 'Atualizar admin-list-ui.js no Support System' : 'Atualizar properties.js no Core') : 
+            null
+    };
+};
+
+/**
+ * ✅ FUNÇÃO CORRETIVA: Forçar uso da versão Core do loadPropertyList
+ * Remove a sobrescrita do Support System e restaura a função original do Core
+ */
+window.restoreCoreLoadPropertyList = function() {
+    console.group('🔄 RESTAURANDO loadPropertyList DO CORE SYSTEM');
+    
+    const coreFunction = window.__coreLoadPropertyListBackup;
+    
+    if (coreFunction && typeof coreFunction === 'function') {
+        console.log('✅ Backup da função Core encontrado, restaurando...');
+        window.loadPropertyList = coreFunction;
+        console.log('✅ Função restaurada!');
+        
+        if (typeof window.loadPropertyList === 'function') {
+            setTimeout(() => {
+                window.loadPropertyList(window.adminCurrentPage || 1);
+                console.log('🔄 Lista admin recarregada com a versão Core');
+            }, 100);
+        }
+        
+        console.groupEnd();
+        return { success: true, message: 'Função Core restaurada' };
+    }
+    
+    console.warn('⚠️ Backup da função Core não encontrado');
+    console.log('💡 Para restaurar manualmente, recarregue a página sem ?debug=true');
+    
+    console.groupEnd();
+    return { success: false, message: 'Backup não encontrado' };
+};
+
+/**
+ * ✅ FUNÇÃO: Fazer backup da versão Core do loadPropertyList
+ * Deve ser chamada antes do Support System sobrescrever
+ */
+window.backupCoreLoadPropertyList = function() {
+    if (typeof window.loadPropertyList === 'function') {
+        window.__coreLoadPropertyListBackup = window.loadPropertyList;
+        console.log('✅ Backup da função Core loadPropertyList realizado');
+        return true;
+    }
+    console.warn('⚠️ loadPropertyList não disponível para backup');
+    return false;
 };
 
 // ========== FUNÇÕES DE SUPORTE ==========
@@ -1704,6 +1823,9 @@ function executeAllChecks(isPartial = false) {
             window.validateExtractBairroFunction?.();
             
             console.log('\n💡 DICAS:');
+            console.log('   • window.diagnoseActiveLoadPropertyList() - Verifica qual versão do loadPropertyList está ativa');
+            console.log('   • window.restoreCoreLoadPropertyList() - Restaura versão Core (se tiver backup)');
+            console.log('   • window.backupCoreLoadPropertyList() - Faz backup da versão Core');
             console.log('   • window.preRemovalVerification() - Verifica se é seguro remover fallbacks');
             console.log('   • window.runPostRemovalTests() - Executa todos os testes pós-remoção');
             console.log('   • window.runAnalyticsDiagnostic() - Diagnóstico completo de Analytics');
@@ -1726,7 +1848,10 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.6 com Analytics Diagnostic)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.7 com Core/Support Detection)');
+        
+        // Fazer backup da função Core ANTES de ser sobrescrita
+        window.backupCoreLoadPropertyList();
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -1744,10 +1869,9 @@ function executeAllChecks(isPartial = false) {
                             }, 1000);
                         }
                         
-                        // Executar diagnóstico rápido de Analytics (não invasivo)
                         setTimeout(() => {
-                            console.log('\n📊 Executando diagnóstico rápido de Analytics...');
-                            window.diagnoseAnalyticsQuick?.();
+                            console.log('\n📊 Executando diagnóstico da versão ativa do loadPropertyList...');
+                            window.diagnoseActiveLoadPropertyList?.();
                         }, 1500);
                     }, 1000);
                     
@@ -1769,10 +1893,9 @@ function executeAllChecks(isPartial = false) {
                         }, 1000);
                     }
                     
-                    // Executar diagnóstico rápido de Analytics (não invasivo)
                     setTimeout(() => {
-                        console.log('\n📊 Executando diagnóstico rápido de Analytics...');
-                        window.diagnoseAnalyticsQuick?.();
+                        console.log('\n📊 Executando diagnóstico da versão ativa do loadPropertyList...');
+                        window.diagnoseActiveLoadPropertyList?.();
                     }, 1500);
                 }, 1000);
                 
@@ -1780,7 +1903,7 @@ function executeAllChecks(isPartial = false) {
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.6)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.7)');
     }
 })();
 
@@ -1817,7 +1940,12 @@ window.simpleChecker = {
     // Funções de Analytics (v2.6)
     diagnoseAnalyticsComplete: window.diagnoseAnalyticsComplete,
     fixAdminAnalytics: window.fixAdminAnalytics,
-    diagnoseAndFixAnalytics: window.diagnoseAndFixAnalytics
+    diagnoseAndFixAnalytics: window.diagnoseAndFixAnalytics,
+    
+    // Funções de Core/Support Detection (v2.7)
+    diagnoseActiveLoadPropertyList: window.diagnoseActiveLoadPropertyList,
+    restoreCoreLoadPropertyList: window.restoreCoreLoadPropertyList,
+    backupCoreLoadPropertyList: window.backupCoreLoadPropertyList
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.6 - Diagnóstico completo de Analytics + Correção automática!');
+console.log('✅ simple-checker.js ATUALIZADO v2.7 - Diagnóstico da versão ativa do loadPropertyList + Restauração Core!');
