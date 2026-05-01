@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.4
-// Verificação Básica + Validação de Centralização + Teste Performance + Testes Pós-Remoção
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Teste Performance (v2.4)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.5
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics (v2.5)');
 
 // ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
 
@@ -1080,6 +1080,296 @@ window.runPostRemovalTests = async function() {
     return resultados;
 };
 
+// ========== DIAGNÓSTICO DE ANALYTICS (DASHBOARD DE VISUALIZAÇÕES) ==========
+
+/**
+ * ✅ DIAGNÓSTICO RÁPIDO: Verificar se Analytics está visível no admin
+ * Retorna true se o recurso estiver presente
+ */
+window.diagnoseAnalyticsQuick = function() {
+    console.group('📊 DIAGNÓSTICO RÁPIDO - ANALYTICS');
+    
+    const propertyList = document.getElementById('propertyList');
+    if (!propertyList) {
+        console.log('❌ propertyList não encontrado - painel admin não está aberto?');
+        console.groupEnd();
+        return { success: false, error: 'propertyList não encontrado' };
+    }
+    
+    const statsHeader = propertyList.querySelector('div[style*="background: #e8f4fd"]');
+    if (!statsHeader) {
+        console.log('❌ Cabeçalho de estatísticas NÃO ENCONTRADO');
+        console.groupEnd();
+        return { success: false, error: 'Cabeçalho de estatísticas ausente' };
+    }
+    
+    const hasTotalViews = statsHeader.innerHTML.includes('Total de visualizações');
+    const hasZerarTodas = statsHeader.innerHTML.includes('Zerar TODAS');
+    
+    const propertyItems = document.querySelectorAll('#propertyListItems .property-item, .property-item');
+    const hasViewCount = propertyItems.length > 0 && propertyItems[0]?.innerHTML.includes('Visualizações:');
+    
+    const analyticsPresent = hasTotalViews && hasZerarTodas && hasViewCount;
+    
+    console.log(`📊 STATUS: ${analyticsPresent ? '✅ ANALYTICS ATIVO' : '❌ ANALYTICS AUSENTE'}`);
+    console.log(`   - Cabeçalho com total: ${hasTotalViews ? '✅' : '❌'}`);
+    console.log(`   - Botão Zerar TODAS: ${hasZerarTodas ? '✅' : '❌'}`);
+    console.log(`   - Contador por imóvel: ${hasViewCount ? '✅' : '❌'}`);
+    
+    console.groupEnd();
+    return { success: analyticsPresent, hasTotalViews, hasZerarTodas, hasViewCount };
+};
+
+/**
+ * ✅ DIAGNÓSTICO COMPLETO: Analytics do Admin
+ * Executa verificação detalhada de todas as funcionalidades de analytics
+ */
+window.diagnoseAnalyticsFull = function() {
+    console.group('📊 DIAGNÓSTICO AVANÇADO - ANALYTICS DO ADMIN');
+    
+    const results = {
+        adminVisible: false,
+        statsHeader: false,
+        totalViewsElement: false,
+        zerarTodasButton: false,
+        viewCountInCards: false,
+        zerarViewsButton: false,
+        lastViewInfo: false,
+        supportFunctions: {},
+        localStorageData: null,
+        cardCount: 0
+    };
+    
+    // 1. Painel Admin
+    const adminPanel = document.getElementById('adminPanel');
+    results.adminVisible = adminPanel && adminPanel.style.display === 'block';
+    console.log(`${results.adminVisible ? '✅' : '⚠️'} Painel Admin: ${results.adminVisible ? 'Visível' : 'Fechado ou não encontrado'}`);
+    
+    if (!results.adminVisible) {
+        console.log('💡 Dica: Abra o painel admin primeiro (botão 🔧, senha wl654)');
+    }
+    
+    // 2. Cabeçalho de estatísticas
+    const propertyList = document.getElementById('propertyList');
+    if (propertyList) {
+        const statsHeader = propertyList.querySelector('div[style*="background: #e8f4fd"]');
+        results.statsHeader = !!statsHeader;
+        
+        if (statsHeader) {
+            results.totalViewsElement = statsHeader.innerHTML.includes('Total de visualizações');
+            results.zerarTodasButton = statsHeader.innerHTML.includes('Zerar TODAS');
+            
+            console.log(`\n📋 CABEÇALHO DE ESTATÍSTICAS:`);
+            console.log(`   - Elemento encontrado: ${results.statsHeader ? '✅' : '❌'}`);
+            console.log(`   - Total de visualizações: ${results.totalViewsElement ? '✅' : '❌'}`);
+            console.log(`   - Botão "Zerar TODAS": ${results.zerarTodasButton ? '✅' : '❌'}`);
+            
+            if (results.totalViewsElement) {
+                const totalViewsMatch = statsHeader.innerHTML.match(/Total de visualizações:<\/strong> (\d+)/);
+                if (totalViewsMatch) {
+                    console.log(`   - Valor atual: ${totalViewsMatch[1]} visualizações`);
+                }
+            }
+        } else {
+            console.log(`\n❌ Cabeçalho de estatísticas NÃO ENCONTRADO`);
+            console.log(`   O Analytics provavelmente foi removido da função loadPropertyList`);
+        }
+    }
+    
+    // 3. Cards de imóveis
+    const propertyItems = document.querySelectorAll('#propertyListItems .property-item, .property-item');
+    results.cardCount = propertyItems.length;
+    
+    if (propertyItems.length > 0) {
+        const firstItem = propertyItems[0];
+        const html = firstItem.innerHTML;
+        
+        results.viewCountInCards = html.includes('Visualizações:');
+        results.zerarViewsButton = html.includes('Zerar views');
+        results.lastViewInfo = html.includes('Última:');
+        
+        console.log(`\n📋 CARDS DE IMÓVEIS (${propertyItems.length} encontrados):`);
+        console.log(`   - Contador de visualizações: ${results.viewCountInCards ? '✅' : '❌'}`);
+        console.log(`   - Botão "Zerar views": ${results.zerarViewsButton ? '✅' : '❌'}`);
+        console.log(`   - Última visualização: ${results.lastViewInfo ? '✅' : '❌'}`);
+        
+        if (!results.viewCountInCards) {
+            console.log(`   ⚠️ Exemplo do HTML atual: ${html.substring(0, 300)}...`);
+        }
+    } else if (propertyList) {
+        console.log(`\n⚠️ Nenhum card encontrado - a lista pode estar vazia`);
+    }
+    
+    // 4. Funções de suporte
+    console.log(`\n🔧 FUNÇÕES DE SUPORTE:`);
+    const functions = ['getGalleryViews', 'getLastGalleryView', 'resetGalleryViews', 'getTotalGalleryViews', 'resetAllGalleryViews', 'openGalleryAtCurrentIndex'];
+    functions.forEach(fn => {
+        const exists = typeof window[fn] === 'function';
+        results.supportFunctions[fn] = exists;
+        console.log(`   - ${fn}: ${exists ? '✅' : '❌'}`);
+    });
+    
+    // 5. Dados no localStorage
+    try {
+        const galleryViews = localStorage.getItem('gallery_views');
+        if (galleryViews) {
+            results.localStorageData = JSON.parse(galleryViews);
+            const total = Object.values(results.localStorageData).reduce((a, b) => a + b, 0);
+            console.log(`\n💾 DADOS NO LOCALSTORAGE:`);
+            console.log(`   - Imóveis com visualizações: ${Object.keys(results.localStorageData).length}`);
+            console.log(`   - Total de visualizações: ${total}`);
+        } else {
+            console.log(`\n💾 Nenhum dado de visualização no localStorage`);
+        }
+    } catch(e) {
+        console.log(`\n⚠️ Erro ao ler localStorage: ${e.message}`);
+    }
+    
+    // 6. Diagnóstico Final
+    console.log(`\n📊 DIAGNÓSTICO FINAL:`);
+    
+    const analyticsPresent = results.statsHeader && results.totalViewsElement && results.viewCountInCards;
+    
+    if (analyticsPresent) {
+        console.log(`✅ ANALYTICS COMPLETO - Todas as estatísticas estão visíveis!`);
+    } else if (results.statsHeader && !results.totalViewsElement) {
+        console.log(`⚠️ ANALYTICS PARCIAL - Cabeçalho existe mas sem total de visualizações`);
+    } else if (!results.statsHeader && results.viewCountInCards) {
+        console.log(`⚠️ ANALYTICS PARCIAL - Cards têm contador mas cabeçalho ausente`);
+    } else {
+        console.log(`❌ ANALYTICS AUSENTE - O recurso não está visível no admin`);
+    }
+    
+    // 7. Recomendação
+    if (!analyticsPresent) {
+        console.log(`\n🔧 RECOMENDAÇÃO:`);
+        console.log(`   1. Verifique se admin-list-ui.js está carregado (modo debug: ?debug=true)`);
+        console.log(`   2. O Analytics completo está disponível APENAS no Support System`);
+        console.log(`   3. Para Analytics em produção, é necessário migrar a função do Support para o Core`);
+    }
+    
+    console.groupEnd();
+    
+    return results;
+};
+
+/**
+ * ✅ Verificar integridade do código loadPropertyList
+ * Analisa se a função contém os componentes do Analytics
+ */
+window.diagnoseLoadPropertyListCode = function() {
+    console.group('📋 ANÁLISE DO CÓDIGO - loadPropertyList');
+    
+    const loadPropertyListSrc = window.loadPropertyList?.toString();
+    
+    if (!loadPropertyListSrc) {
+        console.error('❌ window.loadPropertyList não está definida!');
+        console.groupEnd();
+        return { success: false, error: 'Função não encontrada' };
+    }
+    
+    const hasStatsHeader = loadPropertyListSrc.includes('Total de visualizações');
+    const hasZerarTodas = loadPropertyListSrc.includes('Zerar TODAS');
+    const hasViewCount = loadPropertyListSrc.includes('viewCount') || loadPropertyListSrc.includes('Visualizações:');
+    const hasZerarViews = loadPropertyListSrc.includes('resetGalleryViews');
+    const hasLastView = loadPropertyListSrc.includes('lastView') || loadPropertyListSrc.includes('Última:');
+    const hasStatsHeaderDiv = loadPropertyListSrc.includes('background: #e8f4fd');
+    
+    console.log(`📊 COMPONENTES DO ANALYTICS NA FUNÇÃO:`);
+    console.log(`   - Cabeçalho com total de visualizações: ${hasStatsHeader ? '✅' : '❌'}`);
+    console.log(`   - Botão "Zerar TODAS": ${hasZerarTodas ? '✅' : '❌'}`);
+    console.log(`   - Div do cabeçalho (background): ${hasStatsHeaderDiv ? '✅' : '❌'}`);
+    console.log(`   - Contador por imóvel: ${hasViewCount ? '✅' : '❌'}`);
+    console.log(`   - Botão "Zerar views": ${hasZerarViews ? '✅' : '❌'}`);
+    console.log(`   - Última visualização: ${hasLastView ? '✅' : '❌'}`);
+    
+    const analyticsComplete = hasStatsHeader && hasZerarTodas && hasViewCount && hasZerarViews;
+    
+    if (analyticsComplete) {
+        console.log(`\n✅ O código da função contém TODOS os componentes do Analytics!`);
+    } else {
+        console.log(`\n⚠️ O código NÃO contém todos os componentes do Analytics.`);
+        if (!hasStatsHeader) console.log(`   - Faltando: Cabeçalho com total de visualizações`);
+        if (!hasZerarTodas) console.log(`   - Faltando: Botão "Zerar TODAS"`);
+        if (!hasViewCount) console.log(`   - Faltando: Contador por imóvel`);
+        if (!hasZerarViews) console.log(`   - Faltando: Botão "Zerar views"`);
+    }
+    
+    console.groupEnd();
+    
+    return {
+        success: analyticsComplete,
+        hasStatsHeader,
+        hasZerarTodas,
+        hasViewCount,
+        hasZerarViews,
+        hasLastView,
+        hasStatsHeaderDiv
+    };
+};
+
+/**
+ * ✅ Executar todos os diagnósticos de Analytics
+ */
+window.runAnalyticsDiagnostic = async function() {
+    console.log('\n🔍 =========================================');
+    console.log('🔍 EXECUTANDO DIAGNÓSTICO COMPLETO DE ANALYTICS');
+    console.log('🔍 =========================================\n');
+    
+    const resultados = {
+        timestamp: new Date().toISOString(),
+        quick: null,
+        full: null,
+        codeAnalysis: null,
+        sucessoGeral: false
+    };
+    
+    // Diagnóstico rápido
+    console.log('▶️ DIAGNÓSTICO RÁPIDO:');
+    resultados.quick = window.diagnoseAnalyticsQuick();
+    
+    // Análise do código
+    console.log('\n▶️ ANÁLISE DO CÓDIGO:');
+    resultados.codeAnalysis = window.diagnoseLoadPropertyListCode();
+    
+    // Diagnóstico completo (se o painel estiver visível)
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && adminPanel.style.display === 'block') {
+        console.log('\n▶️ DIAGNÓSTICO COMPLETO (UI):');
+        resultados.full = window.diagnoseAnalyticsFull();
+    } else {
+        console.log('\n⚠️ Diagnóstico completo ignorado - painel admin não está visível');
+        console.log('💡 Abra o painel admin (botão 🔧, senha wl654) e execute novamente');
+    }
+    
+    // Resumo
+    console.log('\n📊 =========================================');
+    console.log('📊 RESUMO DO DIAGNÓSTICO DE ANALYTICS');
+    console.log('📊 =========================================');
+    
+    const analyticsPresent = resultados.quick?.success === true;
+    const codeComplete = resultados.codeAnalysis?.success === true;
+    
+    console.log(`   UI - Analytics visível: ${analyticsPresent ? '✅ SIM' : '❌ NÃO'}`);
+    console.log(`   Código - Analytics completo: ${codeComplete ? '✅ SIM' : '❌ NÃO'}`);
+    
+    if (analyticsPresent && codeComplete) {
+        console.log(`\n🎉 ANALYTICS COMPLETAMENTE FUNCIONAL!`);
+    } else if (codeComplete && !analyticsPresent) {
+        console.log(`\n⚠️ O código está correto, mas a UI não está visível.`);
+        console.log(`   Verifique se está em modo debug (?debug=true) e se o Support System carregou.`);
+    } else if (!codeComplete) {
+        console.log(`\n❌ O código da função loadPropertyList NÃO contém o Analytics.`);
+        console.log(`   É necessário atualizar o arquivo admin-list-ui.js no Support System.`);
+    }
+    
+    console.log('\n🔍 =========================================');
+    
+    resultados.sucessoGeral = analyticsPresent && codeComplete;
+    
+    return resultados;
+};
+
 // ========== FUNÇÕES DE SUPORTE ==========
 
 function waitForRegistryAndExecute() {
@@ -1138,6 +1428,8 @@ function executeAllChecks(isPartial = false) {
             console.log('\n💡 DICAS:');
             console.log('   • window.preRemovalVerification() - Verifica se é seguro remover fallbacks');
             console.log('   • window.runPostRemovalTests() - Executa todos os testes pós-remoção');
+            console.log('   • window.runAnalyticsDiagnostic() - Diagnóstico completo de Analytics');
+            console.log('   • window.diagnoseAnalyticsQuick() - Diagnóstico rápido de Analytics');
             console.log('   • window.validateExtractBairroFunction() - Validação completa de bairros');
             console.log('   • window.testExtractionPerformance() - Teste de performance');
             console.log('   • window.runQuickValidation() - Todas as validações');
@@ -1154,7 +1446,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.4 com execução automática)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.5 com Analytics Diagnostic)');
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -1171,6 +1463,12 @@ function executeAllChecks(isPartial = false) {
                                 window.testCardsFunctionality?.();
                             }, 1000);
                         }
+                        
+                        // Executar diagnóstico rápido de Analytics (não invasivo)
+                        setTimeout(() => {
+                            console.log('\n📊 Executando diagnóstico rápido de Analytics...');
+                            window.diagnoseAnalyticsQuick?.();
+                        }, 1500);
                     }, 1000);
                     
                     waitForRegistryAndExecute();
@@ -1190,13 +1488,19 @@ function executeAllChecks(isPartial = false) {
                             window.testCardsFunctionality?.();
                         }, 1000);
                     }
+                    
+                    // Executar diagnóstico rápido de Analytics (não invasivo)
+                    setTimeout(() => {
+                        console.log('\n📊 Executando diagnóstico rápido de Analytics...');
+                        window.diagnoseAnalyticsQuick?.();
+                    }, 1500);
                 }, 1000);
                 
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.4)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.5)');
     }
 })();
 
@@ -1216,13 +1520,19 @@ window.simpleChecker = {
     runQuickValidation: window.runQuickValidation,
     waitForRegistry: waitForRegistryAndExecute,
     
-    // Novas funções (v2.4)
+    // Funções de pré-remoção e pós-teste
     preRemovalVerification: window.preRemovalVerification,
     runPostRemovalTests: window.runPostRemovalTests,
     testNoConsoleErrors: window.testNoConsoleErrors,
     testCardsFunctionality: window.testCardsFunctionality,
     testAdminEditCapability: window.testAdminEditCapability,
-    testAdminCreateCapability: window.testAdminCreateCapability
+    testAdminCreateCapability: window.testAdminCreateCapability,
+    
+    // Funções de Analytics (v2.5)
+    diagnoseAnalyticsQuick: window.diagnoseAnalyticsQuick,
+    diagnoseAnalyticsFull: window.diagnoseAnalyticsFull,
+    diagnoseLoadPropertyListCode: window.diagnoseLoadPropertyListCode,
+    runAnalyticsDiagnostic: window.runAnalyticsDiagnostic
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.4 - Verificação pré-remoção + Testes pós-remoção + Execução automática!');
+console.log('✅ simple-checker.js ATUALIZADO v2.5 - Diagnóstico de Analytics + Verificação completa!');
