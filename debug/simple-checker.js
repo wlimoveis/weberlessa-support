@@ -2,12 +2,11 @@
 // Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection
 console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection (v2.7)');
 
-// ========== FUNÇÕES EXISTENTES (MANTIDAS E OTIMIZADAS) ==========
+// ========== FUNÇÕES BÁSICAS ==========
 
 window.runSupportChecks = function() {
     console.group('✅ VERIFICAÇÃO BÁSICA DO SISTEMA - SISTEMA ATUAL');
     
-    // ✅ VERIFICAR MÓDULOS DO SISTEMA ATUAL (pós-migração)
     const essentials = {
         'Supabase Client': !!window.supabaseClient,
         'Properties Array': Array.isArray(window.properties) && window.properties.length > 0,
@@ -28,7 +27,6 @@ window.runSupportChecks = function() {
     
     console.table(essentials);
     
-    // ✅ VERIFICAÇÃO DE MIGRAÇÃO COMPLETA
     const migrationChecks = {
         '✅ Sistema antigo substituído': true,
         '✅ MediaSystem (unificado) em uso': typeof window.MediaSystem === 'object',
@@ -40,7 +38,6 @@ window.runSupportChecks = function() {
     console.log('🔁 STATUS DA MIGRAÇÃO:');
     console.table(migrationChecks);
     
-    // ✅ VERIFICAR FUNÇÕES CRÍTICAS
     const criticalFunctions = [
         'window.toggleAdminPanel',
         'window.MediaSystem.addFiles',
@@ -58,7 +55,6 @@ window.runSupportChecks = function() {
         }
     });
     
-    // ✅ ESTATÍSTICAS DO REGISTRY
     if (window.DiagnosticRegistry) {
         console.log('\n📊 ESTATÍSTICAS DO DIAGNOSTIC REGISTRY:');
         const byCategory = window.DiagnosticRegistry.getFunctionsByCategory();
@@ -84,7 +80,6 @@ window.runSupportChecks = function() {
         }
     }
     
-    // ✅ CONTAGEM DE FALHAS
     const criticalEssentials = {
         'Admin': typeof window.toggleAdminPanel === 'function',
         'Mídia': typeof window.MediaSystem?.addFiles === 'function',
@@ -104,7 +99,6 @@ window.runSupportChecks = function() {
         console.log('\n🎉 TODAS as funções CRÍTICAS estão disponíveis!');
     }
     
-    // ✅ RESUMO FINAL
     console.log('\n📊 RESUMO DO SISTEMA:');
     console.log(`- Imóveis carregados: ${window.properties?.length || 0}`);
     console.log(`- Sistema de mídia: ${window.MediaSystem ? '✅ UNIFICADO' : '❌'}`);
@@ -136,7 +130,6 @@ window.runSupportChecks = function() {
     };
 };
 
-// ✅ FUNÇÃO DE DIAGNÓSTICO RÁPIDO
 window.quickDiagnostic = function() {
     console.group('⚡ DIAGNÓSTICO RÁPIDO');
     
@@ -152,11 +145,9 @@ window.quickDiagnostic = function() {
     
     console.table(quickCheck);
     console.groupEnd();
-    
     return quickCheck;
 };
 
-// ✅ FUNÇÃO: Executar apenas diagnósticos seguros
 window.runSafeDiagnostics = async function() {
     console.log('🛡️ Iniciando diagnóstico seguro via Registry...');
     if (!window.DiagnosticRegistry) {
@@ -166,7 +157,6 @@ window.runSafeDiagnostics = async function() {
     return await window.DiagnosticRegistry.runSafeDiagnostics();
 };
 
-// ✅ FUNÇÃO: Listar funções por categoria
 window.listDiagnosticFunctions = function(category = null) {
     if (!window.DiagnosticRegistry) {
         console.error('❌ DiagnosticRegistry não disponível!');
@@ -430,7 +420,6 @@ window.validateExtractBairroFunction = function() {
     
     console.log('\n✅ VALIDAÇÃO CONCLUÍDA!');
     console.log('================================================');
-    
     return { success: typeof window.SharedCore?.extractBairroFromLocation === 'function' };
 };
 
@@ -680,21 +669,40 @@ window.fixAdminAnalytics = function() {
 };
 
 window.diagnoseAndFixAnalytics = async function() {
+    console.log('\n🔧 INICIANDO DIAGNÓSTICO E CORREÇÃO DE ANALYTICS');
+    console.log('================================================');
+    
     const diagnosis = window.diagnoseAnalyticsComplete();
     const isDebug = window.location.search.includes('debug=true');
     
     if (isDebug && diagnosis.status !== 'functional') {
-        console.log('\n🔧 Tentando correção...');
-        window.fixAdminAnalytics();
-        await new Promise(r => setTimeout(r, 1000));
-        const recheck = window.diagnoseAnalyticsComplete();
-        if (recheck.status === 'functional') {
-            console.log('\n✅ Correção bem-sucedida!');
+        console.log('\n🔧 Tentando correção automática...');
+        
+        // Tentar restaurar a versão Core
+        if (typeof window.restoreCoreLoadPropertyList === 'function') {
+            const restoreResult = window.restoreCoreLoadPropertyList();
+            if (restoreResult.success) {
+                await new Promise(r => setTimeout(r, 500));
+                console.log('✅ Versão Core restaurada!');
+                
+                // Verificar novamente
+                const recheck = window.diagnoseAnalyticsQuick();
+                if (recheck.success) {
+                    console.log('✅ Analytics restaurado com sucesso!');
+                }
+            }
+        } else {
+            console.log('⚠️ Função restoreCoreLoadPropertyList não disponível');
+            window.fixAdminAnalytics();
         }
     } else if (!isDebug && diagnosis.status !== 'functional') {
-        console.log('\n💡 Acesse com ?debug=true para correção automática');
+        console.log('\n💡 O Analytics completo está disponível apenas em modo debug');
+        console.log('   Acesse: ' + window.location.origin + window.location.pathname + '?debug=true');
+    } else if (diagnosis.status === 'functional') {
+        console.log('\n✅ Analytics já está funcionando corretamente!');
     }
     
+    console.log('\n🔧 FIM DO DIAGNÓSTICO');
     return diagnosis;
 };
 
@@ -708,6 +716,11 @@ window.runAnalyticsDiagnostic = async function() {
     
     results.success = results.quick.success && results.code.success;
     console.log(`\n${results.success ? '✅ ANALYTICS FUNCIONAL' : '❌ ANALYTICS COM PROBLEMAS'}`);
+    
+    if (!results.success) {
+        console.log('\n💡 Execute window.diagnoseAndFixAnalytics() para tentar corrigir');
+    }
+    
     return results;
 };
 
@@ -788,24 +801,38 @@ window.backupCoreLoadPropertyList = function() {
     return false;
 };
 
-window.restoreCoreLoadPropertyList = function(forceRestore = true) {
-    console.group('🔄 RESTAURANDO loadPropertyList DO CORE');
+window.restoreCoreLoadPropertyList = function() {
+    console.group('🔄 RESTAURANDO loadPropertyList DO CORE SYSTEM');
     
     const backup = window.__coreLoadPropertyListBackup;
-    if (backup && typeof backup === 'function' && forceRestore) {
+    if (backup && typeof backup === 'function') {
         window.loadPropertyList = backup;
         console.log('✅ Função Core restaurada!');
+        
         if (typeof window.loadPropertyList === 'function') {
             setTimeout(() => {
                 window.loadPropertyList(window.adminCurrentPage || 1);
-                console.log('🔄 Lista admin recarregada');
+                console.log('🔄 Lista admin recarregada com a versão Core');
+                
+                // Verificar se restaurou corretamente
+                setTimeout(() => {
+                    const src = window.loadPropertyList?.toString();
+                    const hasAnalytics = src?.includes('Total de visualizações');
+                    if (hasAnalytics) {
+                        console.log('✅ ANALYTICS RESTAURADO COM SUCESSO!');
+                    } else {
+                        console.log('⚠️ Analytics ainda ausente. Recarregue a página sem ?debug=true');
+                    }
+                }, 500);
             }, 100);
         }
+        
         console.groupEnd();
         return { success: true };
     }
     
-    console.warn('⚠️ Backup não encontrado. Recarregue a página sem ?debug=true');
+    console.warn('⚠️ Backup da função Core não encontrado');
+    console.log('💡 Recarregue a página sem ?debug=true para usar a versão Core');
     console.groupEnd();
     return { success: false };
 };
@@ -856,7 +883,22 @@ function executeAllChecks(isPartial = false) {
             console.log('\n🚀 EXECUÇÃO AUTOMÁTICA: Validando extração de bairros...');
             window.validateExtractBairroFunction?.();
             
-            console.log('\n💡 DICAS:');
+            // Executar diagnóstico automático do Analytics (sem depender de console)
+            setTimeout(() => {
+                console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
+                const src = window.loadPropertyList?.toString();
+                const hasAnalytics = src?.includes('Total de visualizações');
+                
+                if (!hasAnalytics) {
+                    console.log('⚠️ Analytics ausente na função atual.');
+                    console.log('   Tentando restauração automática...');
+                    window.restoreCoreLoadPropertyList();
+                } else {
+                    console.log('✅ Analytics presente na função atual.');
+                }
+            }, 1000);
+            
+            console.log('\n💡 DICAS (comandos disponíveis):');
             console.log('   • window.diagnoseActiveLoadPropertyList() - Verifica versão ativa');
             console.log('   • window.restoreCoreLoadPropertyList() - Restaura versão Core');
             console.log('   • window.runQuickValidation() - Todas as validações');
@@ -877,6 +919,7 @@ function executeAllChecks(isPartial = false) {
     if (isDebugMode) {
         console.log('🔧 simple-checker.js - Modo debug ativado (v2.7)');
         
+        // Fazer backup da função Core ANTES de ser sobrescrita
         window.backupCoreLoadPropertyList();
         
         if (document.readyState === 'loading') {
