@@ -1,6 +1,7 @@
 // debug/utils/core-diagnostics.js
 // Módulo de diagnóstico e suporte extraído do Core System
-console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada).');
+// v2.0 - Inclui testFileUpload (movido do SharedCore)
+console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada com testFileUpload).');
 
 (function() {
     // ========== DIAGNÓSTICO DE STORAGE ==========
@@ -295,6 +296,72 @@ console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada).
         }
     };
 
+    // =========================================================================
+    // 6. TESTE DE UPLOAD DE ARQUIVOS (MOVED FROM SHAREDCORE)
+    // =========================================================================
+    /**
+     * Testa o upload de arquivos no Supabase Storage
+     * Movido do SharedCore.js para o Support System (diagnóstico apenas)
+     */
+    window.testFileUpload = async function() {
+        console.group('🧪 TESTE DE UPLOAD DE ARQUIVOS');
+        
+        const SUPABASE_URL = window.SUPABASE_CONSTANTS?.URL || window.SUPABASE_URL;
+        const SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+        
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            console.error('❌ SUPABASE credentials not available!');
+            console.groupEnd();
+            return { success: false, error: 'Credentials not available' };
+        }
+        
+        console.log('🔧 Configuração:', {
+            SUPABASE_URL: SUPABASE_URL.substring(0, 50) + '...',
+            SUPABASE_KEY: SUPABASE_KEY ? '✅ Disponível' : '❌ Indisponível'
+        });
+        
+        const testBlob = new Blob(['test content'], { type: 'text/plain' });
+        const testFile = new File([testBlob], 'test.txt', { type: 'text/plain' });
+        
+        const bucket = 'properties';
+        const fileName = `test_${Date.now()}.txt`;
+        const filePath = `${bucket}/${fileName}`;
+        const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${filePath}`;
+        
+        console.log('📤 Tentando upload para:', uploadUrl.substring(0, 80) + '...');
+        
+        try {
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'apikey': SUPABASE_KEY,
+                    'Content-Type': 'text/plain'
+                },
+                body: testFile
+            });
+            
+            console.log('📡 Resposta:', response.status, response.statusText);
+            
+            if (response.ok) {
+                const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
+                console.log('✅ UPLOAD BEM-SUCEDIDO!');
+                console.log('🔗 URL pública:', publicUrl);
+                console.groupEnd();
+                return { success: true, url: publicUrl };
+            } else {
+                const errorText = await response.text();
+                console.error('❌ Upload falhou:', errorText);
+                console.groupEnd();
+                return { success: false, error: errorText };
+            }
+        } catch (error) {
+            console.error('❌ Erro de conexão:', error);
+            console.groupEnd();
+            return { success: false, error: error.message };
+        }
+    };
+
     // ========== VERIFICAÇÃO ÚNICA E CENTRALIZADA ==========
     setTimeout(() => {
         if (!window.location.search.includes('debug=true')) return;
@@ -312,6 +379,7 @@ console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada).
             'ensureBasicFunctionality': typeof window.ensureBasicFunctionality === 'function' ? '✅' : '❌',
             'runIntegrationTest': typeof window.runIntegrationTest === 'function' ? '✅' : '❌',
             'testSupabaseConnection': typeof window.testSupabaseConnection === 'function' ? '✅' : '❌',
+            'testFileUpload': typeof window.testFileUpload === 'function' ? '✅' : '❌',
         };
         
         console.table(functions);
@@ -320,9 +388,10 @@ console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada).
         if (allOk) {
             console.log('✅✅✅ MIGRAÇÃO CONSOLIDADA COM SUCESSO!');
             console.log('   ✓ Core System: 150+ linhas removidas do main.js');
-            console.log('   ✓ Support System: core-diagnostics.js agora contém 8 funções');
+            console.log('   ✓ Support System: core-diagnostics.js agora contém 9 funções');
             console.log('   ✓ Módulo coeso e sem duplicação');
             console.log('   ✓ Teste Supabase adicionado com sucesso');
+            console.log('   ✓ Teste File Upload movido do SharedCore');
             console.log('=================================');
             
             console.log('📊 Executando diagnóstico automático:');
@@ -335,10 +404,17 @@ console.log('🔧 [SUPPORT] core-diagnostics.js carregado (versão consolidada).
 
     // Registrar no DiagnosticRegistry
     setTimeout(() => {
-        if (window.DiagnosticRegistry && typeof window.testSupabaseConnection === 'function') {
-            window.DiagnosticRegistry.register('testSupabaseConnection', window.testSupabaseConnection, 'essential', {
-                description: 'Testa conexão com Supabase'
-            });
+        if (window.DiagnosticRegistry) {
+            if (typeof window.testSupabaseConnection === 'function') {
+                window.DiagnosticRegistry.register('testSupabaseConnection', window.testSupabaseConnection, 'essential', {
+                    description: 'Testa conexão com Supabase'
+                });
+            }
+            if (typeof window.testFileUpload === 'function') {
+                window.DiagnosticRegistry.register('testFileUpload', window.testFileUpload, 'essential', {
+                    description: 'Testa upload de arquivos no Supabase Storage'
+                });
+            }
         }
     }, 1000);
 
