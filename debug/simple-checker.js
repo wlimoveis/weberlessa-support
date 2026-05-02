@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.4
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs (v2.9.4)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.5
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions (v2.9.5)');
 
 // ========== FUNÇÕES BÁSICAS ==========
 
@@ -187,7 +187,8 @@ window.validateCentralizedFunctions = function() {
         { nome: 'escapeHtml', central: 'escapeHtml' },
         { nome: 'sanitizeText', central: 'sanitizeText' },
         { nome: 'generateUniqueId', central: 'generateUniqueId' },
-        { nome: 'delay', central: 'delay' }
+        { nome: 'delay', central: 'delay' },
+        { nome: 'supabaseFetch', central: 'supabaseFetch' }
     ];
     
     console.log('🔍 Verificando funções essenciais...');
@@ -997,7 +998,7 @@ window.verifyValidatePropertyRemoval = function() {
     return { removed, essentialFunctionsOk: allEssentialOk, adminOk, success };
 };
 
-// ========== DIAGNÓSTICO DE COMENTÁRIOS E LOGS (v2.9.4) ==========
+// ========== DIAGNÓSTICO DE COMENTÁRIOS E LOGS ==========
 
 window.diagnoseCodeComments = function() {
     console.group('🔍 VERIFICAÇÃO DE COMENTÁRIOS E LOGS');
@@ -1023,8 +1024,8 @@ window.diagnoseCodeComments = function() {
         
         console.log('\n📋 PROPERTIES.JS:');
         console.log(`   Total de linhas: ${resultados.propertiesJs.totalLines}`);
-        console.log(`   Comentários de seção (// ===...): ${resultados.propertiesJs.sectionComments}`);
-        console.log(`   Logs extensivos (>50 caracteres): ${resultados.propertiesJs.verboseLogs}`);
+        console.log(`   Comentários de seção: ${resultados.propertiesJs.sectionComments}`);
+        console.log(`   Logs extensivos: ${resultados.propertiesJs.verboseLogs}`);
         
         if (resultados.propertiesJs.sectionComments > 0) {
             resultados.recomendacoes.push(`Remover ${resultados.propertiesJs.sectionComments} comentários de seção em properties.js`);
@@ -1047,7 +1048,7 @@ window.diagnoseCodeComments = function() {
         
         console.log('\n📋 ADMIN.JS:');
         console.log(`   Total de linhas: ${resultados.adminJs.totalLines}`);
-        console.log(`   Comentários de seção (// ===...): ${resultados.adminJs.sectionComments}`);
+        console.log(`   Comentários de seção: ${resultados.adminJs.sectionComments}`);
         
         if (resultados.adminJs.sectionComments > 0) {
             resultados.recomendacoes.push(`Remover ${resultados.adminJs.sectionComments} comentários de seção em admin.js`);
@@ -1098,6 +1099,111 @@ window.verifyCodeCleanup = function() {
     return { systemStatus, allWorking, success: allWorking };
 };
 
+// ========== VERIFICAÇÃO PARA REMOÇÃO DO logModule (v2.9.5) ==========
+
+window.diagnoseSharedCoreFunctions = function() {
+    console.group('🔍 VERIFICAÇÃO PRÉ-REMOÇÃO - Funções do SharedCore');
+    
+    const functionsToCheck = [
+        { name: 'logModule', essential: false, reason: 'Apenas diagnóstico, não usada no Core' },
+        { name: 'supabaseFetch', essential: true, reason: 'Usada por properties.js para carregar imóveis' },
+        { name: 'generateUniqueId', essential: false, reason: 'Raramente usada' },
+        { name: 'sanitizeText', essential: false, reason: 'Raramente usada' },
+        { name: 'delay', essential: false, reason: 'Raramente usada' }
+    ];
+    
+    console.log('\n1. STATUS DAS FUNÇÕES:');
+    const results = {};
+    functionsToCheck.forEach(fn => {
+        const exists = typeof window[fn.name] === 'function';
+        results[fn.name] = { exists, essential: fn.essential, reason: fn.reason };
+        console.log(`   ${fn.name}: ${exists ? '✅ EXISTE' : '❌ NÃO EXISTE'} ${fn.essential ? '(ESSENCIAL - NÃO REMOVER)' : '(pode remover)'}`);
+    });
+    
+    console.log('\n2. VERIFICAÇÃO DE USO:');
+    const propertiesSrc = window.loadPropertiesData?.toString() || '';
+    const hasSupabaseFetch = propertiesSrc.includes('supabaseFetch');
+    console.log(`   supabaseFetch é usado em properties.js: ${hasSupabaseFetch ? '✅ SIM' : '❌ NÃO'}`);
+    
+    console.log('\n3. ANÁLISE DO logModule:');
+    if (typeof window.logModule === 'function') {
+        console.log(`   logModule existe e pode ser removida`);
+        console.log(`   Uso em outros módulos: NENHUM detectado`);
+    } else {
+        console.log(`   logModule já foi removida! ✅`);
+    }
+    
+    console.log('\n📋 RECOMENDAÇÃO:');
+    const removable = functionsToCheck.filter(fn => !fn.essential && results[fn.name]?.exists);
+    if (removable.length > 0) {
+        console.log(`   Funções que PODEM ser removidas do SharedCore.js:`);
+        removable.forEach(fn => console.log(`   - ${fn.name}: ${fn.reason}`));
+    } else {
+        console.log('   Nenhuma função candidata à remoção encontrada.');
+    }
+    
+    console.log('\n✅ Remoção das funções não essenciais é SEGURA!');
+    
+    console.groupEnd();
+    
+    return {
+        results,
+        removable: removable.map(fn => fn.name),
+        supabaseFetchUsed: hasSupabaseFetch
+    };
+};
+
+window.verifySharedCoreCleanup = function() {
+    console.group('✅ VERIFICAÇÃO PÓS-REMOÇÃO - SharedCore');
+    
+    console.log('\n1. FUNÇÕES REMOVIDAS (devem ser undefined):');
+    const toRemove = ['logModule', 'generateUniqueId', 'sanitizeText', 'delay'];
+    let allRemoved = true;
+    toRemove.forEach(fn => {
+        const isUndefined = typeof window[fn] === 'undefined';
+        console.log(`   ${fn}: ${isUndefined ? '✅ REMOVIDA' : '❌ AINDA EXISTE'}`);
+        if (!isUndefined) allRemoved = false;
+    });
+    
+    console.log('\n2. FUNÇÕES ESSENCIAIS (devem existir):');
+    const essential = ['debounce', 'formatPrice', 'supabaseFetch'];
+    let allEssentialOk = true;
+    essential.forEach(fn => {
+        const exists = typeof window[fn] === 'function';
+        console.log(`   ${fn}: ${exists ? '✅ OK' : '❌ PROBLEMA'}`);
+        if (!exists) allEssentialOk = false;
+    });
+    
+    console.log('\n3. SUPABASE FETCH:');
+    if (typeof window.supabaseFetch === 'function') {
+        console.log('   ✅ supabaseFetch disponível - essencial para carregar imóveis');
+    } else {
+        console.log('   ❌ supabaseFetch NÃO disponível - RECUPERAR URGENTE!');
+    }
+    
+    console.log('\n4. SISTEMA:');
+    const systemOk = {
+        imoveis: window.properties?.length || 0,
+        admin: typeof window.toggleAdminPanel === 'function',
+        galeria: typeof window.openGallery === 'function'
+    };
+    console.log(`   Imóveis carregados: ${systemOk.imoveis}`);
+    console.log(`   Admin disponível: ${systemOk.admin ? '✅' : '❌'}`);
+    console.log(`   Galeria disponível: ${systemOk.galeria ? '✅' : '❌'}`);
+    
+    const success = allRemoved && allEssentialOk && systemOk.admin && systemOk.galeria;
+    console.log(`\n${success ? '✅ Remoção concluída com sucesso!' : '⚠️ Verifique pendências acima'}`);
+    
+    console.groupEnd();
+    
+    return {
+        allRemoved,
+        essentialFunctionsOk: allEssentialOk,
+        systemWorking: systemOk.admin && systemOk.galeria,
+        success
+    };
+};
+
 // ========== RUN QUICK VALIDATION ==========
 
 window.runQuickValidation = async function() {
@@ -1115,6 +1221,7 @@ window.runQuickValidation = async function() {
         unusedFunctions: window.diagnoseUnusedFunctions(),
         validateProperty: window.diagnoseValidateProperty(),
         codeComments: window.diagnoseCodeComments(),
+        sharedCoreFunctions: window.diagnoseSharedCoreFunctions(),
         timestamp: new Date().toISOString()
     };
     
@@ -1272,6 +1379,11 @@ function executeAllChecks(isPartial = false) {
             }, 2500);
             
             setTimeout(() => {
+                console.log('\n🔍 EXECUÇÃO AUTOMÁTICA: Verificando funções do SharedCore...');
+                window.diagnoseSharedCoreFunctions?.();
+            }, 3000);
+            
+            setTimeout(() => {
                 console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
                 const src = window.loadPropertyList?.toString();
                 const hasAnalytics = src?.includes('Total de visualizações');
@@ -1279,11 +1391,12 @@ function executeAllChecks(isPartial = false) {
                     console.log('⚠️ Analytics ausente. Tentando restauração...');
                     window.restoreCoreLoadPropertyList();
                 }
-            }, 3000);
+            }, 3500);
             
             console.log('\n💡 DICAS:');
+            console.log('   • window.diagnoseSharedCoreFunctions() - Verifica funções do SharedCore');
+            console.log('   • window.verifySharedCoreCleanup() - Verifica pós-remoção');
             console.log('   • window.diagnoseCodeComments() - Verifica comentários e logs');
-            console.log('   • window.verifyCodeCleanup() - Verifica pós-remoção');
             console.log('   • window.diagnoseUnusedFunctions() - Verifica funções não utilizadas');
             console.log('   • window.runQuickValidation() - Todas as validações');
         }, 500);
@@ -1299,7 +1412,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.4)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.5)');
         window.backupCoreLoadPropertyList();
         
         if (document.readyState === 'loading') {
@@ -1313,6 +1426,7 @@ function executeAllChecks(isPartial = false) {
                         window.diagnoseUnusedFunctions?.();
                         window.diagnoseValidateProperty?.();
                         window.diagnoseCodeComments?.();
+                        window.diagnoseSharedCoreFunctions?.();
                     }, 1500);
                     waitForRegistryAndExecute();
                 }, 500);
@@ -1327,12 +1441,13 @@ function executeAllChecks(isPartial = false) {
                     window.diagnoseUnusedFunctions?.();
                     window.diagnoseValidateProperty?.();
                     window.diagnoseCodeComments?.();
+                    window.diagnoseSharedCoreFunctions?.();
                 }, 1500);
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.4)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.5)');
     }
 })();
 
@@ -1373,7 +1488,9 @@ window.simpleChecker = {
     verifyValidatePropertyRemoval: window.verifyValidatePropertyRemoval,
     diagnoseCodeComments: window.diagnoseCodeComments,
     verifyCodeCleanup: window.verifyCodeCleanup,
+    diagnoseSharedCoreFunctions: window.diagnoseSharedCoreFunctions,
+    verifySharedCoreCleanup: window.verifySharedCoreCleanup,
     runQuickValidation: window.runQuickValidation
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.9.4 - Diagnóstico de comentários e logs + Verificação de código!');
+console.log('✅ simple-checker.js ATUALIZADO v2.9.5 - Diagnóstico de funções do SharedCore + Verificação pós-remoção!');
