@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.7
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection (v2.7)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.8
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl Fallback Detection
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl (v2.8)');
 
 // ========== FUNÇÕES BÁSICAS ==========
 
@@ -183,7 +183,8 @@ window.validateCentralizedFunctions = function() {
         { nome: 'debounce', central: 'debounce' },
         { nome: 'throttle', central: 'throttle' },
         { nome: 'isMobileDevice', central: 'isMobileDevice' },
-        { nome: 'extractBairroFromLocation', central: 'extractBairroFromLocation' }
+        { nome: 'extractBairroFromLocation', central: 'extractBairroFromLocation' },
+        { nome: 'isVideoUrl', central: 'isVideoUrl' }
     ];
     
     console.log('🔍 Verificando funções essenciais...');
@@ -245,7 +246,8 @@ window.checkDuplicateRemoval = function() {
     
     const funcoesProxies = [
         'formatPrice', 'formatFeaturesForDisplay', 'parseFeaturesForStorage',
-        'ensureBooleanVideo', 'validateIdForSupabase', 'manageEditingState', 'extractBairroFromLocation'
+        'ensureBooleanVideo', 'validateIdForSupabase', 'manageEditingState', 
+        'extractBairroFromLocation', 'isVideoUrl'
     ];
     
     const resultado = { encontradas: [], proxysFuncionando: [], problemaProxy: [] };
@@ -678,14 +680,12 @@ window.diagnoseAndFixAnalytics = async function() {
     if (isDebug && diagnosis.status !== 'functional') {
         console.log('\n🔧 Tentando correção automática...');
         
-        // Tentar restaurar a versão Core
         if (typeof window.restoreCoreLoadPropertyList === 'function') {
             const restoreResult = window.restoreCoreLoadPropertyList();
             if (restoreResult.success) {
                 await new Promise(r => setTimeout(r, 500));
                 console.log('✅ Versão Core restaurada!');
                 
-                // Verificar novamente
                 const recheck = window.diagnoseAnalyticsQuick();
                 if (recheck.success) {
                     console.log('✅ Analytics restaurado com sucesso!');
@@ -724,6 +724,81 @@ window.runAnalyticsDiagnostic = async function() {
     return results;
 };
 
+// ========== VERIFICAÇÃO PRÉ-LIMPEZA - isVideoUrl FALLBACK ==========
+
+window.diagnoseIsVideoUrlFallback = function() {
+    console.group('🔍 VERIFICAÇÃO PRÉ-LIMPEZA - isVideoUrl');
+    
+    // 1. Verificar existência das funções
+    console.log('📹 FUNÇÃO isVideoUrl:');
+    const hasGlobal = typeof window.isVideoUrl === 'function';
+    const hasSharedCore = typeof window.SharedCore?.isVideoUrl === 'function';
+    
+    console.log(`  window.isVideoUrl existe? ${hasGlobal ? '✅' : '❌'}`);
+    console.log(`  window.SharedCore.isVideoUrl existe? ${hasSharedCore ? '✅' : '❌'}`);
+    
+    // 2. Testar execução
+    console.log('\n🧪 TESTE:');
+    if (hasGlobal) {
+        console.log(`  isVideoUrl("video.mp4"): ${window.isVideoUrl('video.mp4')}`);
+        console.log(`  isVideoUrl("foto.jpg"): ${window.isVideoUrl('foto.jpg')}`);
+        console.log(`  isVideoUrl("https://exemplo.com/video.mov"): ${window.isVideoUrl('https://exemplo.com/video.mov')}`);
+    } else {
+        console.log('  ⚠️ isVideoUrl não disponível para teste');
+    }
+    
+    // 3. Verificar conflito (funções idênticas)
+    console.log('\n🔍 VERIFICAÇÃO DE CONFLITO:');
+    if (hasGlobal && hasSharedCore) {
+        const globalSrc = window.isVideoUrl.toString();
+        const sharedCoreSrc = window.SharedCore.isVideoUrl.toString();
+        const areIdentical = globalSrc === sharedCoreSrc;
+        console.log(`  As funções são idênticas? ${areIdentical ? '✅ SIM' : '⚠️ DIFERENTES'}`);
+        
+        if (!areIdentical) {
+            console.log('  ⚠️ ATENÇÃO: As funções têm implementações diferentes!');
+            console.log(`  Global: ${globalSrc.substring(0, 100)}...`);
+            console.log(`  SharedCore: ${sharedCoreSrc.substring(0, 100)}...`);
+        }
+    } else if (hasGlobal && !hasSharedCore) {
+        console.log('  ⚠️ SharedCore.isVideoUrl NÃO disponível - NÃO remover o fallback');
+    } else if (!hasGlobal && hasSharedCore) {
+        console.log('  ✅ Fallback já foi removido! Apenas SharedCore fornece a função');
+    } else {
+        console.log('  ❌ Nenhuma das funções está disponível!');
+    }
+    
+    // 4. Verificar se o fallback existe no gallery.js (análise do código fonte)
+    console.log('\n📁 ANÁLISE DO GALLERY.JS:');
+    const galleryScript = document.querySelector('script[src*="gallery.js"]');
+    if (galleryScript) {
+        console.log('  Script gallery.js encontrado, mas não é possível analisar o conteúdo via DOM');
+        console.log('  Para verificar o fallback, inspecione manualmente o arquivo gallery.js');
+    } else {
+        console.log('  ⚠️ Script gallery.js não encontrado na página');
+    }
+    
+    // 5. Recomendação
+    console.log('\n📋 RECOMENDAÇÃO:');
+    if (hasGlobal && hasSharedCore) {
+        console.log('  ✅ Pode remover o fallback do gallery.js com segurança');
+        console.log('  A função isVideoUrl continuará disponível via SharedCore');
+        console.log('  Localização do fallback: gallery.js linhas ~13-24');
+    } else if (!hasGlobal && hasSharedCore) {
+        console.log('  ✅ Fallback já foi removido! Apenas SharedCore fornece a função');
+    } else if (hasGlobal && !hasSharedCore) {
+        console.log('  ⚠️ NÃO remover o fallback! SharedCore não está fornecendo isVideoUrl');
+        console.log('  Verifique se SharedCore.js foi atualizado com isVideoUrl');
+    } else {
+        console.log('  ❌ CRÍTICO: isVideoUrl não está disponível em lugar nenhum!');
+        console.log('  A galeria pode não funcionar corretamente');
+    }
+    
+    console.groupEnd();
+    
+    return { hasGlobal, hasSharedCore, canRemove: hasGlobal && hasSharedCore };
+};
+
 // ========== RUN QUICK VALIDATION ==========
 
 window.runQuickValidation = async function() {
@@ -736,13 +811,15 @@ window.runQuickValidation = async function() {
         mediaSystem: window.validateMediaSystem(),
         filterManager: window.validateFilterManager(),
         extractBairro: window.validateExtractBairroFunction(),
+        isVideoUrl: window.diagnoseIsVideoUrlFallback(),
         timestamp: new Date().toISOString()
     };
     
     const sucessoTotal = resultados.centralizacao?.ausentes?.length === 0 &&
                          resultados.duplicatas?.encontradas?.length === 0 &&
                          resultados.mediaSystem?.success === true &&
-                         resultados.filterManager?.success === true;
+                         resultados.filterManager?.success === true &&
+                         resultados.isVideoUrl?.canRemove === true;
     
     console.log(`\n${sucessoTotal ? '🎉 VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS'}`);
     console.log('=========================================');
@@ -814,7 +891,6 @@ window.restoreCoreLoadPropertyList = function() {
                 window.loadPropertyList(window.adminCurrentPage || 1);
                 console.log('🔄 Lista admin recarregada com a versão Core');
                 
-                // Verificar se restaurou corretamente
                 setTimeout(() => {
                     const src = window.loadPropertyList?.toString();
                     const hasAnalytics = src?.includes('Total de visualizações');
@@ -883,7 +959,16 @@ function executeAllChecks(isPartial = false) {
             console.log('\n🚀 EXECUÇÃO AUTOMÁTICA: Validando extração de bairros...');
             window.validateExtractBairroFunction?.();
             
-            // Executar diagnóstico automático do Analytics (sem depender de console)
+            // Execução automática da verificação do isVideoUrl fallback
+            setTimeout(() => {
+                console.log('\n📹 EXECUÇÃO AUTOMÁTICA: Verificando isVideoUrl fallback...');
+                const result = window.diagnoseIsVideoUrlFallback?.();
+                if (result && result.canRemove) {
+                    console.log('✅ O fallback do gallery.js pode ser removido com segurança');
+                }
+            }, 500);
+            
+            // Execução automática do Analytics
             setTimeout(() => {
                 console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
                 const src = window.loadPropertyList?.toString();
@@ -901,6 +986,7 @@ function executeAllChecks(isPartial = false) {
             console.log('\n💡 DICAS (comandos disponíveis):');
             console.log('   • window.diagnoseActiveLoadPropertyList() - Verifica versão ativa');
             console.log('   • window.restoreCoreLoadPropertyList() - Restaura versão Core');
+            console.log('   • window.diagnoseIsVideoUrlFallback() - Verifica fallback isVideoUrl');
             console.log('   • window.runQuickValidation() - Todas as validações');
             console.log('   • window.runAnalyticsDiagnostic() - Diagnóstico de Analytics');
             console.log('   • window.diagnoseAndFixAnalytics() - Diagnóstico e correção');
@@ -917,7 +1003,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.7)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.8)');
         
         // Fazer backup da função Core ANTES de ser sobrescrita
         window.backupCoreLoadPropertyList();
@@ -928,6 +1014,7 @@ function executeAllChecks(isPartial = false) {
                     window.preRemovalVerification?.();
                     setTimeout(() => {
                         window.diagnoseActiveLoadPropertyList?.();
+                        window.diagnoseIsVideoUrlFallback?.();
                     }, 1500);
                     waitForRegistryAndExecute();
                 }, 500);
@@ -937,12 +1024,13 @@ function executeAllChecks(isPartial = false) {
                 window.preRemovalVerification?.();
                 setTimeout(() => {
                     window.diagnoseActiveLoadPropertyList?.();
+                    window.diagnoseIsVideoUrlFallback?.();
                 }, 1500);
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.7)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.8)');
     }
 })();
 
@@ -986,8 +1074,11 @@ window.simpleChecker = {
     restoreCoreLoadPropertyList: window.restoreCoreLoadPropertyList,
     backupCoreLoadPropertyList: window.backupCoreLoadPropertyList,
     
+    // isVideoUrl Fallback Detection (v2.8)
+    diagnoseIsVideoUrlFallback: window.diagnoseIsVideoUrlFallback,
+    
     // Validação rápida
     runQuickValidation: window.runQuickValidation
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.7 - Diagnóstico da versão ativa do loadPropertyList + Restauração Core!');
+console.log('✅ simple-checker.js ATUALIZADO v2.8 - Diagnóstico da versão ativa + isVideoUrl fallback detection + Restauração Core!');
