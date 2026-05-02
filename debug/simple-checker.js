@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.2
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas (v2.9.2)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.3
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty (v2.9.3)');
 
 // ========== FUNÇÕES BÁSICAS ==========
 
@@ -181,7 +181,6 @@ window.validateCentralizedFunctions = function() {
         { nome: 'validateIdForSupabase', central: 'validateIdForSupabase' },
         { nome: 'manageEditingState', central: 'manageEditingState' },
         { nome: 'debounce', central: 'debounce' },
-        { nome: 'throttle', central: 'throttle' },
         { nome: 'isMobileDevice', central: 'isMobileDevice' },
         { nome: 'extractBairroFromLocation', central: 'extractBairroFromLocation' },
         { nome: 'isVideoUrl', central: 'isVideoUrl' },
@@ -807,7 +806,7 @@ window.diagnoseDeleteProperty = function() {
     return { success: passed >= 6, analise, passed };
 };
 
-// ========== NOVAS FUNÇÕES: VERIFICAÇÃO DE FUNÇÕES NÃO UTILIZADAS (v2.9.2) ==========
+// ========== VERIFICAÇÃO DE FUNÇÕES NÃO UTILIZADAS (v2.9.2) ==========
 
 window.diagnoseUnusedFunctions = function() {
     console.group('🔍 VERIFICAÇÃO DE FUNÇÕES NÃO UTILIZADAS');
@@ -820,7 +819,8 @@ window.diagnoseUnusedFunctions = function() {
         'isValidPhone',
         'stringSimilarity',
         'testFileUpload',
-        'validateSupabaseConnection'
+        'validateSupabaseConnection',
+        'validateProperty'  // ADICIONADO v2.9.3
     ];
     
     // 1. Verificar existência global
@@ -859,8 +859,9 @@ window.diagnoseUnusedFunctions = function() {
     console.log('   runLowPriority: substituído por requestIdleCallback');
     console.log('   isValidEmail/Phone: nenhum formulário no sistema');
     console.log('   stringSimilarity: fuzzy matching não utilizado');
-    console.log('   testFileUpload: função de diagnóstico apenas');
+    console.log('   testFileUpload: movido para Support System (diagnóstico)');
     console.log('   validateSupabaseConnection: diagnóstico apenas');
+    console.log('   validateProperty: não utilizada em nenhum módulo');
     
     // 4. Resumo
     const functionsToRemove = functionsToCheck.filter(fn => results[fn]);
@@ -894,7 +895,8 @@ window.verifyPostRemoval = function() {
         'isValidPhone',
         'stringSimilarity',
         'testFileUpload',
-        'validateSupabaseConnection'
+        'validateSupabaseConnection',
+        'validateProperty'  // ADICIONADO v2.9.3
     ];
     
     // 1. Verificar funções removidas
@@ -966,6 +968,107 @@ window.runUnusedFunctionsDiagnostic = async function() {
     return preRemoval;
 };
 
+// ========== VERIFICAÇÃO PARA REMOÇÃO DO validateProperty (v2.9.3) ==========
+
+window.diagnoseValidateProperty = function() {
+    console.group('🔍 VERIFICAÇÃO PRÉ-REMOÇÃO - validateProperty');
+    
+    // 1. Verificar existência
+    console.log('\n1. validateProperty existe?', typeof window.validateProperty);
+    const exists = typeof window.validateProperty === 'function';
+    console.log(`   ${exists ? '⚠️ EXISTE (será removida)' : '✅ JÁ NÃO EXISTE'}`);
+    
+    if (!exists) {
+        console.log('\n✅ validateProperty já foi removida!');
+        console.groupEnd();
+        return { exists: false, safeToRemove: true };
+    }
+    
+    // 2. Buscar referências em módulos principais
+    console.log('\n2. BUSCA POR REFERÊNCIAS:');
+    
+    // Verificar properties.js
+    const propertiesSrc = window.loadPropertiesData?.toString() || '';
+    const hasInProperties = propertiesSrc.includes('validateProperty');
+    console.log(`   properties.js: ${hasInProperties ? '⚠️ PODE TER REFERÊNCIA' : '✅ NENHUMA'}`);
+    
+    // Verificar admin.js
+    const adminSrc = window.saveProperty?.toString() || '';
+    const hasInAdmin = adminSrc.includes('validateProperty');
+    console.log(`   admin.js: ${hasInAdmin ? '⚠️ PODE TER REFERÊNCIA' : '✅ NENHUMA'}`);
+    
+    // Verificar addNewProperty
+    const addSrc = window.addNewProperty?.toString() || '';
+    const hasInAdd = addSrc.includes('validateProperty');
+    console.log(`   addNewProperty: ${hasInAdd ? '⚠️ PODE TER REFERÊNCIA' : '✅ NENHUMA'}`);
+    
+    // 3. Verificar validações alternativas existentes
+    console.log('\n3. VALIDAÇÕES EXISTENTES (SUBSTITUTAS):');
+    
+    const hasAddValidation = addSrc.includes('title') && addSrc.includes('price') && addSrc.includes('location');
+    console.log(`   addNewProperty valida campos: ${hasAddValidation ? '✅ SIM' : '⚠️ VERIFICAR'}`);
+    
+    const hasAdminValidation = adminSrc.includes('title') && adminSrc.includes('price');
+    console.log(`   saveProperty valida campos: ${hasAdminValidation ? '✅ SIM' : '⚠️ VERIFICAR'}`);
+    
+    // 4. Conclusão
+    const safeToRemove = !hasInProperties && !hasInAdmin && !hasInAdd;
+    
+    console.log(`\n📊 CONCLUSÃO: ${safeToRemove ? '✅ Remoção CONFIRMADA como segura!' : '⚠️ Verificar referências antes de remover'}`);
+    
+    console.groupEnd();
+    
+    return {
+        exists,
+        hasInProperties,
+        hasInAdmin,
+        hasInAdd,
+        safeToRemove
+    };
+};
+
+window.verifyValidatePropertyRemoval = function() {
+    console.group('✅ VERIFICAÇÃO PÓS-REMOÇÃO - validateProperty');
+    
+    // 1. Verificar se foi removida
+    console.log('\n1. validateProperty:', typeof window.validateProperty);
+    const removed = typeof window.validateProperty === 'undefined';
+    console.log(`   ${removed ? '✅ REMOVIDA' : '❌ AINDA EXISTE'}`);
+    
+    // 2. Verificar funções essenciais (devem permanecer)
+    console.log('\n2. FUNÇÕES ESSENCIAIS (devem existir):');
+    const essential = ['debounce', 'formatPrice', 'escapeHtml', 'isVideoUrl', 'supabaseFetch'];
+    let allEssentialOk = true;
+    essential.forEach(fn => {
+        const exists = typeof window[fn] === 'function';
+        console.log(`   ${fn}: ${exists ? '✅ OK' : '❌ PROBLEMA'}`);
+        if (!exists) allEssentialOk = false;
+    });
+    
+    // 3. Verificar admin
+    console.log('\n3. ADMIN:');
+    const adminOk = typeof window.toggleAdminPanel === 'function';
+    console.log(`   toggleAdminPanel: ${adminOk ? '✅' : '❌'}`);
+    
+    // 4. Verificar site
+    console.log('\n4. SITE:');
+    console.log(`   Imóveis: ${window.properties?.length || 0}`);
+    console.log(`   MediaSystem: ${typeof MediaSystem !== 'undefined' ? '✅' : '❌'}`);
+    console.log(`   PdfSystem: ${typeof PdfSystem !== 'undefined' ? '✅' : '❌'}`);
+    
+    const success = removed && allEssentialOk && adminOk;
+    console.log(`\n${success ? '✅ Remoção concluída com sucesso!' : '⚠️ Verifique pendências acima'}`);
+    
+    console.groupEnd();
+    
+    return {
+        removed,
+        essentialFunctionsOk: allEssentialOk,
+        adminOk,
+        success
+    };
+};
+
 // ========== RUN QUICK VALIDATION ==========
 
 window.runQuickValidation = async function() {
@@ -981,6 +1084,7 @@ window.runQuickValidation = async function() {
         isVideoUrl: window.diagnoseIsVideoUrlFallback(),
         deleteProperty: window.diagnoseDeleteProperty(),
         unusedFunctions: window.diagnoseUnusedFunctions(),
+        validateProperty: window.diagnoseValidateProperty(),
         timestamp: new Date().toISOString()
     };
     
@@ -990,7 +1094,8 @@ window.runQuickValidation = async function() {
                          resultados.filterManager?.success === true &&
                          resultados.isVideoUrl?.canRemove === true &&
                          resultados.deleteProperty?.success === true &&
-                         resultados.unusedFunctions?.safeToRemove === true;
+                         resultados.unusedFunctions?.safeToRemove === true &&
+                         resultados.validateProperty?.safeToRemove === true;
     
     console.log(`\n${sucessoTotal ? '🎉 VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS'}`);
     console.log('=========================================');
@@ -1130,6 +1235,11 @@ function executeAllChecks(isPartial = false) {
             }, 1500);
             
             setTimeout(() => {
+                console.log('\n🔍 EXECUÇÃO AUTOMÁTICA: Verificando validateProperty...');
+                window.diagnoseValidateProperty?.();
+            }, 2000);
+            
+            setTimeout(() => {
                 console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
                 const src = window.loadPropertyList?.toString();
                 const hasAnalytics = src?.includes('Total de visualizações');
@@ -1137,11 +1247,13 @@ function executeAllChecks(isPartial = false) {
                     console.log('⚠️ Analytics ausente. Tentando restauração...');
                     window.restoreCoreLoadPropertyList();
                 }
-            }, 2000);
+            }, 2500);
             
             console.log('\n💡 DICAS (comandos disponíveis):');
             console.log('   • window.diagnoseUnusedFunctions() - Verifica funções não utilizadas');
-            console.log('   • window.verifyPostRemoval() - Verifica pós-remoção');
+            console.log('   • window.diagnoseValidateProperty() - Verifica validateProperty');
+            console.log('   • window.verifyValidatePropertyRemoval() - Verifica pós-remoção');
+            console.log('   • window.verifyPostRemoval() - Verifica pós-remoção geral');
             console.log('   • window.runUnusedFunctionsDiagnostic() - Diagnóstico completo');
             console.log('   • window.runQuickValidation() - Todas as validações');
         }, 500);
@@ -1157,7 +1269,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.2)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.3)');
         
         window.backupCoreLoadPropertyList();
         
@@ -1170,6 +1282,7 @@ function executeAllChecks(isPartial = false) {
                         window.diagnoseIsVideoUrlFallback?.();
                         window.diagnoseDeleteProperty?.();
                         window.diagnoseUnusedFunctions?.();
+                        window.diagnoseValidateProperty?.();
                     }, 1500);
                     waitForRegistryAndExecute();
                 }, 500);
@@ -1182,12 +1295,13 @@ function executeAllChecks(isPartial = false) {
                     window.diagnoseIsVideoUrlFallback?.();
                     window.diagnoseDeleteProperty?.();
                     window.diagnoseUnusedFunctions?.();
+                    window.diagnoseValidateProperty?.();
                 }, 1500);
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.2)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.3)');
     }
 })();
 
@@ -1242,8 +1356,12 @@ window.simpleChecker = {
     verifyPostRemoval: window.verifyPostRemoval,
     runUnusedFunctionsDiagnostic: window.runUnusedFunctionsDiagnostic,
     
+    // validateProperty (v2.9.3)
+    diagnoseValidateProperty: window.diagnoseValidateProperty,
+    verifyValidatePropertyRemoval: window.verifyValidatePropertyRemoval,
+    
     // Validação rápida
     runQuickValidation: window.runQuickValidation
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.9.2 - Diagnóstico de funções não utilizadas + Validação completa!');
+console.log('✅ simple-checker.js ATUALIZADO v2.9.3 - Validação para remoção do validateProperty + Diagnóstico completo de funções não utilizadas!');
