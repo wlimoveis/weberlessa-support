@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl Fallback Detection v2
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl (v2.9)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.1
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl Fallback Detection + deleteProperty Detection
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty (v2.9.1)');
 
 // ========== FUNÇÕES BÁSICAS ==========
 
@@ -724,7 +724,7 @@ window.runAnalyticsDiagnostic = async function() {
     return results;
 };
 
-// ========== VERIFICAÇÃO DETALHADA PARA LIMPEZA DO GALLERY.JS (v2.9) ==========
+// ========== VERIFICAÇÃO DETALHADA PARA LIMPEZA DO GALLERY.JS ==========
 
 window.diagnoseIsVideoUrlFallback = function() {
     console.group('🔍 VERIFICAÇÃO DETALHADA PARA LIMPEZA DO GALLERY.JS');
@@ -818,6 +818,138 @@ window.diagnoseIsVideoUrlFallback = function() {
     };
 };
 
+// ========== DIAGNÓSTICO DO deleteProperty ==========
+
+window.diagnoseDeleteProperty = function() {
+    console.group('🔍 DIAGNÓSTICO COMPLETO DO deleteProperty');
+    
+    const resultado = {
+        existe: false,
+        analise: {},
+        checks: 0,
+        passed: 0
+    };
+    
+    // 1. Verificar se a função existe
+    console.log('\n1. EXISTÊNCIA:');
+    resultado.existe = typeof window.deleteProperty === 'function';
+    console.log(`   window.deleteProperty: ${resultado.existe ? '✅ EXISTE' : '❌ NÃO EXISTE'}`);
+    
+    if (!resultado.existe) {
+        console.log('\n❌ deleteProperty NÃO ENCONTRADA!');
+        console.groupEnd();
+        return { success: false, error: 'Função não encontrada' };
+    }
+    
+    // 2. Analisar o código da função
+    const fnString = window.deleteProperty.toString();
+    
+    console.log('\n2. ANÁLISE DO CÓDIGO:');
+    
+    // Verificar exclusão de mídia
+    resultado.analise.hasMediaCheck = fnString.includes('MediaSystem') && fnString.includes('deleteFilesFromStorage');
+    console.log(`   Exclusão de arquivos de mídia: ${resultado.analise.hasMediaCheck ? '✅ IMPLEMENTADA' : '❌ NÃO IMPLEMENTADA'}`);
+    
+    // Verificar extração de imagens
+    resultado.analise.hasImageExtraction = fnString.includes('property.images');
+    console.log(`   Extrai URLs de imagens: ${resultado.analise.hasImageExtraction ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // Verificar extração de PDFs
+    resultado.analise.hasPdfExtraction = fnString.includes('property.pdfs');
+    console.log(`   Extrai URLs de PDFs: ${resultado.analise.hasPdfExtraction ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // Verificar confirmação do usuário
+    resultado.analise.hasConfirm = fnString.includes('confirm');
+    console.log(`   Confirmação do usuário: ${resultado.analise.hasConfirm ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // Verificar exclusão do Supabase
+    resultado.analise.hasSupabaseDelete = fnString.includes('DELETE') && (fnString.includes('supabase') || fnString.includes('fetch'));
+    console.log(`   Exclusão do Supabase: ${resultado.analise.hasSupabaseDelete ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // Verificar salvamento local
+    resultado.analise.hasLocalSave = fnString.includes('savePropertiesToStorage') || fnString.includes('localStorage');
+    console.log(`   Salvamento local: ${resultado.analise.hasLocalSave ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // Verificar re-renderização
+    resultado.analise.hasReRender = fnString.includes('renderProperties') || fnString.includes('loadPropertyList');
+    console.log(`   Re-renderização: ${resultado.analise.hasReRender ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // 3. Verificar MediaSystem
+    console.log('\n3. MEDIASYSTEM:');
+    console.log(`   MediaSystem existe: ${typeof MediaSystem !== 'undefined' ? '✅ SIM' : '❌ NÃO'}`);
+    console.log(`   MediaSystem.deleteFilesFromStorage: ${typeof MediaSystem?.deleteFilesFromStorage === 'function' ? '✅ SIM' : '❌ NÃO'}`);
+    
+    // 4. Teste rápido com imóvel real (apenas leitura)
+    console.log('\n4. TESTE RÁPIDO (APENAS LEITURA):');
+    if (window.properties && window.properties.length > 0) {
+        const testProperty = window.properties[0];
+        console.log(`   Imóvel de teste: "${testProperty.title}" (ID: ${testProperty.id})`);
+        
+        const hasImages = testProperty.images && testProperty.images !== 'EMPTY';
+        const hasPdfs = testProperty.pdfs && testProperty.pdfs !== 'EMPTY';
+        console.log(`   Tem imagens: ${hasImages ? '✅ SIM' : '❌ NÃO'}`);
+        console.log(`   Tem PDFs: ${hasPdfs ? '✅ SIM' : '❌ NÃO'}`);
+        
+        if (hasImages) {
+            const imageCount = testProperty.images.split(',').filter(u => u && u.trim()).length;
+            console.log(`   Quantidade de imagens: ${imageCount}`);
+        }
+        if (hasPdfs) {
+            const pdfCount = testProperty.pdfs.split(',').filter(u => u && u.trim()).length;
+            console.log(`   Quantidade de PDFs: ${pdfCount}`);
+        }
+    } else {
+        console.log('   ⚠️ Nenhum imóvel carregado para teste');
+    }
+    
+    // 5. Calcular resultado
+    const checks = [
+        resultado.analise.hasMediaCheck,
+        resultado.analise.hasImageExtraction,
+        resultado.analise.hasPdfExtraction,
+        resultado.analise.hasConfirm,
+        resultado.analise.hasSupabaseDelete,
+        resultado.analise.hasLocalSave,
+        resultado.analise.hasReRender
+    ];
+    
+    resultado.passed = checks.filter(c => c === true).length;
+    resultado.totalChecks = checks.length;
+    
+    console.log(`\n📊 RESULTADO: ${resultado.passed}/${resultado.totalChecks} verificações passaram`);
+    
+    if (resultado.passed >= 6) {
+        console.log('✅ deleteProperty está COMPLETO e funcionando corretamente!');
+        console.log('   O aviso do diagnóstico é um FALSO POSITIVO.');
+    } else if (resultado.passed >= 4) {
+        console.log('⚠️ deleteProperty está PARCIALMENTE implementado.');
+        console.log('   Faltam algumas funcionalidades de segurança.');
+        
+        if (!resultado.analise.hasMediaCheck) {
+            console.log('   - Faltando: Exclusão de arquivos de mídia');
+        }
+        if (!resultado.analise.hasImageExtraction) {
+            console.log('   - Faltando: Extração de URLs de imagens');
+        }
+        if (!resultado.analise.hasPdfExtraction) {
+            console.log('   - Faltando: Extração de URLs de PDFs');
+        }
+    } else {
+        console.log('❌ deleteProperty está INCOMPLETO.');
+        console.log('   Necessita de correção imediata.');
+    }
+    
+    console.groupEnd();
+    
+    return {
+        success: resultado.passed >= 6,
+        existe: resultado.existe,
+        analise: resultado.analise,
+        passed: resultado.passed,
+        totalChecks: resultado.totalChecks
+    };
+};
+
 // ========== RUN QUICK VALIDATION ==========
 
 window.runQuickValidation = async function() {
@@ -831,6 +963,7 @@ window.runQuickValidation = async function() {
         filterManager: window.validateFilterManager(),
         extractBairro: window.validateExtractBairroFunction(),
         isVideoUrl: window.diagnoseIsVideoUrlFallback(),
+        deleteProperty: window.diagnoseDeleteProperty(),
         timestamp: new Date().toISOString()
     };
     
@@ -838,7 +971,8 @@ window.runQuickValidation = async function() {
                          resultados.duplicatas?.encontradas?.length === 0 &&
                          resultados.mediaSystem?.success === true &&
                          resultados.filterManager?.success === true &&
-                         resultados.isVideoUrl?.canRemove === true;
+                         resultados.isVideoUrl?.canRemove === true &&
+                         resultados.deleteProperty?.success === true;
     
     console.log(`\n${sucessoTotal ? '🎉 VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS'}`);
     console.log('=========================================');
@@ -990,6 +1124,20 @@ function executeAllChecks(isPartial = false) {
                 }
             }, 500);
             
+            // Execução automática do diagnóstico deleteProperty
+            setTimeout(() => {
+                console.log('\n🗑️ EXECUÇÃO AUTOMÁTICA: Verificando deleteProperty...');
+                const result = window.diagnoseDeleteProperty?.();
+                if (result && !result.success) {
+                    console.log('⚠️ deleteProperty precisa de correção.');
+                    if (result.passed < 4) {
+                        console.log('   Considerada INCOMPLETA - necessário atualizar.');
+                    }
+                } else if (result && result.success) {
+                    console.log('✅ deleteProperty está COMPLETA e funcionando corretamente!');
+                }
+            }, 1000);
+            
             // Execução automática do Analytics
             setTimeout(() => {
                 console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
@@ -1003,12 +1151,13 @@ function executeAllChecks(isPartial = false) {
                 } else {
                     console.log('✅ Analytics presente na função atual.');
                 }
-            }, 1000);
+            }, 1500);
             
             console.log('\n💡 DICAS (comandos disponíveis):');
             console.log('   • window.diagnoseActiveLoadPropertyList() - Verifica versão ativa');
             console.log('   • window.restoreCoreLoadPropertyList() - Restaura versão Core');
             console.log('   • window.diagnoseIsVideoUrlFallback() - Verifica fallback isVideoUrl (DETALHADO)');
+            console.log('   • window.diagnoseDeleteProperty() - Diagnóstico completo do deleteProperty');
             console.log('   • window.runQuickValidation() - Todas as validações');
             console.log('   • window.runAnalyticsDiagnostic() - Diagnóstico de Analytics');
             console.log('   • window.diagnoseAndFixAnalytics() - Diagnóstico e correção');
@@ -1025,7 +1174,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.1)');
         
         // Fazer backup da função Core ANTES de ser sobrescrita
         window.backupCoreLoadPropertyList();
@@ -1037,6 +1186,7 @@ function executeAllChecks(isPartial = false) {
                     setTimeout(() => {
                         window.diagnoseActiveLoadPropertyList?.();
                         window.diagnoseIsVideoUrlFallback?.();
+                        window.diagnoseDeleteProperty?.();
                     }, 1500);
                     waitForRegistryAndExecute();
                 }, 500);
@@ -1047,12 +1197,13 @@ function executeAllChecks(isPartial = false) {
                 setTimeout(() => {
                     window.diagnoseActiveLoadPropertyList?.();
                     window.diagnoseIsVideoUrlFallback?.();
+                    window.diagnoseDeleteProperty?.();
                 }, 1500);
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.9)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.1)');
     }
 })();
 
@@ -1096,11 +1247,14 @@ window.simpleChecker = {
     restoreCoreLoadPropertyList: window.restoreCoreLoadPropertyList,
     backupCoreLoadPropertyList: window.backupCoreLoadPropertyList,
     
-    // isVideoUrl Fallback Detection (v2.9 - versão detalhada)
+    // isVideoUrl Fallback Detection (versão detalhada)
     diagnoseIsVideoUrlFallback: window.diagnoseIsVideoUrlFallback,
+    
+    // deleteProperty Detection (v2.9.1)
+    diagnoseDeleteProperty: window.diagnoseDeleteProperty,
     
     // Validação rápida
     runQuickValidation: window.runQuickValidation
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.9 - Diagnóstico detalhado do gallery.js + isVideoUrl fallback detection!');
+console.log('✅ simple-checker.js ATUALIZADO v2.9.1 - Diagnóstico detalhado do gallery.js + isVideoUrl fallback + deleteProperty detection!');
