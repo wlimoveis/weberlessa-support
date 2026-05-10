@@ -1,6 +1,6 @@
-// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.5
-// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions
-console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions (v2.9.5)');
+// weberlessa-support/debug/simple-checker.js - VERSÃO COMPLETA v2.9.6
+// Verificação Básica + Validação de Centralização + Teste Performance + Analytics Diagnostic + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions + Verificação Pós-Centralização
+console.log('✅ simple-checker.js - Verificação Básica + Validação de Centralização + Analytics + Core/Support Detection + isVideoUrl + deleteProperty + Funções Não Utilizadas + validateProperty + Comentários/Logs + SharedCore Functions + Verificação Pós-Centralização (v2.9.6)');
 
 // ========== FUNÇÕES BÁSICAS ==========
 
@@ -1204,6 +1204,189 @@ window.verifySharedCoreCleanup = function() {
     };
 };
 
+// ========== VERIFICAÇÃO PÓS-CENTRALIZAÇÃO (v2.9.6) ==========
+
+/**
+ * ✅ VERIFICAÇÃO DE SANIDADE - Funções de Visualização
+ * Verifica se as funções de galeria estão centralizadas e delegando corretamente
+ */
+window.verifyGalleryFunctionsCentralization = function() {
+    console.group('🔍 VERIFICAÇÃO DE SANIDADE - FUNÇÕES DE VISUALIZAÇÃO');
+    
+    const results = {
+        getGalleryViews: { exists: false, isFunction: false, delegatesToSharedCore: false },
+        resetGalleryViews: { exists: false, isFunction: false, delegatesToSharedCore: false },
+        getTotalGalleryViews: { exists: false, isFunction: false, delegatesToSharedCore: false },
+        resetAllGalleryViews: { exists: false, isFunction: false, delegatesToSharedCore: false },
+        registerGalleryView: { exists: false, isFunction: false, delegatesToSharedCore: false },
+        getLastGalleryView: { exists: false, isFunction: false, delegatesToSharedCore: false }
+    };
+    
+    const functionsToCheck = [
+        'getGalleryViews',
+        'resetGalleryViews', 
+        'getTotalGalleryViews',
+        'resetAllGalleryViews',
+        'registerGalleryView',
+        'getLastGalleryView'
+    ];
+    
+    console.log('\n1. VERIFICANDO EXISTÊNCIA DAS FUNÇÕES:');
+    functionsToCheck.forEach(fnName => {
+        const exists = typeof window[fnName] === 'function';
+        results[fnName].exists = exists;
+        results[fnName].isFunction = exists;
+        console.log(`   ${fnName}: ${exists ? '✅ EXISTE' : '❌ NÃO EXISTE'}`);
+    });
+    
+    console.log('\n2. VERIFICANDO DELEGAÇÃO PARA SHAREDCORE:');
+    functionsToCheck.forEach(fnName => {
+        if (typeof window[fnName] === 'function') {
+            const fnString = window[fnName].toString();
+            const delegatesToSharedCore = fnString.includes('SharedCore.') || 
+                                          fnString.includes('window.SharedCore');
+            results[fnName].delegatesToSharedCore = delegatesToSharedCore;
+            console.log(`   ${fnName}: ${delegatesToSharedCore ? '✅ DELEGA PARA SHAREDCORE' : '⚠️ IMPLEMENTAÇÃO LOCAL'}`);
+        } else {
+            console.log(`   ${fnName}: ❌ NÃO DISPONÍVEL PARA VERIFICAÇÃO`);
+        }
+    });
+    
+    console.log('\n3. TESTE DE DELEGAÇÃO CONSISTENTE:');
+    if (window.properties && window.properties.length > 0) {
+        const testId = window.properties[0]?.id;
+        if (testId && typeof window.getGalleryViews === 'function' && 
+            typeof window.SharedCore?.getGalleryViews === 'function') {
+            const oldWay = window.getGalleryViews(testId);
+            const newWay = window.SharedCore.getGalleryViews(testId);
+            const isConsistent = oldWay === newWay;
+            console.log(`   ID de teste: ${testId}`);
+            console.log(`   window.getGalleryViews(): ${oldWay}`);
+            console.log(`   SharedCore.getGalleryViews(): ${newWay}`);
+            console.log(`   Delegação consistente: ${isConsistent ? '✅ SIM' : '❌ NÃO'}`);
+            results.consistencyTest = { passed: isConsistent, testId, oldWay, newWay };
+        } else {
+            console.log('   ⚠️ Não foi possível testar delegação (funções ou imóveis indisponíveis)');
+        }
+    } else {
+        console.log('   ⚠️ Nenhum imóvel carregado para teste');
+    }
+    
+    // Resumo
+    const allExist = functionsToCheck.every(fn => results[fn].exists);
+    const allDelegate = functionsToCheck.every(fn => !results[fn].exists || results[fn].delegatesToSharedCore);
+    const success = allExist && allDelegate;
+    
+    console.log(`\n📊 RESUMO:`);
+    console.log(`   Todas as funções existem: ${allExist ? '✅ SIM' : '❌ NÃO'}`);
+    console.log(`   Todas delegam ao SharedCore: ${allDelegate ? '✅ SIM' : '⚠️ PARCIAL'}`);
+    console.log(`\n${success ? '✅ CENTRALIZAÇÃO CONFIRMADA!' : '⚠️ VERIFICAÇÃO COM PENDÊNCIAS'}`);
+    
+    console.groupEnd();
+    
+    return results;
+};
+
+/**
+ * ✅ VERIFICAÇÃO DE SANIDADE - Formatação de Preço
+ * Verifica se o PriceFormatter está funcionando corretamente
+ */
+window.verifyPriceFormatterCentralization = function() {
+    console.group('💰 VERIFICAÇÃO DE SANIDADE - FORMATAÇÃO DE PREÇO');
+    
+    const results = {
+        priceFormatterExists: false,
+        formatForCardWorks: false,
+        formatForInputWorks: false,
+        testResults: {}
+    };
+    
+    console.log('\n1. VERIFICANDO EXISTÊNCIA:');
+    results.priceFormatterExists = typeof window.SharedCore?.PriceFormatter === 'object';
+    console.log(`   SharedCore.PriceFormatter: ${results.priceFormatterExists ? '✅ EXISTE' : '❌ NÃO EXISTE'}`);
+    
+    if (!results.priceFormatterExists) {
+        console.log('\n❌ PriceFormatter NÃO disponível!');
+        console.groupEnd();
+        return results;
+    }
+    
+    const testValues = [
+        { input: '150000', expectedPattern: /R\$\s?150[\s.]?000[\s.,]?00/ },
+        { input: 'R$ 150.000', expectedPattern: /R\$\s?150[\s.]?000/ },
+        { input: '450000', expectedPattern: /R\$\s?450[\s.]?000[\s.,]?00/ },
+        { input: '', expectedPattern: /R\$\s?0[\s.,]?00/ },
+        { input: null, expectedPattern: /R\$\s?0[\s.,]?00/ }
+    ];
+    
+    console.log('\n2. TESTANDO formatForCard:');
+    results.testResults.formatForCard = [];
+    testValues.forEach(test => {
+        const formatted = window.SharedCore.PriceFormatter.formatForCard(test.input);
+        const passed = test.expectedPattern.test(formatted);
+        results.testResults.formatForCard.push({ input: test.input, output: formatted, passed });
+        console.log(`   formatForCard("${test.input}"): "${formatted}" → ${passed ? '✅' : '❌'}`);
+    });
+    results.formatForCardWorks = results.testResults.formatForCard.every(t => t.passed);
+    
+    console.log('\n3. TESTANDO formatForInput:');
+    results.testResults.formatForInput = [];
+    const inputTests = ['150000', '450000', 'R$ 150.000'];
+    inputTests.forEach(input => {
+        const formatted = window.SharedCore.PriceFormatter.formatForInput(input);
+        const isValid = formatted.includes('R$');
+        results.testResults.formatForInput.push({ input, output: formatted, passed: isValid });
+        console.log(`   formatForInput("${input}"): "${formatted}" → ${isValid ? '✅' : '❌'}`);
+    });
+    results.formatForInputWorks = results.testResults.formatForInput.every(t => t.passed);
+    
+    const success = results.formatForCardWorks && results.formatForInputWorks;
+    
+    console.log(`\n📊 RESUMO:`);
+    console.log(`   formatForCard funcionando: ${results.formatForCardWorks ? '✅ SIM' : '❌ NÃO'}`);
+    console.log(`   formatForInput funcionando: ${results.formatForInputWorks ? '✅ SIM' : '❌ NÃO'}`);
+    console.log(`\n${success ? '✅ FORMATAÇÃO DE PREÇO CENTRALIZADA E FUNCIONAL!' : '⚠️ VERIFICAÇÃO COM PENDÊNCIAS'}`);
+    
+    console.groupEnd();
+    
+    return results;
+};
+
+/**
+ * ✅ FUNÇÃO PRINCIPAL - Verificação de Sanidade Pós-Centralização
+ * Executa todas as verificações de sanidade
+ */
+window.runPostCentralizationSanityCheck = function() {
+    console.log('\n🔍 =========================================');
+    console.log('🔍 VERIFICAÇÃO DE SANIDADE PÓS-CENTRALIZAÇÃO');
+    console.log('🔍 =========================================\n');
+    
+    const results = {
+        galleryFunctions: null,
+        priceFormatter: null,
+        timestamp: new Date().toISOString(),
+        overallSuccess: false
+    };
+    
+    console.log('📍 FASE 1: Verificando funções de visualização...');
+    results.galleryFunctions = window.verifyGalleryFunctionsCentralization();
+    
+    console.log('\n📍 FASE 2: Verificando formatação de preço...');
+    results.priceFormatter = window.verifyPriceFormatterCentralization();
+    
+    results.overallSuccess = results.galleryFunctions && 
+                             Object.values(results.galleryFunctions).every(v => 
+                                 typeof v === 'object' ? v.consistencyTest?.passed !== false : true) &&
+                             results.priceFormatter?.formatForCardWorks === true &&
+                             results.priceFormatter?.formatForInputWorks === true;
+    
+    console.log('\n📊 =========================================');
+    console.log(`📊 RESULTADO FINAL: ${results.overallSuccess ? '✅ TODOS OS TESTES PASSARAM' : '⚠️ VERIFICAÇÃO COM PENDÊNCIAS'}`);
+    console.log('📊 =========================================');
+    
+    return results;
+};
+
 // ========== RUN QUICK VALIDATION ==========
 
 window.runQuickValidation = async function() {
@@ -1222,6 +1405,7 @@ window.runQuickValidation = async function() {
         validateProperty: window.diagnoseValidateProperty(),
         codeComments: window.diagnoseCodeComments(),
         sharedCoreFunctions: window.diagnoseSharedCoreFunctions(),
+        postCentralization: window.runPostCentralizationSanityCheck(),
         timestamp: new Date().toISOString()
     };
     
@@ -1232,7 +1416,8 @@ window.runQuickValidation = async function() {
                          resultados.isVideoUrl?.canRemove === true &&
                          resultados.deleteProperty?.success === true &&
                          resultados.unusedFunctions?.safeToRemove === true &&
-                         resultados.validateProperty?.safeToRemove === true;
+                         resultados.validateProperty?.safeToRemove === true &&
+                         resultados.postCentralization?.overallSuccess === true;
     
     console.log(`\n${sucessoTotal ? '🎉 VALIDAÇÃO COMPLETA APROVADA!' : '⚠️ VALIDAÇÃO COM PENDÊNCIAS'}`);
     console.log('=========================================');
@@ -1384,6 +1569,11 @@ function executeAllChecks(isPartial = false) {
             }, 3000);
             
             setTimeout(() => {
+                console.log('\n🔍 EXECUÇÃO AUTOMÁTICA: Verificando pós-centralização...');
+                window.runPostCentralizationSanityCheck?.();
+            }, 3500);
+            
+            setTimeout(() => {
                 console.log('\n📊 EXECUÇÃO AUTOMÁTICA: Verificando Analytics...');
                 const src = window.loadPropertyList?.toString();
                 const hasAnalytics = src?.includes('Total de visualizações');
@@ -1391,13 +1581,14 @@ function executeAllChecks(isPartial = false) {
                     console.log('⚠️ Analytics ausente. Tentando restauração...');
                     window.restoreCoreLoadPropertyList();
                 }
-            }, 3500);
+            }, 4000);
             
             console.log('\n💡 DICAS:');
             console.log('   • window.diagnoseSharedCoreFunctions() - Verifica funções do SharedCore');
             console.log('   • window.verifySharedCoreCleanup() - Verifica pós-remoção');
             console.log('   • window.diagnoseCodeComments() - Verifica comentários e logs');
             console.log('   • window.diagnoseUnusedFunctions() - Verifica funções não utilizadas');
+            console.log('   • window.runPostCentralizationSanityCheck() - Verifica pós-centralização');
             console.log('   • window.runQuickValidation() - Todas as validações');
         }, 500);
     }, 100);
@@ -1412,7 +1603,7 @@ function executeAllChecks(isPartial = false) {
                        window.location.hostname.includes('127.0.0.1');
     
     if (isDebugMode) {
-        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.5)');
+        console.log('🔧 simple-checker.js - Modo debug ativado (v2.9.6)');
         window.backupCoreLoadPropertyList();
         
         if (document.readyState === 'loading') {
@@ -1427,6 +1618,7 @@ function executeAllChecks(isPartial = false) {
                         window.diagnoseValidateProperty?.();
                         window.diagnoseCodeComments?.();
                         window.diagnoseSharedCoreFunctions?.();
+                        window.runPostCentralizationSanityCheck?.();
                     }, 1500);
                     waitForRegistryAndExecute();
                 }, 500);
@@ -1442,12 +1634,13 @@ function executeAllChecks(isPartial = false) {
                     window.diagnoseValidateProperty?.();
                     window.diagnoseCodeComments?.();
                     window.diagnoseSharedCoreFunctions?.();
+                    window.runPostCentralizationSanityCheck?.();
                 }, 1500);
                 waitForRegistryAndExecute();
             }, 500);
         }
     } else {
-        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.5)');
+        console.log('🚀 simple-checker.js carregado (modo produção - v2.9.6)');
     }
 })();
 
@@ -1490,7 +1683,10 @@ window.simpleChecker = {
     verifyCodeCleanup: window.verifyCodeCleanup,
     diagnoseSharedCoreFunctions: window.diagnoseSharedCoreFunctions,
     verifySharedCoreCleanup: window.verifySharedCoreCleanup,
+    verifyGalleryFunctionsCentralization: window.verifyGalleryFunctionsCentralization,
+    verifyPriceFormatterCentralization: window.verifyPriceFormatterCentralization,
+    runPostCentralizationSanityCheck: window.runPostCentralizationSanityCheck,
     runQuickValidation: window.runQuickValidation
 };
 
-console.log('✅ simple-checker.js ATUALIZADO v2.9.5 - Diagnóstico de funções do SharedCore + Verificação pós-remoção!');
+console.log('✅ simple-checker.js ATUALIZADO v2.9.6 - Verificação de sanidade pós-centralização!');
