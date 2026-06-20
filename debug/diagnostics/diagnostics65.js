@@ -1,23 +1,27 @@
-// debug/diagnostics/diagnostics65.js - SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.0
+// debug/diagnostics/diagnostics65.js - SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.1
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
 //   2. Funções da galeria ausentes
-//   3. Imagens quebradas (ERR_NAME_NOT_RESOLVED)
+//   3. Imagens quebradas (ERR_NAME_NOT_RESOLVED) - COM RECUPERAÇÃO
 //   4. Estado "MISTO" (antigo + novo)
 //   5. Funções críticas ausentes
-console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+// ✅ Integração com Recuperação de Imagens
+console.log('🔧 [DIAGNOSTICS v6.5.1] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
 
 (function() {
     'use strict';
 
     // ========== CONFIGURAÇÃO ==========
     const CONFIG = {
-        version: '6.5.0',
+        version: '6.5.1',
         name: 'Sistema de Diagnóstico Completo',
         autoFix: true,
         logLevel: 'debug',
         maxRetries: 3,
-        retryDelay: 1000
+        retryDelay: 1000,
+        supabaseUrl: 'https://wxdiowpswepsvklumgvx.supabase.co',
+        bucket: 'properties',
+        fallbackImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
     };
 
     // ========== ESTADO ==========
@@ -457,7 +461,7 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
             brokenImages.forEach(item => {
                 const img = item.element;
                 if (img) {
-                    const fallbackUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+                    const fallbackUrl = CONFIG.fallbackImage;
                     img.src = fallbackUrl;
                     img.onerror = null;
                     img.style.border = '2px solid #e74c3c';
@@ -570,6 +574,135 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
             return false;
         }
     }
+
+    // ========== RECUPERAÇÃO DE IMAGENS (ADICIONADO v6.5.1) ==========
+
+    const RecoverImages = {
+        config: {
+            supabaseUrl: window.SUPABASE_CONSTANTS?.URL || 'https://wxdiowpswepsvklumgvx.supabase.co',
+            bucket: 'properties',
+            fallbackImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
+        },
+
+        testImageUrl: function(url) {
+            return new Promise((resolve) => {
+                if (!url || url === 'EMPTY' || url.trim() === '') {
+                    resolve(false);
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = url;
+                setTimeout(() => resolve(false), 5000);
+            });
+        },
+
+        reconstructUrl: function(url) {
+            if (!url || url.startsWith('http')) return url;
+            
+            const { supabaseUrl, bucket } = this.config;
+            if (url.includes('_') && url.includes('.')) {
+                return `${supabaseUrl}/storage/v1/object/public/${bucket}/${url}`;
+            }
+            return url;
+        },
+
+        recoverAll: async function() {
+            console.log('🚀 Iniciando recuperação de imagens...');
+            
+            if (!window.properties || window.properties.length === 0) {
+                console.warn('⚠️ Nenhuma propriedade encontrada');
+                return { fixed: 0, total: 0, errors: [] };
+            }
+
+            const results = {
+                fixed: 0,
+                total: 0,
+                errors: [],
+                fixedProperties: []
+            };
+
+            for (const property of window.properties) {
+                if (!property.images || property.images === 'EMPTY') continue;
+                
+                const urls = property.images.split(',').filter(u => u && u.trim());
+                results.total += urls.length;
+                
+                let needsFix = false;
+                const fixedUrls = [];
+                
+                for (const url of urls) {
+                    const reconstructed = this.reconstructUrl(url);
+                    const isValid = await this.testImageUrl(reconstructed);
+                    
+                    if (isValid) {
+                        fixedUrls.push(reconstructed);
+                    } else {
+                        console.warn(`⚠️ Imagem inválida: ${url}`);
+                        fixedUrls.push(this.config.fallbackImage);
+                        needsFix = true;
+                        results.errors.push({ property: property.id, url: url });
+                    }
+                }
+                
+                if (needsFix || fixedUrls.join(',') !== property.images) {
+                    property.images = fixedUrls.join(',');
+                    results.fixed++;
+                    results.fixedProperties.push(property.id);
+                    console.log(`✅ Imóvel ${property.id} corrigido`);
+                }
+            }
+
+            if (results.fixed > 0) {
+                if (typeof window.savePropertiesToStorage === 'function') {
+                    window.savePropertiesToStorage();
+                }
+                if (typeof window.renderProperties === 'function') {
+                    window.renderProperties('todos', true);
+                }
+            }
+
+            console.log(`📊 Resumo: ${results.fixed} imóveis corrigidos, ${results.total} imagens processadas`);
+            return results;
+        },
+
+        checkProperty: async function(propertyId) {
+            const property = window.properties.find(p => p.id == propertyId);
+            if (!property) {
+                console.error(`❌ Imóvel ${propertyId} não encontrado`);
+                return null;
+            }
+
+            console.log(`🔍 Verificando imóvel: ${property.title}`);
+            
+            if (!property.images || property.images === 'EMPTY') {
+                console.warn('⚠️ Nenhuma imagem encontrada');
+                return { hasImages: false };
+            }
+
+            const urls = property.images.split(',').filter(u => u && u.trim());
+            const results = [];
+            
+            for (const url of urls) {
+                const reconstructed = this.reconstructUrl(url);
+                const isValid = await this.testImageUrl(reconstructed);
+                results.push({
+                    original: url,
+                    reconstructed: reconstructed,
+                    valid: isValid
+                });
+                console.log(`${isValid ? '✅' : '❌'} ${url}`);
+            }
+
+            return {
+                property: property,
+                results: results,
+                validCount: results.filter(r => r.valid).length,
+                totalCount: results.length
+            };
+        }
+    };
 
     // ========== RELATÓRIO COMPLETO ==========
     function generateReport(results) {
@@ -727,6 +860,10 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
                             style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
                         <i class="fas fa-wrench"></i> Correção Rápida
                     </button>
+                    <button onclick="window.DiagnosticSystem65.recoverImages()" 
+                            style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-image"></i> Recuperar Imagens
+                    </button>
                     <button onclick="document.getElementById('diagnosticPanel65').remove()" 
                             style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
                         <i class="fas fa-times"></i> Fechar
@@ -805,6 +942,10 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
         fixSystemState: fixSystemState,
         fixCriticalFunctions: fixCriticalFunctions,
         generateReport: generateReport,
+        // Funções de recuperação de imagens (v6.5.1)
+        recoverImages: RecoverImages.recoverAll,
+        checkPropertyImages: RecoverImages.checkProperty,
+        reconstructImageUrl: RecoverImages.reconstructUrl,
         CONFIG: CONFIG
     };
 
@@ -814,12 +955,14 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
         
         if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
             window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                description: 'Sistema de Diagnóstico Completo v6.5.0',
+                description: 'Sistema de Diagnóstico Completo v6.5.1',
                 version: CONFIG.version,
                 functions: [
                     'runFullDiagnostic',
                     'showPanel',
                     'quickFix',
+                    'recoverImages',
+                    'checkPropertyImages',
                     'diagnoseIllegalReturn',
                     'diagnoseGalleryFunctions',
                     'diagnoseBrokenImages',
@@ -831,12 +974,18 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
             log('✅ Registrado no DiagnosticRegistry', 'success');
         }
 
-        if (window.location.search.includes('diagnostics=true') || 
-            window.location.search.includes('debug=true')) {
+        // Verificar se deve executar automaticamente
+        const isDebugMode = window.location.search.includes('diagnostics=true') || 
+                           window.location.search.includes('debug=true');
+        
+        if (isDebugMode) {
             setTimeout(() => {
                 log('🚀 Executando diagnóstico automático...', 'info');
                 runFullDiagnostic();
-                setTimeout(() => showDiagnosticPanel(), 1000);
+                
+                setTimeout(() => {
+                    showDiagnosticPanel();
+                }, 1000);
             }, 2000);
         }
 
@@ -844,17 +993,21 @@ console.log('🔧 [DIAGNOSTICS v6.5.0] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGAD
         log('✅ DiagnosticSystem65 inicializado', 'success');
     }
 
+    // Inicializar
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', autoInitialize);
     } else {
         setTimeout(autoInitialize, 500);
     }
 
-    console.log('%c🔧 DiagnosticSystem65 v6.5.0 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+    // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
+    console.log('%c🔧 DiagnosticSystem65 v6.5.1 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
     console.log('%cComandos disponíveis:', 'font-weight: bold;');
     console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
     console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
     console.log('  ⚡ window.DiagnosticSystem65.quickFix() - Correção rápida');
     console.log('  📊 window.DiagnosticSystem65.generateReport() - Gerar relatório');
+    console.log('  🖼️ window.DiagnosticSystem65.recoverImages() - Recuperar imagens quebradas');
+    console.log('  🔍 window.DiagnosticSystem65.checkPropertyImages(id) - Verificar imagens de um imóvel');
 
 })();
