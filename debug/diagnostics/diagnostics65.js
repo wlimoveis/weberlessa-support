@@ -1,6 +1,6 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.4
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.5
 // ============================================================
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
@@ -10,19 +10,19 @@
 //   5. Funções críticas ausentes
 // ✅ Integração com Recuperação de Imagens
 // ✅ CORREÇÃO: Botões do painel agora respondem ao clique
-// ✅ MARCADOR DE FIM DE ARQUIVO PARA GITHUB ACTIONS
+// ✅ CORREÇÃO: this.reconstructUrl is not a function (v6.5.5)
 // ============================================================
 
 (function() {
     'use strict';
 
-    console.log('🔧 [DIAGNOSTICS v6.5.4] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.5] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
 
     try {
 
         // ========== CONFIGURAÇÃO ==========
-        const CONFIG = {
-            version: '6.5.4',
+        var CONFIG = {
+            version: '6.5.5',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -34,7 +34,7 @@
         };
 
         // ========== ESTADO ==========
-        const state = {
+        var state = {
             initialized: false,
             diagnostics: [],
             fixes: [],
@@ -45,16 +45,17 @@
         };
 
         // ========== UTILITÁRIOS ==========
-        function log(message, type = 'info') {
-            const prefix = {
+        function log(message, type) {
+            type = type || 'info';
+            var prefix = {
                 'debug': '🔍',
                 'info': 'ℹ️',
                 'warn': '⚠️',
                 'error': '❌',
                 'success': '✅'
             };
-            const timestamp = new Date().toISOString();
-            const logMsg = `${prefix[type] || '📌'} [${timestamp}] ${message}`;
+            var timestamp = new Date().toISOString();
+            var logMsg = (prefix[type] || '📌') + ' [' + timestamp + '] ' + message;
             console.log(logMsg);
             
             if (type === 'error') state.errors.push(message);
@@ -63,12 +64,13 @@
             return logMsg;
         }
 
-        function safeExecute(fn, fallback = null) {
+        function safeExecute(fn, fallback) {
+            fallback = fallback || null;
             try { 
-                const result = fn();
+                var result = fn();
                 return result !== undefined ? result : fallback;
             } catch (error) { 
-                log(`Erro ao executar: ${error.message}`, 'error'); 
+                log('Erro ao executar: ' + error.message, 'error'); 
                 return fallback; 
             }
         }
@@ -77,12 +79,12 @@
         function diagnoseIllegalReturn() {
             log('🔍 Diagnosticando Illegal Return Statement...', 'debug');
             
-            const results = { hasError: false, location: null, fix: null };
+            var results = { hasError: false, location: null, fix: null };
 
             try {
                 if (window.MediaSystem && window.MediaSystem.uploadSingleFile) {
-                    const fnString = window.MediaSystem.uploadSingleFile.toString();
-                    const hasReturnOutsidePromise = /}\s*return\s+/.test(fnString);
+                    var fnString = window.MediaSystem.uploadSingleFile.toString();
+                    var hasReturnOutsidePromise = /}\s*return\s+/.test(fnString);
                     if (hasReturnOutsidePromise) {
                         results.hasError = true;
                         results.location = 'media-unified.js - uploadSingleFile';
@@ -91,11 +93,12 @@
                     }
                 }
 
-                const scripts = document.querySelectorAll('script');
-                scripts.forEach(script => {
+                var scripts = document.querySelectorAll('script');
+                for (var i = 0; i < scripts.length; i++) {
+                    var script = scripts[i];
                     if (script.src && script.src.includes('properties.js')) {
                         try {
-                            const content = script.textContent || '';
+                            var content = script.textContent || '';
                             if (content.includes('return') && !content.includes('function')) {
                                 if (content.match(/^\s*return\s+[^;]+;/m)) {
                                     results.hasError = true;
@@ -106,7 +109,7 @@
                             }
                         } catch (e) {}
                     }
-                });
+                }
 
                 if (!results.hasError) {
                     log('✅ Nenhum Illegal return statement detectado', 'success');
@@ -115,7 +118,7 @@
                 return results;
 
             } catch (error) {
-                log(`Erro no diagnóstico de Illegal Return: ${error.message}`, 'error');
+                log('Erro no diagnóstico de Illegal Return: ' + error.message, 'error');
                 return results;
             }
         }
@@ -124,7 +127,7 @@
         function diagnoseGalleryFunctions() {
             log('🔍 Diagnosticando funções da galeria...', 'debug');
             
-            const requiredFunctions = [
+            var requiredFunctions = [
                 'openGalleryAtCurrentIndex',
                 'closeGallery',
                 'createPropertyGallery',
@@ -133,21 +136,22 @@
                 'registerGalleryView'
             ];
 
-            const results = { missing: [], exists: [], fix: null };
+            var results = { missing: [], exists: [], fix: null };
 
-            requiredFunctions.forEach(fnName => {
+            for (var i = 0; i < requiredFunctions.length; i++) {
+                var fnName = requiredFunctions[i];
                 if (typeof window[fnName] === 'function') {
                     results.exists.push(fnName);
-                    log(`✅ ${fnName} disponível`, 'debug');
+                    log('✅ ' + fnName + ' disponível', 'debug');
                 } else {
                     results.missing.push(fnName);
-                    log(`❌ ${fnName} NÃO DISPONÍVEL`, 'error');
+                    log('❌ ' + fnName + ' NÃO DISPONÍVEL', 'error');
                 }
-            });
+            }
 
             if (results.missing.length > 0) {
                 results.fix = 'Carregar gallery.js ou criar fallbacks';
-                log(`⚠️ ${results.missing.length} função(ões) da galeria ausentes`, 'warn');
+                log('⚠️ ' + results.missing.length + ' função(ões) da galeria ausentes', 'warn');
             } else {
                 log('✅ Todas as funções da galeria estão disponíveis', 'success');
             }
@@ -159,29 +163,30 @@
         function diagnoseBrokenImages() {
             log('🔍 Diagnosticando imagens quebradas...', 'debug');
             
-            const results = { brokenImages: [], totalImages: 0, fix: null };
+            var results = { brokenImages: [], totalImages: 0, fix: null };
 
             try {
-                const images = document.querySelectorAll('img');
+                var images = document.querySelectorAll('img');
                 results.totalImages = images.length;
 
-                images.forEach(img => {
+                for (var i = 0; i < images.length; i++) {
+                    var img = images[i];
                     if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
-                        const src = img.src || img.getAttribute('src');
+                        var src = img.src || img.getAttribute('src');
                         if (src && src.includes('supabase.co')) {
                             results.brokenImages.push({
                                 src: src,
                                 element: img,
                                 error: 'ERR_NAME_NOT_RESOLVED'
                             });
-                            log(`❌ Imagem quebrada: ${src.substring(0, 50)}...`, 'error');
+                            log('❌ Imagem quebrada: ' + src.substring(0, 50) + '...', 'error');
                         }
                     }
-                });
+                }
 
                 if (results.brokenImages.length > 0) {
                     results.fix = 'Verificar URLs no Supabase ou usar fallback';
-                    log(`⚠️ ${results.brokenImages.length} imagem(ns) quebrada(s) detectada(s)`, 'warn');
+                    log('⚠️ ' + results.brokenImages.length + ' imagem(ns) quebrada(s) detectada(s)', 'warn');
                 } else {
                     log('✅ Nenhuma imagem quebrada detectada', 'success');
                 }
@@ -189,7 +194,7 @@
                 return results;
 
             } catch (error) {
-                log(`Erro no diagnóstico de imagens: ${error.message}`, 'error');
+                log('Erro no diagnóstico de imagens: ' + error.message, 'error');
                 return results;
             }
         }
@@ -198,27 +203,29 @@
         function diagnoseSystemState() {
             log('🔍 Diagnosticando estado do sistema...', 'debug');
             
-            const results = {
+            var results = {
                 isMixed: false,
                 oldFunctions: [],
                 newFunctions: [],
                 fix: null
             };
 
-            const oldPatterns = ['filterProperties', 'openGallery', 'closeGallery'];
-            const newPatterns = ['filterPropertiesByType', 'openGalleryAtCurrentIndex', 'closeGallery'];
+            var oldPatterns = ['filterProperties', 'openGallery', 'closeGallery'];
+            var newPatterns = ['filterPropertiesByType', 'openGalleryAtCurrentIndex', 'closeGallery'];
 
-            oldPatterns.forEach(fn => {
+            for (var i = 0; i < oldPatterns.length; i++) {
+                var fn = oldPatterns[i];
                 if (typeof window[fn] === 'function') {
                     results.oldFunctions.push(fn);
                 }
-            });
+            }
 
-            newPatterns.forEach(fn => {
-                if (typeof window[fn] === 'function') {
-                    results.newFunctions.push(fn);
+            for (var j = 0; j < newPatterns.length; j++) {
+                var fn2 = newPatterns[j];
+                if (typeof window[fn2] === 'function') {
+                    results.newFunctions.push(fn2);
                 }
-            });
+            }
 
             if (results.oldFunctions.length > 0 && results.newFunctions.length > 0) {
                 results.isMixed = true;
@@ -239,7 +246,7 @@
         function diagnoseCriticalFunctions() {
             log('🔍 Diagnosticando funções críticas...', 'debug');
             
-            const criticalFunctions = [
+            var criticalFunctions = [
                 'properties',
                 'propertyTemplates',
                 'renderProperties',
@@ -251,21 +258,22 @@
                 'SUPABASE_CONSTANTS'
             ];
 
-            const results = { missing: [], exists: [], fix: null };
+            var results = { missing: [], exists: [], fix: null };
 
-            criticalFunctions.forEach(fnName => {
+            for (var i = 0; i < criticalFunctions.length; i++) {
+                var fnName = criticalFunctions[i];
                 if (typeof window[fnName] !== 'undefined') {
                     results.exists.push(fnName);
-                    log(`✅ ${fnName} disponível`, 'debug');
+                    log('✅ ' + fnName + ' disponível', 'debug');
                 } else {
                     results.missing.push(fnName);
-                    log(`❌ ${fnName} NÃO DISPONÍVEL`, 'error');
+                    log('❌ ' + fnName + ' NÃO DISPONÍVEL', 'error');
                 }
-            });
+            }
 
             if (results.missing.length > 0) {
-                results.fix = `Carregar módulos: ${results.missing.join(', ')}`;
-                log(`⚠️ ${results.missing.length} função(ões) crítica(s) ausentes`, 'warn');
+                results.fix = 'Carregar módulos: ' + results.missing.join(', ');
+                log('⚠️ ' + results.missing.length + ' função(ões) crítica(s) ausentes', 'warn');
             } else {
                 log('✅ Todas as funções críticas estão disponíveis', 'success');
             }
@@ -279,7 +287,7 @@
             
             try {
                 if (window.MediaSystem && window.MediaSystem.uploadSingleFile) {
-                    const fixedFn = function(file, propertyId, type) {
+                    var fixedFn = function(file, propertyId, type) {
                         var self = this;
                         var t = type || 'media';
                         return new Promise(function(resolve, reject) {
@@ -324,7 +332,7 @@
                 return false;
 
             } catch (error) {
-                log(`❌ Erro ao corrigir Illegal return: ${error.message}`, 'error');
+                log('❌ Erro ao corrigir Illegal return: ' + error.message, 'error');
                 return false;
             }
         }
@@ -334,12 +342,12 @@
             log('🔧 Criando fallbacks para funções da galeria...', 'info');
             
             try {
-                const missing = diagnostic.missing || [];
-                let fixed = 0;
+                var missing = diagnostic.missing || [];
+                var fixed = 0;
 
-                if (missing.includes('createPropertyGallery') || typeof window.createPropertyGallery !== 'function') {
+                if (missing.indexOf('createPropertyGallery') !== -1 || typeof window.createPropertyGallery !== 'function') {
                     window.createPropertyGallery = function(property) {
-                        const fallbackImage = property.images && property.images !== 'EMPTY' 
+                        var fallbackImage = property.images && property.images !== 'EMPTY' 
                             ? property.images.split(',')[0] 
                             : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
                         
@@ -381,7 +389,7 @@
                                             font-weight: bold;
                                             z-index: 10;
                                         ">
-                                            <i class="fas fa-images"></i> ${property.images.split(',').filter(u => u && u.trim()).length}
+                                            <i class="fas fa-images"></i> ${property.images.split(',').filter(function(u) { return u && u.trim(); }).length}
                                         </div>
                                     ` : ''}
                                 </div>
@@ -392,39 +400,45 @@
                     log('✅ createPropertyGallery fallback criado', 'success');
                 }
 
-                if (missing.includes('openGalleryAtCurrentIndex') || typeof window.openGalleryAtCurrentIndex !== 'function') {
+                if (missing.indexOf('openGalleryAtCurrentIndex') !== -1 || typeof window.openGalleryAtCurrentIndex !== 'function') {
                     window.openGalleryAtCurrentIndex = function(propertyId) {
-                        const property = window.properties.find(p => p.id === propertyId);
+                        var property = null;
+                        for (var i = 0; i < window.properties.length; i++) {
+                            if (window.properties[i].id === propertyId) {
+                                property = window.properties[i];
+                                break;
+                            }
+                        }
                         if (!property) {
-                            log(`❌ Imóvel ${propertyId} não encontrado`, 'error');
+                            log('❌ Imóvel ' + propertyId + ' não encontrado', 'error');
                             return;
                         }
                         
-                        const hasImages = property.images && property.images !== 'EMPTY';
+                        var hasImages = property.images && property.images !== 'EMPTY';
                         if (!hasImages) {
-                            log(`ℹ️ Imóvel ${propertyId} não tem imagens`, 'info');
+                            log('ℹ️ Imóvel ' + propertyId + ' não tem imagens', 'info');
                             return;
                         }
                         
-                        const images = property.images.split(',').filter(u => u && u.trim());
-                        const firstImage = images[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+                        var images = property.images.split(',').filter(function(u) { return u && u.trim(); });
+                        var firstImage = images[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
                         
                         if (typeof window.registerGalleryView === 'function') {
                             window.registerGalleryView(propertyId);
                         }
                         
-                        alert(`📸 ${property.title}\n\nClique em OK para abrir a imagem em nova aba.`);
+                        alert('📸 ' + property.title + '\n\nClique em OK para abrir a imagem em nova aba.');
                         window.open(firstImage, '_blank');
                         
-                        log(`✅ Galeria aberta para imóvel ${propertyId} (fallback)`, 'success');
+                        log('✅ Galeria aberta para imóvel ' + propertyId + ' (fallback)', 'success');
                     };
                     fixed++;
                     log('✅ openGalleryAtCurrentIndex fallback criado', 'success');
                 }
 
-                if (missing.includes('closeGallery') || typeof window.closeGallery !== 'function') {
+                if (missing.indexOf('closeGallery') !== -1 || typeof window.closeGallery !== 'function') {
                     window.closeGallery = function() {
-                        const modal = document.getElementById('propertyGalleryModal');
+                        var modal = document.getElementById('propertyGalleryModal');
                         if (modal) {
                             modal.style.display = 'none';
                             document.body.style.overflow = 'auto';
@@ -435,7 +449,7 @@
                     log('✅ closeGallery fallback criado', 'success');
                 }
 
-                if (missing.includes('setupGalleryEvents') || typeof window.setupGalleryEvents !== 'function') {
+                if (missing.indexOf('setupGalleryEvents') !== -1 || typeof window.setupGalleryEvents !== 'function') {
                     window.setupGalleryEvents = function() {
                         log('✅ setupGalleryEvents fallback executado', 'info');
                         document.addEventListener('keydown', function(event) {
@@ -448,19 +462,19 @@
                     log('✅ setupGalleryEvents fallback criado', 'success');
                 }
 
-                if (missing.includes('navigatePropertyGallery') || typeof window.navigatePropertyGallery !== 'function') {
+                if (missing.indexOf('navigatePropertyGallery') !== -1 || typeof window.navigatePropertyGallery !== 'function') {
                     window.navigatePropertyGallery = function(propertyId, direction) {
-                        log(`ℹ️ Navegação da galeria: ${direction} (fallback)`, 'info');
+                        log('ℹ️ Navegação da galeria: ' + direction + ' (fallback)', 'info');
                     };
                     fixed++;
                     log('✅ navigatePropertyGallery fallback criado', 'success');
                 }
 
-                log(`✅ ${fixed} fallback(s) da galeria criado(s)`, 'success');
+                log('✅ ' + fixed + ' fallback(s) da galeria criado(s)', 'success');
                 return true;
 
             } catch (error) {
-                log(`❌ Erro ao criar fallbacks da galeria: ${error.message}`, 'error');
+                log('❌ Erro ao criar fallbacks da galeria: ' + error.message, 'error');
                 return false;
             }
         }
@@ -470,30 +484,31 @@
             log('🔧 Corrigindo imagens quebradas...', 'info');
             
             try {
-                const brokenImages = diagnostic.brokenImages || [];
-                let fixed = 0;
+                var brokenImages = diagnostic.brokenImages || [];
+                var fixed = 0;
 
-                brokenImages.forEach(item => {
-                    const img = item.element;
+                for (var i = 0; i < brokenImages.length; i++) {
+                    var item = brokenImages[i];
+                    var img = item.element;
                     if (img) {
-                        const fallbackUrl = CONFIG.fallbackImage;
+                        var fallbackUrl = CONFIG.fallbackImage;
                         img.src = fallbackUrl;
                         img.onerror = null;
                         img.style.border = '2px solid #e74c3c';
                         img.title = 'Imagem original indisponível - usando fallback';
                         fixed++;
-                        log(`✅ Imagem corrigida: ${item.src.substring(0, 30)}...`, 'success');
+                        log('✅ Imagem corrigida: ' + item.src.substring(0, 30) + '...', 'success');
                     }
-                });
+                }
 
                 if (fixed > 0) {
-                    log(`✅ ${fixed} imagem(ns) quebrada(s) corrigida(s) com fallback`, 'success');
+                    log('✅ ' + fixed + ' imagem(ns) quebrada(s) corrigida(s) com fallback', 'success');
                 }
 
                 return true;
 
             } catch (error) {
-                log(`❌ Erro ao corrigir imagens: ${error.message}`, 'error');
+                log('❌ Erro ao corrigir imagens: ' + error.message, 'error');
                 return false;
             }
         }
@@ -517,7 +532,7 @@
                 return true;
 
             } catch (error) {
-                log(`❌ Erro ao unificar sistema: ${error.message}`, 'error');
+                log('❌ Erro ao unificar sistema: ' + error.message, 'error');
                 return false;
             }
         }
@@ -527,10 +542,10 @@
             log('🔧 Corrigindo funções críticas ausentes...', 'info');
             
             try {
-                const missing = diagnostic.missing || [];
-                let fixed = 0;
+                var missing = diagnostic.missing || [];
+                var fixed = 0;
 
-                if (missing.includes('SUPABASE_CONSTANTS') || typeof window.SUPABASE_CONSTANTS === 'undefined') {
+                if (missing.indexOf('SUPABASE_CONSTANTS') !== -1 || typeof window.SUPABASE_CONSTANTS === 'undefined') {
                     window.SUPABASE_CONSTANTS = {
                         URL: 'https://wxdiowpswepsvklumgvx.supabase.co',
                         KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZGlvd3Bzd2Vwc3ZrbHVtZ3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTExNzksImV4cCI6MjA4Nzk4NzE3OX0.QsUHE_w5m5-pz3LcwdREuwmwvCiX3Hz8FYv8SAwhD6U',
@@ -543,12 +558,12 @@
                     log('✅ SUPABASE_CONSTANTS criado', 'success');
                 }
 
-                if (missing.includes('SharedCore') || typeof window.SharedCore === 'undefined') {
+                if (missing.indexOf('SharedCore') !== -1 || typeof window.SharedCore === 'undefined') {
                     window.SharedCore = {
                         version: '2.0.0',
                         formatPrice: function(value) {
                             if (!value && value !== 0) return 'R$ 0,00';
-                            const numericPrice = parseFloat(value.toString().replace(/[^0-9,-]/g, '').replace(',', '.'));
+                            var numericPrice = parseFloat(value.toString().replace(/[^0-9,-]/g, '').replace(',', '.'));
                             if (isNaN(numericPrice)) return 'R$ 0,00';
                             return numericPrice.toLocaleString('pt-BR', {
                                 style: 'currency',
@@ -569,7 +584,7 @@
                             if (value === undefined || value === null) return false;
                             if (typeof value === 'boolean') return value;
                             if (typeof value === 'string') {
-                                const lower = value.toLowerCase().trim();
+                                var lower = value.toLowerCase().trim();
                                 if (lower === 'true' || lower === '1' || lower === 'sim') return true;
                                 if (lower === 'false' || lower === '0' || lower === 'não') return false;
                             }
@@ -581,81 +596,90 @@
                     log('✅ SharedCore criado (fallback)', 'success');
                 }
 
-                log(`✅ ${fixed} função(ões) crítica(s) corrigida(s)`, 'success');
+                log('✅ ' + fixed + ' função(ões) crítica(s) corrigida(s)', 'success');
                 return true;
 
             } catch (error) {
-                log(`❌ Erro ao corrigir funções críticas: ${error.message}`, 'error');
+                log('❌ Erro ao corrigir funções críticas: ' + error.message, 'error');
                 return false;
             }
         }
 
-        // ========== RECUPERAÇÃO DE IMAGENS ==========
+        // ========== RECUPERAÇÃO DE IMAGENS (CORRIGIDO v6.5.5) ==========
 
-        const RecoverImages = {
+        var RecoverImages = {
             config: {
                 supabaseUrl: window.SUPABASE_CONSTANTS?.URL || 'https://wxdiowpswepsvklumgvx.supabase.co',
                 bucket: 'properties',
                 fallbackImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
             },
 
+            // ✅ CORRIGIDO: testImageUrl com function tradicional
             testImageUrl: function(url) {
-                return new Promise((resolve) => {
+                return new Promise(function(resolve) {
                     if (!url || url === 'EMPTY' || url.trim() === '') {
                         resolve(false);
                         return;
                     }
-                    const img = new Image();
-                    img.onload = () => resolve(true);
-                    img.onerror = () => resolve(false);
+                    var img = new Image();
+                    img.onload = function() { resolve(true); };
+                    img.onerror = function() { resolve(false); };
                     img.src = url;
-                    setTimeout(() => resolve(false), 5000);
+                    setTimeout(function() { resolve(false); }, 5000);
                 });
             },
 
+            // ✅ CORRIGIDO: reconstructUrl com function tradicional
             reconstructUrl: function(url) {
                 if (!url || url.startsWith('http')) return url;
                 
-                const { supabaseUrl, bucket } = this.config;
+                var supabaseUrl = this.config.supabaseUrl;
+                var bucket = this.config.bucket;
                 if (url.includes('_') && url.includes('.')) {
-                    return `${supabaseUrl}/storage/v1/object/public/${bucket}/${url}`;
+                    return supabaseUrl + '/storage/v1/object/public/' + bucket + '/' + url;
                 }
                 return url;
             },
 
+            // ✅ CORRIGIDO: recoverAll com self = this
             recoverAll: async function() {
                 console.log('🚀 Iniciando recuperação de imagens...');
+                
+                var self = this;
                 
                 if (!window.properties || window.properties.length === 0) {
                     console.warn('⚠️ Nenhuma propriedade encontrada');
                     return { fixed: 0, total: 0, errors: [] };
                 }
 
-                const results = {
+                var results = {
                     fixed: 0,
                     total: 0,
                     errors: [],
                     fixedProperties: []
                 };
 
-                for (const property of window.properties) {
+                for (var i = 0; i < window.properties.length; i++) {
+                    var property = window.properties[i];
                     if (!property.images || property.images === 'EMPTY') continue;
                     
-                    const urls = property.images.split(',').filter(u => u && u.trim());
+                    var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
                     results.total += urls.length;
                     
-                    let needsFix = false;
-                    const fixedUrls = [];
+                    var needsFix = false;
+                    var fixedUrls = [];
                     
-                    for (const url of urls) {
-                        const reconstructed = this.reconstructUrl(url);
-                        const isValid = await this.testImageUrl(reconstructed);
+                    for (var j = 0; j < urls.length; j++) {
+                        var url = urls[j];
+                        // ✅ USAR self.reconstructUrl (não this)
+                        var reconstructed = self.reconstructUrl(url);
+                        var isValid = await self.testImageUrl(reconstructed);
                         
                         if (isValid) {
                             fixedUrls.push(reconstructed);
                         } else {
-                            console.warn(`⚠️ Imagem inválida: ${url}`);
-                            fixedUrls.push(this.config.fallbackImage);
+                            console.warn('⚠️ Imagem inválida:', url);
+                            fixedUrls.push(self.config.fallbackImage);
                             needsFix = true;
                             results.errors.push({ property: property.id, url: url });
                         }
@@ -665,7 +689,7 @@
                         property.images = fixedUrls.join(',');
                         results.fixed++;
                         results.fixedProperties.push(property.id);
-                        console.log(`✅ Imóvel ${property.id} corrigido`);
+                        console.log('✅ Imóvel ' + property.id + ' corrigido');
                     }
                 }
 
@@ -678,42 +702,53 @@
                     }
                 }
 
-                console.log(`📊 Resumo: ${results.fixed} imóveis corrigidos, ${results.total} imagens processadas`);
+                console.log('📊 Resumo: ' + results.fixed + ' imóveis corrigidos, ' + results.total + ' imagens processadas');
                 return results;
             },
 
+            // ✅ CORRIGIDO: checkProperty com self = this
             checkProperty: async function(propertyId) {
-                const property = window.properties.find(p => p.id == propertyId);
+                var self = this;
+                
+                var property = null;
+                for (var i = 0; i < window.properties.length; i++) {
+                    if (window.properties[i].id == propertyId) {
+                        property = window.properties[i];
+                        break;
+                    }
+                }
                 if (!property) {
-                    console.error(`❌ Imóvel ${propertyId} não encontrado`);
+                    console.error('❌ Imóvel ' + propertyId + ' não encontrado');
                     return null;
                 }
 
-                console.log(`🔍 Verificando imóvel: ${property.title}`);
+                console.log('🔍 Verificando imóvel:', property.title);
                 
                 if (!property.images || property.images === 'EMPTY') {
                     console.warn('⚠️ Nenhuma imagem encontrada');
                     return { hasImages: false };
                 }
 
-                const urls = property.images.split(',').filter(u => u && u.trim());
-                const results = [];
+                var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
+                var results = [];
                 
-                for (const url of urls) {
-                    const reconstructed = this.reconstructUrl(url);
-                    const isValid = await this.testImageUrl(reconstructed);
+                for (var j = 0; j < urls.length; j++) {
+                    var url = urls[j];
+                    // ✅ USAR self.reconstructUrl (não this)
+                    var reconstructed = self.reconstructUrl(url);
+                    var isValid = await self.testImageUrl(reconstructed);
                     results.push({
                         original: url,
                         reconstructed: reconstructed,
                         valid: isValid
                     });
-                    console.log(`${isValid ? '✅' : '❌'} ${url}`);
+                    console.log((isValid ? '✅' : '❌') + ' ' + url);
                 }
 
                 return {
                     property: property,
                     results: results,
-                    validCount: results.filter(r => r.valid).length,
+                    validCount: results.filter(function(r) { return r.valid; }).length,
                     totalCount: results.length
                 };
             }
@@ -723,7 +758,7 @@
         function generateReport(results) {
             log('📊 GERANDO RELATÓRIO COMPLETO...', 'info');
             
-            const report = {
+            var report = {
                 timestamp: new Date().toISOString(),
                 version: CONFIG.version,
                 status: state.status,
@@ -764,56 +799,56 @@
             state.warnings = [];
 
             try {
-                const illegalReturn = diagnoseIllegalReturn();
+                var illegalReturn = diagnoseIllegalReturn();
                 state.diagnostics.push({ type: 'illegalReturn', result: illegalReturn });
                 
-                const galleryFunctions = diagnoseGalleryFunctions();
+                var galleryFunctions = diagnoseGalleryFunctions();
                 state.diagnostics.push({ type: 'galleryFunctions', result: galleryFunctions });
                 
-                const brokenImages = diagnoseBrokenImages();
+                var brokenImages = diagnoseBrokenImages();
                 state.diagnostics.push({ type: 'brokenImages', result: brokenImages });
                 
-                const systemState = diagnoseSystemState();
+                var systemState = diagnoseSystemState();
                 state.diagnostics.push({ type: 'systemState', result: systemState });
                 
-                const criticalFunctions = diagnoseCriticalFunctions();
+                var criticalFunctions = diagnoseCriticalFunctions();
                 state.diagnostics.push({ type: 'criticalFunctions', result: criticalFunctions });
 
                 if (CONFIG.autoFix) {
                     log('🔧 Aplicando correções automáticas...', 'info');
 
                     if (illegalReturn.hasError) {
-                        const fixed = fixIllegalReturn(illegalReturn);
+                        var fixed = fixIllegalReturn(illegalReturn);
                         if (fixed) state.fixes.push('Illegal return statement corrigido');
                     }
 
                     if (galleryFunctions.missing.length > 0) {
-                        const fixed = fixGalleryFunctions(galleryFunctions);
-                        if (fixed) state.fixes.push(`${galleryFunctions.missing.length} função(ões) da galeria criada(s)`);
+                        var fixed2 = fixGalleryFunctions(galleryFunctions);
+                        if (fixed2) state.fixes.push(galleryFunctions.missing.length + ' função(ões) da galeria criada(s)');
                     }
 
                     if (brokenImages.brokenImages.length > 0) {
-                        const fixed = fixBrokenImages(brokenImages);
-                        if (fixed) state.fixes.push(`${brokenImages.brokenImages.length} imagem(ns) corrigida(s)`);
+                        var fixed3 = fixBrokenImages(brokenImages);
+                        if (fixed3) state.fixes.push(brokenImages.brokenImages.length + ' imagem(ns) corrigida(s)');
                     }
 
                     if (systemState.isMixed) {
-                        const fixed = fixSystemState(systemState);
-                        if (fixed) state.fixes.push('Sistema unificado');
+                        var fixed4 = fixSystemState(systemState);
+                        if (fixed4) state.fixes.push('Sistema unificado');
                     }
 
                     if (criticalFunctions.missing.length > 0) {
-                        const fixed = fixCriticalFunctions(criticalFunctions);
-                        if (fixed) state.fixes.push(`${criticalFunctions.missing.length} função(ões) crítica(s) corrigida(s)`);
+                        var fixed5 = fixCriticalFunctions(criticalFunctions);
+                        if (fixed5) state.fixes.push(criticalFunctions.missing.length + ' função(ões) crítica(s) corrigida(s)');
                     }
 
-                    log(`✅ ${state.fixes.length} correção(ões) aplicada(s)`, 'success');
+                    log('✅ ' + state.fixes.length + ' correção(ões) aplicada(s)', 'success');
                 }
 
                 state.status = 'completed';
                 log('✅ DIAGNÓSTICO COMPLETO FINALIZADO', 'success');
 
-                const report = generateReport(state.diagnostics);
+                var report = generateReport(state.diagnostics);
                 
                 if (typeof window.showDiagnosticResults === 'function') {
                     window.showDiagnosticResults(report);
@@ -823,21 +858,21 @@
 
             } catch (error) {
                 state.status = 'error';
-                log(`❌ Erro no diagnóstico: ${error.message}`, 'error');
+                log('❌ Erro no diagnóstico: ' + error.message, 'error');
                 return null;
             }
         }
 
-        // ========== FUNÇÃO PARA EXIBIR NO PAINEL - CORRIGIDA ==========
+        // ========== FUNÇÃO PARA EXIBIR NO PAINEL ==========
         function showDiagnosticPanel() {
             log('📋 Exibindo painel de diagnóstico...', 'info');
             
-            let existingPanel = document.getElementById('diagnosticPanel65');
+            var existingPanel = document.getElementById('diagnosticPanel65');
             if (existingPanel) {
                 existingPanel.remove();
             }
             
-            const panel = document.createElement('div');
+            var panel = document.createElement('div');
             panel.id = 'diagnosticPanel65';
             panel.style.cssText = `
                 position: fixed;
@@ -899,53 +934,49 @@
             
             // ========== EVENTOS DIRETOS COM IDS ==========
             
-            // Botão Fechar (X no cabeçalho)
             document.getElementById('closeDiagnosticPanelBtn').addEventListener('click', function() {
-                const p = document.getElementById('diagnosticPanel65');
+                var p = document.getElementById('diagnosticPanel65');
                 if (p) p.remove();
                 log('✅ Painel fechado', 'info');
             });
             
-            // Botão Fechar (rodapé)
             document.getElementById('closePanelBtn').addEventListener('click', function() {
-                const p = document.getElementById('diagnosticPanel65');
+                var p = document.getElementById('diagnosticPanel65');
                 if (p) p.remove();
                 log('✅ Painel fechado', 'info');
             });
             
-            // Botão Executar Diagnóstico Completo
             document.getElementById('runDiagnosticBtn').addEventListener('click', async function() {
-                const statusDiv = document.getElementById('diagnosticStatus');
+                var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Executando diagnóstico completo...';
                 statusDiv.style.color = '#ffd700';
                 
                 try {
                     log('▶️ Executando diagnóstico completo (via botão)', 'info');
-                    const result = await window.DiagnosticSystem65.runFullDiagnostic();
+                    var result = await window.DiagnosticSystem65.runFullDiagnostic();
                     
                     if (result) {
-                        statusDiv.innerHTML = `✅ Diagnóstico concluído! ${result.summary.totalFixes} correções aplicadas.`;
+                        statusDiv.innerHTML = '✅ Diagnóstico concluído! ' + result.summary.totalFixes + ' correções aplicadas.';
                         statusDiv.style.color = '#27ae60';
                     } else {
                         statusDiv.innerHTML = '⚠️ Diagnóstico concluído com algumas pendências. Verifique o console.';
                         statusDiv.style.color = '#f39c12';
                     }
                 } catch (error) {
-                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.innerHTML = '❌ Erro: ' + error.message;
                     statusDiv.style.color = '#e74c3c';
-                    log(`❌ Erro no diagnóstico: ${error.message}`, 'error');
+                    log('❌ Erro no diagnóstico: ' + error.message, 'error');
                 }
             });
             
-            // Botão Correção Rápida
             document.getElementById('quickFixBtn').addEventListener('click', function() {
-                const statusDiv = document.getElementById('diagnosticStatus');
+                var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aplicando correção rápida...';
                 statusDiv.style.color = '#ffd700';
                 
                 try {
                     log('⚡ Executando correção rápida (via botão)', 'info');
-                    const result = window.DiagnosticSystem65.quickFix();
+                    var result = window.DiagnosticSystem65.quickFix();
                     
                     if (result) {
                         statusDiv.innerHTML = '✅ Correção rápida aplicada com sucesso!';
@@ -955,24 +986,23 @@
                         statusDiv.style.color = '#f39c12';
                     }
                 } catch (error) {
-                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.innerHTML = '❌ Erro: ' + error.message;
                     statusDiv.style.color = '#e74c3c';
-                    log(`❌ Erro na correção rápida: ${error.message}`, 'error');
+                    log('❌ Erro na correção rápida: ' + error.message, 'error');
                 }
             });
             
-            // Botão Recuperar Imagens
             document.getElementById('recoverImagesBtn').addEventListener('click', async function() {
-                const statusDiv = document.getElementById('diagnosticStatus');
+                var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recuperando imagens...';
                 statusDiv.style.color = '#ffd700';
                 
                 try {
                     log('🖼️ Executando recuperação de imagens (via botão)', 'info');
-                    const result = await window.DiagnosticSystem65.recoverImages();
+                    var result = await window.DiagnosticSystem65.recoverImages();
                     
                     if (result && result.fixed > 0) {
-                        statusDiv.innerHTML = `✅ ${result.fixed} imóveis corrigidos (${result.total} imagens processadas)`;
+                        statusDiv.innerHTML = '✅ ' + result.fixed + ' imóveis corrigidos (' + result.total + ' imagens processadas)';
                         statusDiv.style.color = '#27ae60';
                     } else if (result && result.fixed === 0) {
                         statusDiv.innerHTML = '✅ Nenhuma imagem precisou ser corrigida.';
@@ -982,23 +1012,9 @@
                         statusDiv.style.color = '#f39c12';
                     }
                 } catch (error) {
-                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.innerHTML = '❌ Erro: ' + error.message;
                     statusDiv.style.color = '#e74c3c';
-                    log(`❌ Erro na recuperação de imagens: ${error.message}`, 'error');
-                }
-            });
-            
-            // Efeitos hover nos botões
-            document.querySelectorAll('#diagnosticPanel65 button').forEach(btn => {
-                if (btn.id) {
-                    btn.addEventListener('mouseenter', function() {
-                        this.style.transform = 'scale(1.05)';
-                        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-                    });
-                    btn.addEventListener('mouseleave', function() {
-                        this.style.transform = 'scale(1)';
-                        this.style.boxShadow = 'none';
-                    });
+                    log('❌ Erro na recuperação de imagens: ' + error.message, 'error');
                 }
             });
             
@@ -1010,7 +1026,7 @@
         function quickFix() {
             log('⚡ Executando correção rápida...', 'info');
             
-            let fixedCount = 0;
+            var fixedCount = 0;
             
             if (typeof window.filterProperties === 'undefined' && typeof window.filterPropertiesByType === 'function') {
                 window.filterProperties = window.filterPropertiesByType;
@@ -1024,7 +1040,7 @@
 
             if (typeof window.createPropertyGallery !== 'function') {
                 window.createPropertyGallery = function(property) {
-                    const fallbackImage = property.images && property.images !== 'EMPTY' 
+                    var fallbackImage = property.images && property.images !== 'EMPTY' 
                         ? property.images.split(',')[0] 
                         : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
                     return `
@@ -1041,7 +1057,7 @@
                 window.setupGalleryEvents = function() {
                     document.addEventListener('keydown', function(e) {
                         if (e.key === 'Escape') {
-                            const modal = document.getElementById('propertyGalleryModal');
+                            var modal = document.getElementById('propertyGalleryModal');
                             if (modal) {
                                 modal.style.display = 'none';
                                 document.body.style.overflow = 'auto';
@@ -1052,7 +1068,7 @@
                 fixedCount++;
             }
 
-            log(`✅ ${fixedCount} correção(ões) aplicada(s)`, 'success');
+            log('✅ ' + fixedCount + ' correção(ões) aplicada(s)', 'success');
             return true;
         }
 
@@ -1085,10 +1101,9 @@
         function autoInitialize() {
             log('🔧 Inicializando automaticamente...', 'debug');
             
-            // Registrar no DiagnosticRegistry
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.4',
+                    description: 'Sistema de Diagnóstico Completo v6.5.5',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1102,12 +1117,11 @@
                 log('✅ Registrado no DiagnosticRegistry', 'success');
             }
 
-            // Verificar se deve executar automaticamente
-            const isDebugMode = window.location.search.includes('diagnostics=true') || 
-                               window.location.search.includes('debug=true');
+            var isDebugMode = window.location.search.indexOf('diagnostics=true') !== -1 || 
+                               window.location.search.indexOf('debug=true') !== -1;
             
             if (isDebugMode) {
-                setTimeout(() => {
+                setTimeout(function() {
                     log('🚀 Executando diagnóstico automático...', 'info');
                     
                     if (typeof window.DiagnosticSystem65.runFullDiagnostic === 'function') {
@@ -1116,7 +1130,7 @@
                         log('⚠️ runFullDiagnostic não disponível, pulando execução automática', 'warn');
                     }
                     
-                    setTimeout(() => {
+                    setTimeout(function() {
                         if (typeof window.DiagnosticSystem65.showPanel === 'function') {
                             window.DiagnosticSystem65.showPanel();
                         }
@@ -1125,11 +1139,10 @@
             }
 
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.4 inicializado com sucesso', 'success');
-            console.log(`📊 [INIT] DiagnosticSystem65 v${CONFIG.version} - Pronto para uso`);
+            log('✅ DiagnosticSystem65 v6.5.5 inicializado com sucesso', 'success');
+            console.log('📊 [INIT] DiagnosticSystem65 v' + CONFIG.version + ' - Pronto para uso');
         }
 
-        // Inicializar
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', autoInitialize);
         } else {
@@ -1137,7 +1150,7 @@
         }
 
         // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.4 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.5 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1156,7 +1169,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.4',
+                version: '6.5.5',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1173,7 +1186,7 @@
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
 // STATUS: ✅ CARREGADO COM SUCESSO
-// Versão: 6.5.4
+// Versão: 6.5.5
 // ============================================================
 
 // Exportar para diagnóstico (se em ambiente Node/CommonJS)
@@ -1183,12 +1196,12 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Sinalizar que o arquivo foi carregado completamente
 window.__DIAGNOSTICS65_LOADED = true;
-window.__DIAGNOSTICS65_VERSION = '6.5.4';
+window.__DIAGNOSTICS65_VERSION = '6.5.5';
 window.__DIAGNOSTICS65_STATUS = 'success';
 
 console.log('✅ [diagnostics65.js] Arquivo completamente carregado e processado');
-console.log(`📊 [diagnostics65.js] Versão: ${window.__DIAGNOSTICS65_VERSION}`);
-console.log(`📊 [diagnostics65.js] Status: ${window.__DIAGNOSTICS65_STATUS}`);
+console.log('📊 [diagnostics65.js] Versão: ' + window.__DIAGNOSTICS65_VERSION);
+console.log('📊 [diagnostics65.js] Status: ' + window.__DIAGNOSTICS65_STATUS);
 
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
