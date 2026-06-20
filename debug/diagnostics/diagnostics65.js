@@ -1,4 +1,4 @@
-// ========== ARQUIVO: diagnostics65.js ==========
+// debug/diagnostics/diagnostics65.js - v6.5.5
 // ============================================================
 // debug/diagnostics/diagnostics65.js
 // SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.5
