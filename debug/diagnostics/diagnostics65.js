@@ -1,4 +1,3 @@
-// debug/diagnostics/diagnostics65.js - v6.5.4
 // ============================================================
 // debug/diagnostics/diagnostics65.js
 // SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.4
@@ -1169,6 +1168,7 @@
     }
 
 })();
+
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
@@ -1176,15 +1176,20 @@
 // Versão: 6.5.4
 // ============================================================
 
-// Exportar para diagnóstico (Node.js/CommonJS)
+// Exportar para diagnóstico (se em ambiente Node/CommonJS)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.DiagnosticSystem65;
 }
 
-// Sinalizar que o arquivo foi carregado completamente para o GitHub Actions
+// Sinalizar que o arquivo foi carregado completamente
 window.__DIAGNOSTICS65_LOADED = true;
 window.__DIAGNOSTICS65_VERSION = '6.5.4';
 window.__DIAGNOSTICS65_STATUS = 'success';
 
 console.log('✅ [diagnostics65.js] Arquivo completamente carregado e processado');
-console.log('📊 [diagnostics65.js] Status disponível em window.__DIAGNOSTICS65_*');
+console.log(`📊 [diagnostics65.js] Versão: ${window.__DIAGNOSTICS65_VERSION}`);
+console.log(`📊 [diagnostics65.js] Status: ${window.__DIAGNOSTICS65_STATUS}`);
+
+// ============================================================
+// FIM DO ARQUIVO - diagnostics65.js
+// ============================================================
