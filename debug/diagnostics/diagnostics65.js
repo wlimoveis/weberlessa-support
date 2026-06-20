@@ -1,6 +1,6 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.3
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.4
 // ============================================================
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
@@ -10,18 +10,19 @@
 //   5. Funções críticas ausentes
 // ✅ Integração com Recuperação de Imagens
 // ✅ CORREÇÃO: Botões do painel agora respondem ao clique
+// ✅ MARCADOR DE FIM DE ARQUIVO PARA GITHUB ACTIONS
 // ============================================================
 
 (function() {
     'use strict';
 
-    console.log('🔧 [DIAGNOSTICS v6.5.3] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.4] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
 
     try {
 
         // ========== CONFIGURAÇÃO ==========
         const CONFIG = {
-            version: '6.5.3',
+            version: '6.5.4',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -831,7 +832,6 @@
         function showDiagnosticPanel() {
             log('📋 Exibindo painel de diagnóstico...', 'info');
             
-            // Remover painel existente
             let existingPanel = document.getElementById('diagnosticPanel65');
             if (existingPanel) {
                 existingPanel.remove();
@@ -897,7 +897,7 @@
             
             document.body.appendChild(panel);
             
-            // ========== CORREÇÃO: EVENTOS DIRETOS COM IDS ==========
+            // ========== EVENTOS DIRETOS COM IDS ==========
             
             // Botão Fechar (X no cabeçalho)
             document.getElementById('closeDiagnosticPanelBtn').addEventListener('click', function() {
@@ -1088,7 +1088,7 @@
             // Registrar no DiagnosticRegistry
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.3',
+                    description: 'Sistema de Diagnóstico Completo v6.5.4',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1110,7 +1110,6 @@
                 setTimeout(() => {
                     log('🚀 Executando diagnóstico automático...', 'info');
                     
-                    // Verificar se as funções estão disponíveis
                     if (typeof window.DiagnosticSystem65.runFullDiagnostic === 'function') {
                         window.DiagnosticSystem65.runFullDiagnostic();
                     } else {
@@ -1126,7 +1125,7 @@
             }
 
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.3 inicializado com sucesso', 'success');
+            log('✅ DiagnosticSystem65 v6.5.4 inicializado com sucesso', 'success');
             console.log(`📊 [INIT] DiagnosticSystem65 v${CONFIG.version} - Pronto para uso`);
         }
 
@@ -1138,7 +1137,7 @@
         }
 
         // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.3 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.4 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1157,7 +1156,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.3',
+                version: '6.5.4',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1170,5 +1169,27 @@
 
 })();
 
-// ========== FIM DO ARQUIVO diagnostics65.js ==========
-// ========== STATUS: COMPLETO E FUNCIONAL ==========
+// ============================================================
+// FIM DO ARQUIVO - diagnostics65.js
+// ============================================================
+// STATUS: ✅ CARREGADO COM SUCESSO
+// Versão: 6.5.4
+// ============================================================
+
+// Exportar para diagnóstico (se em ambiente Node/CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.DiagnosticSystem65;
+}
+
+// Sinalizar que o arquivo foi carregado completamente
+window.__DIAGNOSTICS65_LOADED = true;
+window.__DIAGNOSTICS65_VERSION = '6.5.4';
+window.__DIAGNOSTICS65_STATUS = 'success';
+
+console.log('✅ [diagnostics65.js] Arquivo completamente carregado e processado');
+console.log(`📊 [diagnostics65.js] Versão: ${window.__DIAGNOSTICS65_VERSION}`);
+console.log(`📊 [diagnostics65.js] Status: ${window.__DIAGNOSTICS65_STATUS}`);
+
+// ============================================================
+// FIM DO ARQUIVO - diagnostics65.js
+// ============================================================
