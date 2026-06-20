@@ -1,6 +1,7 @@
+// ========== ARQUIVO: diagnostics65.js ==========
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.4
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.5
 // ============================================================
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
