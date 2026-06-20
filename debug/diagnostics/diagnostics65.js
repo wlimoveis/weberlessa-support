@@ -1,6 +1,6 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.2
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.3
 // ============================================================
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
@@ -9,20 +9,19 @@
 //   4. Estado "MISTO" (antigo + novo)
 //   5. Funções críticas ausentes
 // ✅ Integração com Recuperação de Imagens
-// ✅ Tratamento de erros global para CI/CD
-// ✅ Inicialização principal com retorno de status
+// ✅ CORREÇÃO: Botões do painel agora respondem ao clique
 // ============================================================
 
 (function() {
     'use strict';
 
-    console.log('🔧 [DIAGNOSTICS v6.5.2] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.3] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
 
     try {
 
         // ========== CONFIGURAÇÃO ==========
         const CONFIG = {
-            version: '6.5.2',
+            version: '6.5.3',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -71,18 +70,6 @@
                 log(`Erro ao executar: ${error.message}`, 'error'); 
                 return fallback; 
             }
-        }
-
-        function reportStatus(status, message, data = null) {
-            state.initStatus = { status, message, data, timestamp: new Date().toISOString() };
-            
-            // Registrar no DiagnosticRegistry se disponível
-            if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.reportStatus === 'function') {
-                window.DiagnosticRegistry.reportStatus('DiagnosticSystem65', status, message, data);
-            }
-            
-            console.log(`📊 [STATUS] ${status}: ${message}`);
-            return state.initStatus;
         }
 
         // ========== DIAGNÓSTICO 1: VERIFICAR ILLEGAL RETURN STATEMENT ==========
@@ -763,13 +750,6 @@
             console.log('📌 Init Status:', report.initStatus);
             console.groupEnd();
 
-            // Reportar sucesso para CI/CD
-            reportStatus('success', 'Diagnóstico concluído com sucesso', { 
-                fixes: state.fixes.length, 
-                errors: state.errors.length,
-                warnings: state.warnings.length
-            });
-
             return report;
         }
 
@@ -843,77 +823,186 @@
             } catch (error) {
                 state.status = 'error';
                 log(`❌ Erro no diagnóstico: ${error.message}`, 'error');
-                reportStatus('error', 'Erro no diagnóstico', { error: error.message });
                 return null;
             }
         }
 
-        // ========== FUNÇÃO PARA EXIBIR NO PAINEL ==========
+        // ========== FUNÇÃO PARA EXIBIR NO PAINEL - CORRIGIDA ==========
         function showDiagnosticPanel() {
             log('📋 Exibindo painel de diagnóstico...', 'info');
             
-            let panel = document.getElementById('diagnosticPanel65');
-            if (!panel) {
-                panel = document.createElement('div');
-                panel.id = 'diagnosticPanel65';
-                panel.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 90%;
-                    max-width: 800px;
-                    max-height: 80vh;
-                    background: #1a1a2e;
-                    color: #fff;
-                    border-radius: 12px;
-                    padding: 20px;
-                    z-index: 999999;
-                    overflow-y: auto;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-                    border: 2px solid #d4af37;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                `;
-                panel.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">
-                        <h2 style="margin: 0; color: #d4af37;">
-                            <i class="fas fa-stethoscope"></i> Diagnóstico do Sistema
-                            <span style="font-size: 0.6rem; color: #888; margin-left: 10px;">v${CONFIG.version}</span>
-                        </h2>
-                        <button onclick="document.getElementById('diagnosticPanel65').remove()" 
-                                style="background: #e74c3c; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 1.2rem;">
-                            ×
-                        </button>
-                    </div>
-                    <div id="diagnosticContent" style="margin-top: 10px;">
-                        <p style="color: #aaa;">Carregando diagnóstico...</p>
-                    </div>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button onclick="window.DiagnosticSystem65.runFullDiagnostic()" 
-                                style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-play"></i> Executar Diagnóstico Completo
-                        </button>
-                        <button onclick="window.DiagnosticSystem65.quickFix()" 
-                                style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-wrench"></i> Correção Rápida
-                        </button>
-                        <button onclick="window.DiagnosticSystem65.recoverImages()" 
-                                style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-image"></i> Recuperar Imagens
-                        </button>
-                        <button onclick="document.getElementById('diagnosticPanel65').remove()" 
-                                style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-times"></i> Fechar
-                        </button>
-                    </div>
-                    <div id="diagnosticStatus" style="margin-top: 15px; padding: 10px; background: #2a2a4e; border-radius: 6px; font-size: 0.9rem; color: #aaa;">
-                        Aguardando diagnóstico...
-                    </div>
-                `;
-                document.body.appendChild(panel);
+            // Remover painel existente
+            let existingPanel = document.getElementById('diagnosticPanel65');
+            if (existingPanel) {
+                existingPanel.remove();
             }
-
-            reportStatus('panel_shown', 'Painel de diagnóstico exibido');
+            
+            const panel = document.createElement('div');
+            panel.id = 'diagnosticPanel65';
+            panel.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 800px;
+                max-height: 80vh;
+                background: #1a1a2e;
+                color: #fff;
+                border-radius: 12px;
+                padding: 20px;
+                z-index: 999999;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+                border: 2px solid #d4af37;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            `;
+            
+            panel.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">
+                    <h2 style="margin: 0; color: #d4af37;">
+                        <i class="fas fa-stethoscope"></i> Diagnóstico do Sistema
+                        <span style="font-size: 0.6rem; color: #888; margin-left: 10px;">v${CONFIG.version}</span>
+                    </h2>
+                    <button id="closeDiagnosticPanelBtn" 
+                            style="background: #e74c3c; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">
+                        ×
+                    </button>
+                </div>
+                <div id="diagnosticContent" style="margin-top: 10px;">
+                    <p style="color: #aaa;">Clique em um dos botões abaixo para executar o diagnóstico.</p>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="runDiagnosticBtn" 
+                            style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-play"></i> Executar Diagnóstico Completo
+                    </button>
+                    <button id="quickFixBtn" 
+                            style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-wrench"></i> Correção Rápida
+                    </button>
+                    <button id="recoverImagesBtn" 
+                            style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-image"></i> Recuperar Imagens
+                    </button>
+                    <button id="closePanelBtn" 
+                            style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+                <div id="diagnosticStatus" style="margin-top: 15px; padding: 10px; background: #2a2a4e; border-radius: 6px; font-size: 0.9rem; color: #aaa;">
+                    Aguardando diagnóstico...
+                </div>
+            `;
+            
+            document.body.appendChild(panel);
+            
+            // ========== CORREÇÃO: EVENTOS DIRETOS COM IDS ==========
+            
+            // Botão Fechar (X no cabeçalho)
+            document.getElementById('closeDiagnosticPanelBtn').addEventListener('click', function() {
+                const p = document.getElementById('diagnosticPanel65');
+                if (p) p.remove();
+                log('✅ Painel fechado', 'info');
+            });
+            
+            // Botão Fechar (rodapé)
+            document.getElementById('closePanelBtn').addEventListener('click', function() {
+                const p = document.getElementById('diagnosticPanel65');
+                if (p) p.remove();
+                log('✅ Painel fechado', 'info');
+            });
+            
+            // Botão Executar Diagnóstico Completo
+            document.getElementById('runDiagnosticBtn').addEventListener('click', async function() {
+                const statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Executando diagnóstico completo...';
+                statusDiv.style.color = '#ffd700';
+                
+                try {
+                    log('▶️ Executando diagnóstico completo (via botão)', 'info');
+                    const result = await window.DiagnosticSystem65.runFullDiagnostic();
+                    
+                    if (result) {
+                        statusDiv.innerHTML = `✅ Diagnóstico concluído! ${result.summary.totalFixes} correções aplicadas.`;
+                        statusDiv.style.color = '#27ae60';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Diagnóstico concluído com algumas pendências. Verifique o console.';
+                        statusDiv.style.color = '#f39c12';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.style.color = '#e74c3c';
+                    log(`❌ Erro no diagnóstico: ${error.message}`, 'error');
+                }
+            });
+            
+            // Botão Correção Rápida
+            document.getElementById('quickFixBtn').addEventListener('click', function() {
+                const statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aplicando correção rápida...';
+                statusDiv.style.color = '#ffd700';
+                
+                try {
+                    log('⚡ Executando correção rápida (via botão)', 'info');
+                    const result = window.DiagnosticSystem65.quickFix();
+                    
+                    if (result) {
+                        statusDiv.innerHTML = '✅ Correção rápida aplicada com sucesso!';
+                        statusDiv.style.color = '#27ae60';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Correção rápida concluída com ressalvas.';
+                        statusDiv.style.color = '#f39c12';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.style.color = '#e74c3c';
+                    log(`❌ Erro na correção rápida: ${error.message}`, 'error');
+                }
+            });
+            
+            // Botão Recuperar Imagens
+            document.getElementById('recoverImagesBtn').addEventListener('click', async function() {
+                const statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recuperando imagens...';
+                statusDiv.style.color = '#ffd700';
+                
+                try {
+                    log('🖼️ Executando recuperação de imagens (via botão)', 'info');
+                    const result = await window.DiagnosticSystem65.recoverImages();
+                    
+                    if (result && result.fixed > 0) {
+                        statusDiv.innerHTML = `✅ ${result.fixed} imóveis corrigidos (${result.total} imagens processadas)`;
+                        statusDiv.style.color = '#27ae60';
+                    } else if (result && result.fixed === 0) {
+                        statusDiv.innerHTML = '✅ Nenhuma imagem precisou ser corrigida.';
+                        statusDiv.style.color = '#27ae60';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Recuperação concluída. Verifique o console.';
+                        statusDiv.style.color = '#f39c12';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = `❌ Erro: ${error.message}`;
+                    statusDiv.style.color = '#e74c3c';
+                    log(`❌ Erro na recuperação de imagens: ${error.message}`, 'error');
+                }
+            });
+            
+            // Efeitos hover nos botões
+            document.querySelectorAll('#diagnosticPanel65 button').forEach(btn => {
+                if (btn.id) {
+                    btn.addEventListener('mouseenter', function() {
+                        this.style.transform = 'scale(1.05)';
+                        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+                    });
+                    btn.addEventListener('mouseleave', function() {
+                        this.style.transform = 'scale(1)';
+                        this.style.boxShadow = 'none';
+                    });
+                }
+            });
+            
+            log('✅ Painel de diagnóstico criado com eventos', 'success');
             return panel;
         }
 
@@ -921,12 +1010,16 @@
         function quickFix() {
             log('⚡ Executando correção rápida...', 'info');
             
+            let fixedCount = 0;
+            
             if (typeof window.filterProperties === 'undefined' && typeof window.filterPropertiesByType === 'function') {
                 window.filterProperties = window.filterPropertiesByType;
+                fixedCount++;
             }
 
             if (typeof window.openGallery === 'undefined' && typeof window.openGalleryAtCurrentIndex === 'function') {
                 window.openGallery = window.openGalleryAtCurrentIndex;
+                fixedCount++;
             }
 
             if (typeof window.createPropertyGallery !== 'function') {
@@ -941,6 +1034,7 @@
                         </div>
                     `;
                 };
+                fixedCount++;
             }
 
             if (typeof window.setupGalleryEvents !== 'function') {
@@ -955,83 +1049,21 @@
                         }
                     });
                 };
+                fixedCount++;
             }
 
-            log('✅ Correção rápida aplicada', 'success');
-            reportStatus('quick_fix', 'Correção rápida aplicada');
+            log(`✅ ${fixedCount} correção(ões) aplicada(s)`, 'success');
             return true;
-        }
-
-        // ========== FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ==========
-        function initDiagnostics65() {
-            log('🔧 [DIAGNOSTICS v6.5.2] INICIANDO SISTEMA DE DIAGNÓSTICO');
-            
-            try {
-                // Registrar no DiagnosticRegistry
-                if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
-                    window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                        description: 'Sistema de Diagnóstico Completo v6.5.2',
-                        version: CONFIG.version,
-                        functions: [
-                            'runFullDiagnostic',
-                            'showPanel',
-                            'quickFix',
-                            'recoverImages',
-                            'checkPropertyImages',
-                            'diagnoseIllegalReturn',
-                            'diagnoseGalleryFunctions',
-                            'diagnoseBrokenImages',
-                            'diagnoseSystemState',
-                            'diagnoseCriticalFunctions'
-                        ],
-                        autoFix: CONFIG.autoFix
-                    });
-                    log('✅ Registrado no DiagnosticRegistry', 'success');
-                }
-
-                // Verificar se deve executar automaticamente
-                const isDebugMode = window.location.search.includes('diagnostics=true') || 
-                                   window.location.search.includes('debug=true');
-                
-                if (isDebugMode) {
-                    setTimeout(() => {
-                        log('🚀 Executando diagnóstico automático...', 'info');
-                        runFullDiagnostic();
-                        
-                        setTimeout(() => {
-                            showDiagnosticPanel();
-                        }, 1000);
-                    }, 2000);
-                }
-
-                state.initialized = true;
-                log('✅ DiagnosticSystem65 inicializado com sucesso', 'success');
-                
-                // Reportar inicialização bem-sucedida
-                reportStatus('success', 'Sistema de diagnóstico inicializado com sucesso', { 
-                    version: CONFIG.version,
-                    initialized: state.initialized
-                });
-                
-                return { status: 'success', version: CONFIG.version, initialized: state.initialized };
-                
-            } catch (error) {
-                log(`❌ Erro na inicialização: ${error.message}`, 'error');
-                reportStatus('error', 'Erro na inicialização', { error: error.message });
-                return { status: 'error', version: CONFIG.version, error: error.message };
-            }
         }
 
         // ========== EXPOSIÇÃO GLOBAL ==========
         window.DiagnosticSystem65 = {
             version: CONFIG.version,
             name: CONFIG.name,
-            init: initDiagnostics65,
             runFullDiagnostic: runFullDiagnostic,
             showPanel: showDiagnosticPanel,
             quickFix: quickFix,
             getState: function() { return state; },
-            getStatus: function() { return state.initStatus; },
             diagnoseIllegalReturn: diagnoseIllegalReturn,
             diagnoseGalleryFunctions: diagnoseGalleryFunctions,
             diagnoseBrokenImages: diagnoseBrokenImages,
@@ -1046,29 +1078,67 @@
             recoverImages: RecoverImages.recoverAll,
             checkPropertyImages: RecoverImages.checkProperty,
             reconstructImageUrl: RecoverImages.reconstructUrl,
-            reportStatus: reportStatus,
             CONFIG: CONFIG
         };
 
-        // ========== INICIALIZAÇÃO ==========
+        // ========== INICIALIZAÇÃO AUTOMÁTICA ==========
         function autoInitialize() {
             log('🔧 Inicializando automaticamente...', 'debug');
             
-            // Pequeno atraso para garantir que o DOM esteja pronto
-            setTimeout(() => {
-                const result = initDiagnostics65();
-                console.log('📌 Status da inicialização:', result);
-            }, 100);
+            // Registrar no DiagnosticRegistry
+            if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
+                window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
+                    description: 'Sistema de Diagnóstico Completo v6.5.3',
+                    version: CONFIG.version,
+                    functions: [
+                        'runFullDiagnostic',
+                        'showPanel',
+                        'quickFix',
+                        'recoverImages',
+                        'checkPropertyImages'
+                    ],
+                    autoFix: CONFIG.autoFix
+                });
+                log('✅ Registrado no DiagnosticRegistry', 'success');
+            }
+
+            // Verificar se deve executar automaticamente
+            const isDebugMode = window.location.search.includes('diagnostics=true') || 
+                               window.location.search.includes('debug=true');
+            
+            if (isDebugMode) {
+                setTimeout(() => {
+                    log('🚀 Executando diagnóstico automático...', 'info');
+                    
+                    // Verificar se as funções estão disponíveis
+                    if (typeof window.DiagnosticSystem65.runFullDiagnostic === 'function') {
+                        window.DiagnosticSystem65.runFullDiagnostic();
+                    } else {
+                        log('⚠️ runFullDiagnostic não disponível, pulando execução automática', 'warn');
+                    }
+                    
+                    setTimeout(() => {
+                        if (typeof window.DiagnosticSystem65.showPanel === 'function') {
+                            window.DiagnosticSystem65.showPanel();
+                        }
+                    }, 1500);
+                }, 2000);
+            }
+
+            state.initialized = true;
+            log('✅ DiagnosticSystem65 v6.5.3 inicializado com sucesso', 'success');
+            console.log(`📊 [INIT] DiagnosticSystem65 v${CONFIG.version} - Pronto para uso`);
         }
 
+        // Inicializar
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', autoInitialize);
         } else {
-            autoInitialize();
+            setTimeout(autoInitialize, 100);
         }
 
         // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.2 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.3 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1076,32 +1146,24 @@
         console.log('  📊 window.DiagnosticSystem65.generateReport() - Gerar relatório');
         console.log('  🖼️ window.DiagnosticSystem65.recoverImages() - Recuperar imagens quebradas');
         console.log('  🔍 window.DiagnosticSystem65.checkPropertyImages(id) - Verificar imagens de um imóvel');
-        console.log('  📌 window.DiagnosticSystem65.getStatus() - Obter status da inicialização');
-        console.log('  🔧 window.DiagnosticSystem65.init() - Inicializar manualmente');
-
-        // ========== RELATÓRIO DE INICIALIZAÇÃO ==========
-        console.log(`📊 [INIT] DiagnosticSystem65 v${CONFIG.version} - Aguardando inicialização...`);
 
     } catch (error) {
-        // Tratamento de erro global
         console.error('❌ [FATAL] Erro ao carregar DiagnosticSystem65:', error);
         console.error('   Mensagem:', error.message);
-        console.error('   Stack:', error.stack);
         
-        // Tentar reportar o erro mesmo que o sistema não tenha carregado completamente
         if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.reportError === 'function') {
             window.DiagnosticRegistry.reportError('DiagnosticSystem65', error);
         }
         
-        // Tentar criar uma versão mínima do sistema para recuperação
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.2',
+                version: '6.5.3',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
-                init: function() { console.warn('DiagnosticSystem65 em modo fallback'); return { status: 'error' }; },
-                getStatus: function() { return { status: 'error', error: error.message }; }
+                showPanel: function() { 
+                    alert('DiagnosticSystem65 em modo fallback. Verifique o console para mais detalhes.'); 
+                }
             };
         }
     }
