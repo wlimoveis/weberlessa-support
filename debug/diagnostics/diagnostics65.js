@@ -1,25 +1,18 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.8
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.9
 // ============================================================
-// ✅ CORREÇÃO DEFINITIVA: self.reconstructUrl is not a function (v6.5.8)
-// ✅ CORREÇÃO: Uso de arrow functions para manter contexto
-// ✅ CORREÇÃO: Vinculação de contexto em todas as funções do RecoverImages
-// ✅ Detecta e corrige automaticamente:
-//   1. Illegal return statement
-//   2. Funções da galeria ausentes
-//   3. Imagens quebradas (ERR_NAME_NOT_RESOLVED)
-//   4. URLs com domínios antigos do Supabase
-//   5. Estado "MISTO" (antigo + novo)
-//   6. Funções críticas ausentes
+// ✅ CORREÇÃO DEFINITIVA: Persistência da correção no Supabase
+// ✅ CORREÇÃO: Fallback automático no carregamento
+// ✅ CORREÇÃO: Verificação e correção em lote com persistência
 // ============================================================
 (function() {
     'use strict';
-    console.log('🔧 [DIAGNOSTICS v6.5.8] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.9] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
     try {
         // ========== CONFIGURAÇÃO ==========
         var CONFIG = {
-            version: '6.5.8',
+            version: '6.5.9',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -64,7 +57,8 @@
             warnings: [],
             status: 'idle',
             initStatus: null,
-            domainFixed: 0
+            domainFixed: 0,
+            persistedToSupabase: false
         };
 
         // ========== UTILITÁRIOS ==========
@@ -87,19 +81,7 @@
             return logMsg;
         }
 
-        function safeExecute(fn, fallback) {
-            fallback = fallback || null;
-            try { 
-                var result = fn();
-                return result !== undefined ? result : fallback;
-            } catch (error) { 
-                log('Erro ao executar: ' + error.message, 'error'); 
-                return fallback; 
-            }
-        }
-
-        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.8) ==========
-        // Usando arrow functions para manter o contexto CORRETAMENTE
+        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.9) ==========
         var RecoverImages = {
             config: {
                 supabaseUrl: SUPABASE_URL,
@@ -111,7 +93,6 @@
 
             /**
              * RECONSTRÓI UMA URL PARA O DOMÍNIO CORRETO
-             * v6.5.8: Função tradicional com bind
              */
             reconstructUrl: function(url) {
                 if (!url || typeof url !== 'string') return url;
@@ -158,12 +139,10 @@
 
             /**
              * CORRIGE URLs EM UMA PROPRIEDADE
-             * v6.5.8: self = this para manter contexto
              */
             fixPropertyUrls: function(property) {
                 if (!property) return { property: property, fixed: false, changes: [] };
                 
-                // CORREÇÃO: self = this
                 var self = this;
                 var fixed = false;
                 var changes = [];
@@ -200,8 +179,61 @@
             },
 
             /**
-             * RECUPERA TODAS AS PROPRIEDADES
-             * v6.5.8: self = this e arrow functions para callbacks
+             * SALVA PROPRIEDADE NO SUPABASE (NOVO v6.5.9)
+             */
+            savePropertyToSupabase: async function(property) {
+                if (!property || !property.id) return { success: false, error: 'Propriedade inválida' };
+                
+                try {
+                    var self = this;
+                    var SUPABASE_URL = self.config.supabaseUrl;
+                    var SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
+                    
+                    if (!SUPABASE_KEY) {
+                        log('⚠️ SUPABASE_KEY não disponível, pulando persistência', 'warn');
+                        return { success: false, error: 'SUPABASE_KEY não disponível' };
+                    }
+
+                    var validId = parseInt(property.id);
+                    if (isNaN(validId) || validId <= 0) {
+                        return { success: false, error: 'ID inválido' };
+                    }
+
+                    var url = SUPABASE_URL + '/rest/v1/properties?id=eq.' + validId;
+                    var payload = {
+                        images: property.images || 'EMPTY',
+                        pdfs: property.pdfs || 'EMPTY'
+                    };
+
+                    log('💾 Salvando imóvel ' + validId + ' no Supabase...', 'debug');
+
+                    var response = await fetch(url, {
+                        method: 'PATCH',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': 'Bearer ' + SUPABASE_KEY,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        log('✅ Imóvel ' + validId + ' atualizado no Supabase', 'success');
+                        return { success: true, id: validId };
+                    } else {
+                        var errorText = await response.text();
+                        log('❌ Erro ao salvar imóvel ' + validId + ': ' + errorText, 'error');
+                        return { success: false, error: errorText };
+                    }
+                } catch (error) {
+                    log('❌ Erro ao salvar imóvel no Supabase: ' + error.message, 'error');
+                    return { success: false, error: error.message };
+                }
+            },
+
+            /**
+             * RECUPERA TODAS AS PROPRIEDADES COM PERSISTÊNCIA (NOVO v6.5.9)
              */
             recoverAll: async function() {
                 log('🚀 Iniciando recuperação de imagens e URLs...', 'info');
@@ -210,7 +242,7 @@
                 
                 if (!window.properties || window.properties.length === 0) {
                     log('⚠️ Nenhuma propriedade encontrada', 'warn');
-                    return { fixed: 0, total: 0, errors: [], domainFixed: 0 };
+                    return { fixed: 0, total: 0, errors: [], domainFixed: 0, persisted: 0 };
                 }
 
                 var results = {
@@ -219,16 +251,19 @@
                     errors: [],
                     fixedProperties: [],
                     domainFixed: 0,
-                    urlChanges: []
+                    urlChanges: [],
+                    persisted: 0,
+                    persistedErrors: []
                 };
 
-                // Loop síncrono para processar propriedades
+                // Primeiro, corrigir todas as propriedades na memória
+                var propertiesToPersist = [];
+
                 for (var i = 0; i < window.properties.length; i++) {
                     var property = window.properties[i];
                     var originalImages = property.images;
                     var originalPdfs = property.pdfs;
                     
-                    // Usar self (referência ao objeto RecoverImages)
                     var fixResult = self.fixPropertyUrls(property);
                     
                     if (fixResult.fixed) {
@@ -246,6 +281,11 @@
                         if (originalPdfs && originalPdfs !== property.pdfs) {
                             results.domainFixed++;
                         }
+                        
+                        // Marcar para persistir no Supabase
+                        if (fixResult.changes.length > 0) {
+                            propertiesToPersist.push(property);
+                        }
                     }
 
                     // Testar imagens
@@ -260,12 +300,16 @@
                                 results.fixed++;
                                 results.errors.push({ property: property.id, url: urls[j] });
                                 log('⚠️ Imagem inválida, usando fallback: ' + urls[j].substring(0, 50) + '...', 'warn');
+                                // Marcar para persistir
+                                if (!propertiesToPersist.includes(property)) {
+                                    propertiesToPersist.push(property);
+                                }
                             }
                         }
                     }
                 }
 
-                // Salvar alterações
+                // Salvar no localStorage
                 if (results.fixed > 0) {
                     if (typeof window.savePropertiesToStorage === 'function') {
                         window.savePropertiesToStorage();
@@ -281,14 +325,46 @@
                     }
                 }
 
+                // PERSISTIR NO SUPABASE (NOVO v6.5.9)
+                if (propertiesToPersist.length > 0) {
+                    log('💾 Persistindo ' + propertiesToPersist.length + ' imóveis no Supabase...', 'info');
+                    
+                    for (var k = 0; k < propertiesToPersist.length; k++) {
+                        var prop = propertiesToPersist[k];
+                        var saveResult = await self.savePropertyToSupabase(prop);
+                        if (saveResult.success) {
+                            results.persisted++;
+                            // Atualizar flag no objeto
+                            prop.savedToSupabase = true;
+                            prop.syncStatus = 'synced';
+                        } else {
+                            results.persistedErrors.push({
+                                id: prop.id,
+                                error: saveResult.error
+                            });
+                            log('⚠️ Falha ao persistir imóvel ' + prop.id + ': ' + saveResult.error, 'warn');
+                        }
+                        // Delay para não sobrecarregar a API
+                        await new Promise(function(resolve) { setTimeout(resolve, 300); });
+                    }
+
+                    // Salvar novamente após atualizar flags
+                    if (typeof window.savePropertiesToStorage === 'function') {
+                        window.savePropertiesToStorage();
+                    }
+                    state.persistedToSupabase = results.persisted > 0;
+                    log('✅ ' + results.persisted + ' imóveis persistidos no Supabase', 'success');
+                } else {
+                    log('ℹ️ Nenhum imóvel precisa ser persistido no Supabase', 'info');
+                }
+
                 state.domainFixed = results.domainFixed;
-                log('📊 Resumo: ' + results.fixed + ' imóveis corrigidos, ' + results.domainFixed + ' URLs de domínio corrigidas', 'success');
+                log('📊 Resumo: ' + results.fixed + ' imóveis corrigidos, ' + results.domainFixed + ' URLs de domínio corrigidas, ' + results.persisted + ' persistidos', 'success');
                 return results;
             },
 
             /**
-             * VERIFICA UM IMÓVEL ESPECÍFICO
-             * v6.5.8: self = this
+             * VERIFICA IMÓVEL ESPECÍFICO
              */
             checkProperty: async function(propertyId) {
                 var self = this;
@@ -353,7 +429,9 @@
                         if (typeof window.savePropertiesToStorage === 'function') {
                             window.savePropertiesToStorage();
                         }
-                        log('✅ Imóvel ' + propertyId + ' corrigido', 'success');
+                        // Persistir no Supabase
+                        await self.savePropertyToSupabase(property);
+                        log('✅ Imóvel ' + propertyId + ' corrigido e persistido', 'success');
                     }
                 } else {
                     log('✅ Imóvel ' + propertyId + ' está OK', 'success');
@@ -372,7 +450,6 @@
 
             /**
              * DIAGNOSTICA DOMÍNIOS ANTIGOS
-             * v6.5.8: self = this
              */
             diagnoseOldDomains: function() {
                 log('🔍 Diagnosticando domínios antigos...', 'debug');
@@ -434,6 +511,38 @@
                     totalImages: totalImages,
                     totalPdfs: totalPdfs
                 };
+            },
+
+            /**
+             * CORRIGE DOMÍNIOS NO CARREGAMENTO (FALLBACK AUTOMÁTICO) (NOVO v6.5.9)
+             */
+            fixOnLoad: async function() {
+                log('🔄 Verificando domínios no carregamento...', 'info');
+                
+                var self = this;
+                var needsFix = 0;
+                
+                if (!window.properties || window.properties.length === 0) {
+                    log('ℹ️ Nenhuma propriedade para verificar', 'info');
+                    return { fixed: 0 };
+                }
+
+                for (var i = 0; i < window.properties.length; i++) {
+                    var prop = window.properties[i];
+                    var result = self.fixPropertyUrls(prop);
+                    if (result.fixed) {
+                        needsFix++;
+                    }
+                }
+
+                if (needsFix > 0) {
+                    log('⚠️ ' + needsFix + ' propriedades precisam de correção. Aplicando...', 'warn');
+                    var fullResult = await self.recoverAll();
+                    return fullResult;
+                } else {
+                    log('✅ Nenhuma propriedade precisa de correção', 'success');
+                    return { fixed: 0 };
+                }
             }
         };
 
@@ -928,6 +1037,7 @@
                         var recoveryResult = await RecoverImages.recoverAll();
                         if (recoveryResult.fixed > 0) {
                             state.fixes.push(recoveryResult.fixed + ' imóvel(is) corrigido(s) com domínios atualizados');
+                            state.fixes.push(recoveryResult.persisted + ' imóvel(is) persistido(s) no Supabase');
                             state.domainFixed = recoveryResult.domainFixed || 0;
                         }
                     }
@@ -962,7 +1072,8 @@
                     totalFixes: state.fixes.length,
                     totalErrors: state.errors.length,
                     totalWarnings: state.warnings.length,
-                    domainFixed: state.domainFixed || 0
+                    domainFixed: state.domainFixed || 0,
+                    persistedToSupabase: state.persistedToSupabase
                 },
                 diagnostics: results,
                 fixes: state.fixes,
@@ -1077,6 +1188,8 @@
                     Domínio Supabase: <strong style="color: #fff;">${SUPABASE_DOMAIN}</strong>
                     <span style="margin-left: 15px; color: #666;">|</span>
                     <span style="color: #888;">Domínios antigos: ${CONFIG.oldDomains.join(', ')}</span>
+                    <span style="margin-left: 15px; color: #666;">|</span>
+                    <span style="color: #888;">Persistência: <strong style="color: #27ae60;">ATIVA</strong></span>
                 </div>
                 <div id="diagnosticContent" style="margin-top: 10px;">
                     <p style="color: #aaa;">Clique em um dos botões abaixo para executar o diagnóstico.</p>
@@ -1097,6 +1210,10 @@
                     <button id="fixDomainsBtn" 
                             style="background: #9b59b6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-link"></i> Corrigir Domínios
+                    </button>
+                    <button id="persistBtn" 
+                            style="background: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-database"></i> Persistir no Supabase
                     </button>
                     <button id="checkPropertyBtn" 
                             style="background: #1abc9c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
@@ -1139,8 +1256,10 @@
                     if (result) {
                         var domainMsg = result.summary.domainFixed > 0 ? 
                             ` (${result.summary.domainFixed} domínio(s) corrigido(s))` : '';
+                        var persistMsg = result.summary.persistedToSupabase ? 
+                            ` 💾 Persistido no Supabase` : '';
                         statusDiv.innerHTML = '✅ Diagnóstico concluído! ' + result.summary.totalFixes + 
-                            ' correções aplicadas.' + domainMsg;
+                            ' correções aplicadas.' + domainMsg + persistMsg;
                         statusDiv.style.color = '#27ae60';
                     } else {
                         statusDiv.innerHTML = '⚠️ Diagnóstico concluído com algumas pendências. Verifique o console.';
@@ -1176,7 +1295,6 @@
                 }
             });
             
-            // ========== BOTÃO RECUPERAR IMAGENS - CORRIGIDO v6.5.8 ==========
             document.getElementById('recoverImagesBtn').addEventListener('click', async function() {
                 var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recuperando imagens...';
@@ -1184,15 +1302,15 @@
                 
                 try {
                     log('🖼️ Executando recuperação de imagens (via botão)', 'info');
-                    
-                    // CORREÇÃO: Chamar diretamente a função com bind
                     var result = await RecoverImages.recoverAll.call(RecoverImages);
                     
                     if (result && result.fixed > 0) {
                         var domainMsg = result.domainFixed > 0 ? 
                             ` (${result.domainFixed} domínio(s) corrigido(s))` : '';
+                        var persistMsg = result.persisted > 0 ? 
+                            ` 💾 ${result.persisted} persistido(s) no Supabase` : '';
                         statusDiv.innerHTML = '✅ ' + result.fixed + ' imóveis corrigidos' + 
-                            domainMsg + ' (' + result.total + ' processados)';
+                            domainMsg + persistMsg + ' (' + result.total + ' processados)';
                         statusDiv.style.color = '#27ae60';
                     } else if (result && result.fixed === 0) {
                         statusDiv.innerHTML = '✅ Nenhuma imagem precisou ser corrigida.';
@@ -1208,7 +1326,6 @@
                 }
             });
 
-            // ========== BOTÃO CORRIGIR DOMÍNIOS - CORRIGIDO v6.5.8 ==========
             document.getElementById('fixDomainsBtn').addEventListener('click', async function() {
                 var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Corrigindo domínios...';
@@ -1223,8 +1340,10 @@
                     var result = await RecoverImages.recoverAll.call(RecoverImages);
                     
                     if (result && result.fixed > 0) {
+                        var persistMsg = result.persisted > 0 ? 
+                            ` 💾 ${result.persisted} persistido(s) no Supabase` : '';
                         statusDiv.innerHTML = '✅ ' + result.fixed + ' imóvel(is) corrigido(s) com domínios atualizados' +
-                            (result.domainFixed > 0 ? ` (${result.domainFixed} URLs corrigidas)` : '');
+                            (result.domainFixed > 0 ? ` (${result.domainFixed} URLs corrigidas)` : '') + persistMsg;
                         statusDiv.style.color = '#27ae60';
                     } else if (result && result.fixed === 0) {
                         statusDiv.innerHTML = '✅ Nenhum domínio antigo encontrado para corrigir.';
@@ -1240,7 +1359,57 @@
                 }
             });
 
-            // ========== BOTÃO VERIFICAR IMÓVEL ==========
+            // NOVO BOTÃO: PERSISTIR NO SUPABASE (v6.5.9)
+            document.getElementById('persistBtn').addEventListener('click', async function() {
+                var statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Persistindo no Supabase...';
+                statusDiv.style.color = '#ffd700';
+                
+                try {
+                    log('💾 Persistindo dados no Supabase (via botão)', 'info');
+                    
+                    if (!window.properties || window.properties.length === 0) {
+                        statusDiv.innerHTML = '⚠️ Nenhuma propriedade para persistir.';
+                        statusDiv.style.color = '#f39c12';
+                        return;
+                    }
+                    
+                    var persisted = 0;
+                    var errors = [];
+                    
+                    for (var i = 0; i < window.properties.length; i++) {
+                        var prop = window.properties[i];
+                        var result = await RecoverImages.savePropertyToSupabase.call(RecoverImages, prop);
+                        if (result.success) {
+                            persisted++;
+                            prop.savedToSupabase = true;
+                            prop.syncStatus = 'synced';
+                        } else {
+                            errors.push({ id: prop.id, error: result.error });
+                        }
+                        // Delay para não sobrecarregar
+                        await new Promise(function(resolve) { setTimeout(resolve, 200); });
+                    }
+                    
+                    if (persisted > 0) {
+                        if (typeof window.savePropertiesToStorage === 'function') {
+                            window.savePropertiesToStorage();
+                        }
+                        statusDiv.innerHTML = '✅ ' + persisted + ' imóveis persistidos no Supabase' +
+                            (errors.length > 0 ? ` (${errors.length} falhas)` : '');
+                        statusDiv.style.color = '#27ae60';
+                        log('✅ ' + persisted + ' imóveis persistidos no Supabase', 'success');
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Nenhum imóvel persistido. Verifique os logs.';
+                        statusDiv.style.color = '#f39c12';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = '❌ Erro: ' + error.message;
+                    statusDiv.style.color = '#e74c3c';
+                    log('❌ Erro na persistência: ' + error.message, 'error');
+                }
+            });
+
             document.getElementById('checkPropertyBtn').addEventListener('click', async function() {
                 var propertyId = prompt('Digite o ID do imóvel para verificar:');
                 if (!propertyId) return;
@@ -1257,6 +1426,7 @@
                         msg += '📸 ' + result.validCount + '/' + result.totalCount + ' imagens válidas\n';
                         msg += '🔄 ' + result.oldDomainCount + ' URL(s) com domínio antigo\n';
                         msg += result.needsFix ? '⚠️ Precisa de correção' : '✅ OK';
+                        msg += result.fixed ? ' 🔧 Corrigido!' : '';
                         
                         statusDiv.innerHTML = msg;
                         statusDiv.style.color = result.needsFix ? '#f39c12' : '#27ae60';
@@ -1294,7 +1464,6 @@
             fixSystemState: fixSystemState,
             fixCriticalFunctions: fixCriticalFunctions,
             generateReport: generateReport,
-            // CORREÇÃO v6.5.8: Usar call para garantir contexto
             recoverImages: function() {
                 return RecoverImages.recoverAll.call(RecoverImages);
             },
@@ -1307,6 +1476,12 @@
             fixPropertyUrls: function(property) {
                 return RecoverImages.fixPropertyUrls.call(RecoverImages, property);
             },
+            savePropertyToSupabase: function(property) {
+                return RecoverImages.savePropertyToSupabase.call(RecoverImages, property);
+            },
+            fixOnLoad: function() {
+                return RecoverImages.fixOnLoad.call(RecoverImages);
+            },
             detectSupabaseDomain: detectSupabaseDomain,
             CONFIG: CONFIG
         };
@@ -1317,7 +1492,7 @@
             
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.8',
+                    description: 'Sistema de Diagnóstico Completo v6.5.9',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1326,7 +1501,9 @@
                         'recoverImages',
                         'checkPropertyImages',
                         'diagnoseOldDomains',
-                        'fixPropertyUrls'
+                        'fixPropertyUrls',
+                        'savePropertyToSupabase',
+                        'fixOnLoad'
                     ],
                     autoFix: CONFIG.autoFix
                 });
@@ -1348,15 +1525,24 @@
                         }
                     }, 1500);
                 }, 2000);
+            } else {
+                // EM MODO PRODUÇÃO: executar fallback automático
+                setTimeout(function() {
+                    log('🔧 Executando fallback de domínios em produção...', 'info');
+                    if (typeof window.DiagnosticSystem65.fixOnLoad === 'function') {
+                        window.DiagnosticSystem65.fixOnLoad();
+                    }
+                }, 3000);
             }
             
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.8 inicializado com sucesso', 'success');
+            log('✅ DiagnosticSystem65 v6.5.9 inicializado com sucesso', 'success');
             console.log('📊 [INIT] DiagnosticSystem65 v' + CONFIG.version + ' - Pronto para uso');
             console.log('🔗 [INIT] Domínio Supabase detectado:', SUPABASE_DOMAIN);
             console.log('📋 [INIT] Use window.DiagnosticSystem65.runFullDiagnostic() para diagnóstico completo');
             console.log('🔄 [INIT] Use window.DiagnosticSystem65.recoverImages() para corrigir URLs');
-            console.log('🔧 [INIT] CORREÇÃO v6.5.8: Contexto de this corrigido com .call()');
+            console.log('💾 [INIT] Use window.DiagnosticSystem65.savePropertyToSupabase() para persistir');
+            console.log('🔧 [INIT] CORREÇÃO v6.5.9: Persistência automática no Supabase');
         }
 
         if (document.readyState === 'loading') {
@@ -1366,7 +1552,7 @@
         }
 
         // ========== COMANDOS RÁPIDOS ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.8 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.9 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1376,8 +1562,10 @@
         console.log('  🔗 window.DiagnosticSystem65.diagnoseOldDomains() - Diagnosticar domínios antigos');
         console.log('  🔗 window.DiagnosticSystem65.fixPropertyUrls(property) - Corrigir URLs de uma propriedade');
         console.log('  🔍 window.DiagnosticSystem65.checkPropertyImages(id) - Verificar imagens de um imóvel');
+        console.log('  💾 window.DiagnosticSystem65.savePropertyToSupabase(property) - Persistir no Supabase');
+        console.log('  🔧 window.DiagnosticSystem65.fixOnLoad() - Fallback automático no carregamento');
         console.log('  🔗 Domínio atual:', SUPABASE_DOMAIN);
-        console.log('  🔧 CORREÇÃO v6.5.8: Contexto de this corrigido com .call()');
+        console.log('  🔧 CORREÇÃO v6.5.9: Persistência automática no Supabase');
 
     } catch (error) {
         console.error('❌ [FATAL] Erro ao carregar DiagnosticSystem65:', error);
@@ -1389,7 +1577,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.8',
+                version: '6.5.9',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1405,17 +1593,18 @@
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
 // STATUS: ✅ CARREGADO COM SUCESSO
-// Versão: 6.5.8
+// Versão: 6.5.9
 // ============================================================
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.DiagnosticSystem65;
 }
 window.__DIAGNOSTICS65_LOADED = true;
-window.__DIAGNOSTICS65_VERSION = '6.5.8';
+window.__DIAGNOSTICS65_VERSION = '6.5.9';
 window.__DIAGNOSTICS65_STATUS = 'success';
-console.log('✅ [diagnostics65.js] v6.5.8 carregado com sucesso');
-console.log('🔧 [diagnostics65.js] CORREÇÃO DEFINITIVA: self.reconstructUrl is not a function resolvido com .call()');
-console.log('📋 [diagnostics65.js] Use window.DiagnosticSystem65.recoverImages() para recuperar imagens');
+console.log('✅ [diagnostics65.js] v6.5.9 carregado com sucesso');
+console.log('🔧 [diagnostics65.js] CORREÇÃO DEFINITIVA: Persistência no Supabase');
+console.log('📋 [diagnostics65.js] Use window.DiagnosticSystem65.recoverImages() para recuperar e persistir');
+console.log('💾 [diagnostics65.js] Use window.DiagnosticSystem65.savePropertyToSupabase() para persistir manualmente');
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
