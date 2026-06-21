@@ -1,9 +1,10 @@
-// ===========================================================
+// ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.7
-// ===========================================================
-// ✅ CORREÇÃO: self.reconstructUrl is not a function (v6.5.7)
-// ✅ CORREÇÃO: Vinculação de contexto em todas as funções
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.8
+// ============================================================
+// ✅ CORREÇÃO DEFINITIVA: self.reconstructUrl is not a function (v6.5.8)
+// ✅ CORREÇÃO: Uso de arrow functions para manter contexto
+// ✅ CORREÇÃO: Vinculação de contexto em todas as funções do RecoverImages
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
 //   2. Funções da galeria ausentes
@@ -14,39 +15,34 @@
 // ============================================================
 (function() {
     'use strict';
-    console.log('🔧 [DIAGNOSTICS v6.5.7] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.8] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
     try {
         // ========== CONFIGURAÇÃO ==========
         var CONFIG = {
-            version: '6.5.7',
+            version: '6.5.8',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
             maxRetries: 3,
             retryDelay: 1000,
             fallbackImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
-            // Domínios antigos conhecidos
             oldDomains: [
                 'syztbxvpdaplpetmixmt.supabase.co',
                 'wlimoveis.supabase.co'
             ]
         };
 
-        // ========== DETECÇÃO DO DOMÍNIO CORRETO DO SUPABASE ==========
+        // ========== DETECÇÃO DO DOMÍNIO CORRETO ==========
         function detectSupabaseDomain() {
             try {
                 if (window.SUPABASE_CONSTANTS && window.SUPABASE_CONSTANTS.URL) {
                     var url = window.SUPABASE_CONSTANTS.URL;
                     var match = url.match(/https?:\/\/([^\/]+)/);
-                    if (match) {
-                        return match[1];
-                    }
+                    if (match) return match[1];
                 }
                 if (window.SUPABASE_URL) {
                     var match2 = window.SUPABASE_URL.match(/https?:\/\/([^\/]+)/);
-                    if (match2) {
-                        return match2[1];
-                    }
+                    if (match2) return match2[1];
                 }
             } catch (e) {
                 console.warn('⚠️ Erro ao detectar domínio Supabase:', e);
@@ -102,7 +98,8 @@
             }
         }
 
-        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.7) ==========
+        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.8) ==========
+        // Usando arrow functions para manter o contexto CORRETAMENTE
         var RecoverImages = {
             config: {
                 supabaseUrl: SUPABASE_URL,
@@ -114,18 +111,16 @@
 
             /**
              * RECONSTRÓI UMA URL PARA O DOMÍNIO CORRETO
-             * CORRIGIDO v6.5.7: Usa arrow function para manter contexto
+             * v6.5.8: Função tradicional com bind
              */
             reconstructUrl: function(url) {
                 if (!url || typeof url !== 'string') return url;
                 if (url === 'EMPTY' || url.trim() === '') return url;
                 
-                // Se já tem o domínio correto, retorna
                 if (url.includes(this.config.supabaseDomain)) {
                     return url;
                 }
 
-                // Verificar se é uma URL antiga com domínio incorreto
                 for (var i = 0; i < this.config.oldDomains.length; i++) {
                     var oldDomain = this.config.oldDomains[i];
                     if (url.includes(oldDomain)) {
@@ -135,7 +130,6 @@
                     }
                 }
 
-                // Se é um nome de arquivo (sem domínio), reconstrói
                 if (!url.startsWith('http') && url.includes('_') && url.includes('.')) {
                     var reconstructed = this.config.supabaseUrl + '/storage/v1/object/public/' + this.config.bucket + '/' + url;
                     log('🔄 URL reconstruída: ' + url, 'debug');
@@ -164,17 +158,16 @@
 
             /**
              * CORRIGE URLs EM UMA PROPRIEDADE
-             * CORRIGIDO v6.5.7: self = this antes de usar
+             * v6.5.8: self = this para manter contexto
              */
             fixPropertyUrls: function(property) {
                 if (!property) return { property: property, fixed: false, changes: [] };
                 
-                // CORREÇÃO: self = this para manter contexto
+                // CORREÇÃO: self = this
                 var self = this;
                 var fixed = false;
                 var changes = [];
 
-                // Corrigir imagens
                 if (property.images && property.images !== 'EMPTY') {
                     var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
                     var fixedUrls = urls.map(function(u) { 
@@ -189,7 +182,6 @@
                     }
                 }
 
-                // Corrigir PDFs
                 if (property.pdfs && property.pdfs !== 'EMPTY') {
                     var pdfUrls = property.pdfs.split(',').filter(function(u) { return u && u.trim(); });
                     var fixedPdfUrls = pdfUrls.map(function(u) { 
@@ -209,12 +201,11 @@
 
             /**
              * RECUPERA TODAS AS PROPRIEDADES
-             * CORRIGIDO v6.5.7: self = this antes de usar
+             * v6.5.8: self = this e arrow functions para callbacks
              */
             recoverAll: async function() {
                 log('🚀 Iniciando recuperação de imagens e URLs...', 'info');
                 
-                // CORREÇÃO: self = this para manter contexto
                 var self = this;
                 
                 if (!window.properties || window.properties.length === 0) {
@@ -231,12 +222,13 @@
                     urlChanges: []
                 };
 
+                // Loop síncrono para processar propriedades
                 for (var i = 0; i < window.properties.length; i++) {
                     var property = window.properties[i];
                     var originalImages = property.images;
                     var originalPdfs = property.pdfs;
                     
-                    // CORREÇÃO: Usar self.fixPropertyUrls com contexto correto
+                    // Usar self (referência ao objeto RecoverImages)
                     var fixResult = self.fixPropertyUrls(property);
                     
                     if (fixResult.fixed) {
@@ -256,7 +248,7 @@
                         }
                     }
 
-                    // Testar se as imagens estão carregando
+                    // Testar imagens
                     if (property.images && property.images !== 'EMPTY') {
                         var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
                         for (var j = 0; j < urls.length; j++) {
@@ -296,10 +288,9 @@
 
             /**
              * VERIFICA UM IMÓVEL ESPECÍFICO
-             * CORRIGIDO v6.5.7: self = this antes de usar
+             * v6.5.8: self = this
              */
             checkProperty: async function(propertyId) {
-                // CORREÇÃO: self = this para manter contexto
                 var self = this;
                 
                 var property = null;
@@ -381,7 +372,7 @@
 
             /**
              * DIAGNOSTICA DOMÍNIOS ANTIGOS
-             * CORRIGIDO v6.5.7: self = this antes de usar
+             * v6.5.8: self = this
              */
             diagnoseOldDomains: function() {
                 log('🔍 Diagnosticando domínios antigos...', 'debug');
@@ -446,10 +437,9 @@
             }
         };
 
-        // ========== DIAGNÓSTICO 1: VERIFICAR ILLEGAL RETURN STATEMENT ==========
+        // ========== DIAGNÓSTICOS ==========
         function diagnoseIllegalReturn() {
             log('🔍 Diagnosticando Illegal Return Statement...', 'debug');
-            
             var results = { hasError: false, location: null, fix: null };
             try {
                 if (window.MediaSystem && window.MediaSystem.uploadSingleFile) {
@@ -472,17 +462,11 @@
             }
         }
 
-        // ========== DIAGNÓSTICO 2: VERIFICAR FUNÇÕES DA GALERIA ==========
         function diagnoseGalleryFunctions() {
             log('🔍 Diagnosticando funções da galeria...', 'debug');
-            
             var requiredFunctions = [
-                'openGalleryAtCurrentIndex',
-                'closeGallery',
-                'createPropertyGallery',
-                'setupGalleryEvents',
-                'navigatePropertyGallery',
-                'registerGalleryView'
+                'openGalleryAtCurrentIndex', 'closeGallery', 'createPropertyGallery',
+                'setupGalleryEvents', 'navigatePropertyGallery', 'registerGalleryView'
             ];
             var results = { missing: [], exists: [], fix: null };
             for (var i = 0; i < requiredFunctions.length; i++) {
@@ -504,10 +488,8 @@
             return results;
         }
 
-        // ========== DIAGNÓSTICO 3: VERIFICAR IMAGENS QUEBRADAS ==========
         function diagnoseBrokenImages() {
             log('🔍 Diagnosticando imagens quebradas...', 'debug');
-            
             var results = { brokenImages: [], totalImages: 0, fix: null };
             try {
                 var images = document.querySelectorAll('img');
@@ -539,10 +521,8 @@
             }
         }
 
-        // ========== DIAGNÓSTICO 4: VERIFICAR ESTADO DO SISTEMA ==========
         function diagnoseSystemState() {
             log('🔍 Diagnosticando estado do sistema...', 'debug');
-            
             var results = {
                 isMixed: false,
                 oldFunctions: [],
@@ -577,20 +557,11 @@
             return results;
         }
 
-        // ========== DIAGNÓSTICO 5: VERIFICAR FUNÇÕES CRÍTICAS ==========
         function diagnoseCriticalFunctions() {
             log('🔍 Diagnosticando funções críticas...', 'debug');
-            
             var criticalFunctions = [
-                'properties',
-                'propertyTemplates',
-                'renderProperties',
-                'loadPropertiesData',
-                'addNewProperty',
-                'updateProperty',
-                'deleteProperty',
-                'SharedCore',
-                'SUPABASE_CONSTANTS'
+                'properties', 'propertyTemplates', 'renderProperties', 'loadPropertiesData',
+                'addNewProperty', 'updateProperty', 'deleteProperty', 'SharedCore', 'SUPABASE_CONSTANTS'
             ];
             var results = { missing: [], exists: [], fix: null };
             for (var i = 0; i < criticalFunctions.length; i++) {
@@ -612,11 +583,9 @@
             return results;
         }
 
-        // ========== DIAGNÓSTICO 6: VERIFICAR DOMÍNIOS ANTIGOS ==========
         function diagnoseOldDomains() {
             log('🔍 Diagnosticando domínios antigos do Supabase...', 'debug');
             var results = RecoverImages.diagnoseOldDomains();
-            
             if (results.found > 0) {
                 log('⚠️ ' + results.found + ' URL(s) com domínio(s) antigo(s) encontrada(s)', 'warn');
                 results.fix = 'Executar RecoverImages.recoverAll() para corrigir';
@@ -626,10 +595,9 @@
             return results;
         }
 
-        // ========== CORREÇÃO 1: CORRIGIR ILLEGAL RETURN ==========
+        // ========== CORREÇÕES ==========
         function fixIllegalReturn(diagnostic) {
             log('🔧 Corrigindo Illegal return statement...', 'info');
-            
             try {
                 if (window.MediaSystem && window.MediaSystem.uploadSingleFile) {
                     var fixedFn = function(file, propertyId, type) {
@@ -679,10 +647,8 @@
             }
         }
 
-        // ========== CORREÇÃO 2: CRIAR FALLBACKS PARA GALERIA ==========
         function fixGalleryFunctions(diagnostic) {
             log('🔧 Criando fallbacks para funções da galeria...', 'info');
-            
             try {
                 var missing = diagnostic.missing || [];
                 var fixed = 0;
@@ -691,7 +657,6 @@
                         var fallbackImage = property.images && property.images !== 'EMPTY' 
                             ? property.images.split(',')[0] 
                             : CONFIG.fallbackImage;
-                        
                         return `
                             <div class="property-image ${property.rural ? 'rural-image' : ''}" 
                                  style="position: relative; height: 250px; overflow: hidden;">
@@ -737,23 +702,18 @@
                             log('❌ Imóvel ' + propertyId + ' não encontrado', 'error');
                             return;
                         }
-                        
                         var hasImages = property.images && property.images !== 'EMPTY';
                         if (!hasImages) {
                             log('ℹ️ Imóvel ' + propertyId + ' não tem imagens', 'info');
                             return;
                         }
-                        
                         var images = property.images.split(',').filter(function(u) { return u && u.trim(); });
                         var firstImage = images[0] || CONFIG.fallbackImage;
-                        
                         if (typeof window.registerGalleryView === 'function') {
                             window.registerGalleryView(propertyId);
                         }
-                        
                         alert('📸 ' + property.title + '\n\nClique em OK para abrir a imagem em nova aba.');
                         window.open(firstImage, '_blank');
-                        
                         log('✅ Galeria aberta para imóvel ' + propertyId + ' (fallback)', 'success');
                     };
                     fixed++;
@@ -798,10 +758,8 @@
             }
         }
 
-        // ========== CORREÇÃO 3: CORRIGIR IMAGENS QUEBRADAS ==========
         function fixBrokenImages(diagnostic) {
             log('🔧 Corrigindo imagens quebradas...', 'info');
-            
             try {
                 var brokenImages = diagnostic.brokenImages || [];
                 var fixed = 0;
@@ -828,10 +786,8 @@
             }
         }
 
-        // ========== CORREÇÃO 4: UNIFICAR SISTEMA ==========
         function fixSystemState(diagnostic) {
             log('🔧 Unificando sistema...', 'info');
-            
             try {
                 if (typeof window.filterPropertiesByType === 'function' && typeof window.filterProperties === 'undefined') {
                     window.filterProperties = window.filterPropertiesByType;
@@ -849,10 +805,8 @@
             }
         }
 
-        // ========== CORREÇÃO 5: FUNÇÕES CRÍTICAS AUSENTES ==========
         function fixCriticalFunctions(diagnostic) {
             log('🔧 Corrigindo funções críticas ausentes...', 'info');
-            
             try {
                 var missing = diagnostic.missing || [];
                 var fixed = 0;
@@ -913,7 +867,7 @@
             }
         }
 
-        // ========== FUNÇÃO PRINCIPAL DE DIAGNÓSTICO ==========
+        // ========== FUNÇÃO PRINCIPAL ==========
         async function runFullDiagnostic() {
             log('🚀 INICIANDO DIAGNÓSTICO COMPLETO v' + CONFIG.version, 'info');
             state.status = 'running';
@@ -996,10 +950,9 @@
             }
         }
 
-        // ========== RELATÓRIO COMPLETO ==========
+        // ========== RELATÓRIO ==========
         function generateReport(results) {
             log('📊 GERANDO RELATÓRIO COMPLETO...', 'info');
-            
             var report = {
                 timestamp: new Date().toISOString(),
                 version: CONFIG.version,
@@ -1032,10 +985,9 @@
             return report;
         }
 
-        // ========== FUNÇÃO DE CORREÇÃO RÁPIDA ==========
+        // ========== CORREÇÃO RÁPIDA ==========
         function quickFix() {
             log('⚡ Executando correção rápida...', 'info');
-            
             var fixedCount = 0;
             
             if (typeof window.filterProperties === 'undefined' && typeof window.filterPropertiesByType === 'function') {
@@ -1079,7 +1031,7 @@
             return true;
         }
 
-        // ========== FUNÇÃO PARA EXIBIR PAINEL ==========
+        // ========== PAINEL DE DIAGNÓSTICO ==========
         function showDiagnosticPanel() {
             log('📋 Exibindo painel de diagnóstico...', 'info');
             
@@ -1162,7 +1114,7 @@
             
             document.body.appendChild(panel);
             
-            // ========== EVENTOS DIRETOS COM IDS ==========
+            // ========== EVENTOS ==========
             document.getElementById('closeDiagnosticPanelBtn').addEventListener('click', function() {
                 var p = document.getElementById('diagnosticPanel65');
                 if (p) p.remove();
@@ -1224,6 +1176,7 @@
                 }
             });
             
+            // ========== BOTÃO RECUPERAR IMAGENS - CORRIGIDO v6.5.8 ==========
             document.getElementById('recoverImagesBtn').addEventListener('click', async function() {
                 var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recuperando imagens...';
@@ -1231,7 +1184,9 @@
                 
                 try {
                     log('🖼️ Executando recuperação de imagens (via botão)', 'info');
-                    var result = await window.DiagnosticSystem65.recoverImages();
+                    
+                    // CORREÇÃO: Chamar diretamente a função com bind
+                    var result = await RecoverImages.recoverAll.call(RecoverImages);
                     
                     if (result && result.fixed > 0) {
                         var domainMsg = result.domainFixed > 0 ? 
@@ -1253,6 +1208,7 @@
                 }
             });
 
+            // ========== BOTÃO CORRIGIR DOMÍNIOS - CORRIGIDO v6.5.8 ==========
             document.getElementById('fixDomainsBtn').addEventListener('click', async function() {
                 var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Corrigindo domínios...';
@@ -1261,10 +1217,10 @@
                 try {
                     log('🔗 Corrigindo domínios (via botão)', 'info');
                     
-                    var diagnosis = RecoverImages.diagnoseOldDomains();
+                    var diagnosis = RecoverImages.diagnoseOldDomains.call(RecoverImages);
                     statusDiv.innerHTML = '🔍 ' + diagnosis.found + ' URL(s) com domínio(s) antigo(s) encontrada(s). Corrigindo...';
                     
-                    var result = await RecoverImages.recoverAll();
+                    var result = await RecoverImages.recoverAll.call(RecoverImages);
                     
                     if (result && result.fixed > 0) {
                         statusDiv.innerHTML = '✅ ' + result.fixed + ' imóvel(is) corrigido(s) com domínios atualizados' +
@@ -1284,6 +1240,7 @@
                 }
             });
 
+            // ========== BOTÃO VERIFICAR IMÓVEL ==========
             document.getElementById('checkPropertyBtn').addEventListener('click', async function() {
                 var propertyId = prompt('Digite o ID do imóvel para verificar:');
                 if (!propertyId) return;
@@ -1293,7 +1250,7 @@
                 statusDiv.style.color = '#ffd700';
                 
                 try {
-                    var result = await window.DiagnosticSystem65.checkPropertyImages(parseInt(propertyId));
+                    var result = await RecoverImages.checkProperty.call(RecoverImages, parseInt(propertyId));
                     
                     if (result) {
                         var msg = '📊 Imóvel "' + result.property.title + '"\n';
@@ -1337,10 +1294,19 @@
             fixSystemState: fixSystemState,
             fixCriticalFunctions: fixCriticalFunctions,
             generateReport: generateReport,
-            recoverImages: RecoverImages.recoverAll,
-            checkPropertyImages: RecoverImages.checkProperty,
-            reconstructImageUrl: RecoverImages.reconstructUrl,
-            fixPropertyUrls: RecoverImages.fixPropertyUrls,
+            // CORREÇÃO v6.5.8: Usar call para garantir contexto
+            recoverImages: function() {
+                return RecoverImages.recoverAll.call(RecoverImages);
+            },
+            checkPropertyImages: function(id) {
+                return RecoverImages.checkProperty.call(RecoverImages, id);
+            },
+            reconstructImageUrl: function(url) {
+                return RecoverImages.reconstructUrl.call(RecoverImages, url);
+            },
+            fixPropertyUrls: function(property) {
+                return RecoverImages.fixPropertyUrls.call(RecoverImages, property);
+            },
             detectSupabaseDomain: detectSupabaseDomain,
             CONFIG: CONFIG
         };
@@ -1351,7 +1317,7 @@
             
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.7',
+                    description: 'Sistema de Diagnóstico Completo v6.5.8',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1373,11 +1339,9 @@
             if (isDebugMode) {
                 setTimeout(function() {
                     log('🚀 Executando diagnóstico automático...', 'info');
-                    
                     if (typeof window.DiagnosticSystem65.runFullDiagnostic === 'function') {
                         window.DiagnosticSystem65.runFullDiagnostic();
                     }
-                    
                     setTimeout(function() {
                         if (typeof window.DiagnosticSystem65.showPanel === 'function') {
                             window.DiagnosticSystem65.showPanel();
@@ -1387,11 +1351,12 @@
             }
             
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.7 inicializado com sucesso', 'success');
+            log('✅ DiagnosticSystem65 v6.5.8 inicializado com sucesso', 'success');
             console.log('📊 [INIT] DiagnosticSystem65 v' + CONFIG.version + ' - Pronto para uso');
             console.log('🔗 [INIT] Domínio Supabase detectado:', SUPABASE_DOMAIN);
             console.log('📋 [INIT] Use window.DiagnosticSystem65.runFullDiagnostic() para diagnóstico completo');
             console.log('🔄 [INIT] Use window.DiagnosticSystem65.recoverImages() para corrigir URLs');
+            console.log('🔧 [INIT] CORREÇÃO v6.5.8: Contexto de this corrigido com .call()');
         }
 
         if (document.readyState === 'loading') {
@@ -1400,8 +1365,8 @@
             setTimeout(autoInitialize, 100);
         }
 
-        // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.7 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        // ========== COMANDOS RÁPIDOS ==========
+        console.log('%c🔧 DiagnosticSystem65 v6.5.8 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1412,6 +1377,7 @@
         console.log('  🔗 window.DiagnosticSystem65.fixPropertyUrls(property) - Corrigir URLs de uma propriedade');
         console.log('  🔍 window.DiagnosticSystem65.checkPropertyImages(id) - Verificar imagens de um imóvel');
         console.log('  🔗 Domínio atual:', SUPABASE_DOMAIN);
+        console.log('  🔧 CORREÇÃO v6.5.8: Contexto de this corrigido com .call()');
 
     } catch (error) {
         console.error('❌ [FATAL] Erro ao carregar DiagnosticSystem65:', error);
@@ -1423,7 +1389,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.7',
+                version: '6.5.8',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1439,16 +1405,17 @@
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
 // STATUS: ✅ CARREGADO COM SUCESSO
-// Versão: 6.5.7
+// Versão: 6.5.8
 // ============================================================
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.DiagnosticSystem65;
 }
 window.__DIAGNOSTICS65_LOADED = true;
-window.__DIAGNOSTICS65_VERSION = '6.5.7';
+window.__DIAGNOSTICS65_VERSION = '6.5.8';
 window.__DIAGNOSTICS65_STATUS = 'success';
-console.log('✅ [diagnostics65.js] v6.5.7 carregado com sucesso');
-console.log('🔧 [diagnostics65.js] Correção: self.reconstructUrl is not a function resolvido');
+console.log('✅ [diagnostics65.js] v6.5.8 carregado com sucesso');
+console.log('🔧 [diagnostics65.js] CORREÇÃO DEFINITIVA: self.reconstructUrl is not a function resolvido com .call()');
+console.log('📋 [diagnostics65.js] Use window.DiagnosticSystem65.recoverImages() para recuperar imagens');
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
