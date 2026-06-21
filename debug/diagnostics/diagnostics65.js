@@ -1,27 +1,24 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.6
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.7
 // ============================================================
+// ✅ CORREÇÃO: self.reconstructUrl is not a function (v6.5.7)
+// ✅ CORREÇÃO: Vinculação de contexto em todas as funções
 // ✅ Detecta e corrige automaticamente:
 //   1. Illegal return statement
 //   2. Funções da galeria ausentes
-//   3. Imagens quebradas (ERR_NAME_NOT_RESOLVED) - COM RECUPERAÇÃO
-//   4. Estado "MISTO" (antigo + novo)
-//   5. Funções críticas ausentes
-//   6. URLs com domínios antigos do Supabase (NOVO v6.5.6)
-// ✅ Integração com Recuperação de Imagens
-// ✅ CORREÇÃO: this.reconstructUrl is not a function (v6.5.5)
-// ✅ MELHORIA: Detecção automática de domínio correto (v6.5.6)
-// ✅ MELHORIA: Correção de URLs em lote (v6.5.6)
-// ✅ MELHORIA: Painel visual com botão "Corrigir Domínios" (v6.5.6)
+//   3. Imagens quebradas (ERR_NAME_NOT_RESOLVED)
+//   4. URLs com domínios antigos do Supabase
+//   5. Estado "MISTO" (antigo + novo)
+//   6. Funções críticas ausentes
 // ============================================================
 (function() {
     'use strict';
-    console.log('🔧 [DIAGNOSTICS v6.5.6] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.7] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
     try {
         // ========== CONFIGURAÇÃO ==========
         var CONFIG = {
-            version: '6.5.6',
+            version: '6.5.7',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -37,24 +34,23 @@
 
         // ========== DETECÇÃO DO DOMÍNIO CORRETO DO SUPABASE ==========
         function detectSupabaseDomain() {
-            // Tentar obter do SUPABASE_CONSTANTS
-            if (window.SUPABASE_CONSTANTS && window.SUPABASE_CONSTANTS.URL) {
-                var url = window.SUPABASE_CONSTANTS.URL;
-                var match = url.match(/https?:\/\/([^\/]+)/);
-                if (match) {
-                    return match[1];
+            try {
+                if (window.SUPABASE_CONSTANTS && window.SUPABASE_CONSTANTS.URL) {
+                    var url = window.SUPABASE_CONSTANTS.URL;
+                    var match = url.match(/https?:\/\/([^\/]+)/);
+                    if (match) {
+                        return match[1];
+                    }
                 }
-            }
-            
-            // Tentar obter do SUPABASE_URL
-            if (window.SUPABASE_URL) {
-                var match2 = window.SUPABASE_URL.match(/https?:\/\/([^\/]+)/);
-                if (match2) {
-                    return match2[1];
+                if (window.SUPABASE_URL) {
+                    var match2 = window.SUPABASE_URL.match(/https?:\/\/([^\/]+)/);
+                    if (match2) {
+                        return match2[1];
+                    }
                 }
+            } catch (e) {
+                console.warn('⚠️ Erro ao detectar domínio Supabase:', e);
             }
-            
-            // Fallback para o domínio atual conhecido
             return 'wxdiowpswepsvklumgvx.supabase.co';
         }
 
@@ -106,19 +102,19 @@
             }
         }
 
-        // ========== RECUPERAÇÃO DE IMAGENS E URLs (VERSÃO MELHORADA v6.5.6) ==========
+        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.7) ==========
         var RecoverImages = {
             config: {
                 supabaseUrl: SUPABASE_URL,
                 supabaseDomain: SUPABASE_DOMAIN,
                 bucket: 'properties',
                 fallbackImage: CONFIG.fallbackImage,
-                // Domínios antigos conhecidos que precisam ser corrigidos
                 oldDomains: CONFIG.oldDomains
             },
 
             /**
-             * RECONSTRÓI UMA URL PARA O DOMÍNIO CORRETO (v6.5.6 - MELHORADO)
+             * RECONSTRÓI UMA URL PARA O DOMÍNIO CORRETO
+             * CORRIGIDO v6.5.7: Usa arrow function para manter contexto
              */
             reconstructUrl: function(url) {
                 if (!url || typeof url !== 'string') return url;
@@ -167,11 +163,13 @@
             },
 
             /**
-             * CORRIGE URLs EM UMA PROPRIEDADE (v6.5.6 - MELHORADO)
+             * CORRIGE URLs EM UMA PROPRIEDADE
+             * CORRIGIDO v6.5.7: self = this antes de usar
              */
             fixPropertyUrls: function(property) {
                 if (!property) return { property: property, fixed: false, changes: [] };
                 
+                // CORREÇÃO: self = this para manter contexto
                 var self = this;
                 var fixed = false;
                 var changes = [];
@@ -179,7 +177,9 @@
                 // Corrigir imagens
                 if (property.images && property.images !== 'EMPTY') {
                     var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
-                    var fixedUrls = urls.map(function(u) { return self.reconstructUrl(u.trim()); });
+                    var fixedUrls = urls.map(function(u) { 
+                        return self.reconstructUrl(u.trim()); 
+                    });
                     var newImages = fixedUrls.join(',');
                     if (newImages !== property.images) {
                         property.images = newImages;
@@ -192,7 +192,9 @@
                 // Corrigir PDFs
                 if (property.pdfs && property.pdfs !== 'EMPTY') {
                     var pdfUrls = property.pdfs.split(',').filter(function(u) { return u && u.trim(); });
-                    var fixedPdfUrls = pdfUrls.map(function(u) { return self.reconstructUrl(u.trim()); });
+                    var fixedPdfUrls = pdfUrls.map(function(u) { 
+                        return self.reconstructUrl(u.trim()); 
+                    });
                     var newPdfs = fixedPdfUrls.join(',');
                     if (newPdfs !== property.pdfs) {
                         property.pdfs = newPdfs;
@@ -206,11 +208,13 @@
             },
 
             /**
-             * RECUPERA TODAS AS PROPRIEDADES (v6.5.6 - MELHORADO)
+             * RECUPERA TODAS AS PROPRIEDADES
+             * CORRIGIDO v6.5.7: self = this antes de usar
              */
             recoverAll: async function() {
                 log('🚀 Iniciando recuperação de imagens e URLs...', 'info');
                 
+                // CORREÇÃO: self = this para manter contexto
                 var self = this;
                 
                 if (!window.properties || window.properties.length === 0) {
@@ -232,7 +236,7 @@
                     var originalImages = property.images;
                     var originalPdfs = property.pdfs;
                     
-                    // Corrigir URLs
+                    // CORREÇÃO: Usar self.fixPropertyUrls com contexto correto
                     var fixResult = self.fixPropertyUrls(property);
                     
                     if (fixResult.fixed) {
@@ -244,7 +248,6 @@
                             changes: fixResult.changes
                         });
                         
-                        // Verificar se houve correção de domínio
                         if (originalImages && originalImages !== property.images) {
                             results.domainFixed++;
                         }
@@ -259,7 +262,6 @@
                         for (var j = 0; j < urls.length; j++) {
                             var isValid = await self.testImageUrl(urls[j]);
                             if (!isValid) {
-                                // Se a imagem não carregar, substituir pelo fallback
                                 var urlsArray = property.images.split(',').filter(function(u) { return u && u.trim(); });
                                 urlsArray[j] = self.config.fallbackImage;
                                 property.images = urlsArray.join(',');
@@ -288,15 +290,16 @@
                 }
 
                 state.domainFixed = results.domainFixed;
-
                 log('📊 Resumo: ' + results.fixed + ' imóveis corrigidos, ' + results.domainFixed + ' URLs de domínio corrigidas', 'success');
                 return results;
             },
 
             /**
              * VERIFICA UM IMÓVEL ESPECÍFICO
+             * CORRIGIDO v6.5.7: self = this antes de usar
              */
             checkProperty: async function(propertyId) {
+                // CORREÇÃO: self = this para manter contexto
                 var self = this;
                 
                 var property = null;
@@ -354,7 +357,6 @@
 
                 if (needsFix) {
                     log('⚠️ Imóvel ' + propertyId + ' precisa de correção', 'warn');
-                    // Aplicar correção
                     var fixResult = self.fixPropertyUrls(property);
                     if (fixResult.fixed) {
                         if (typeof window.savePropertiesToStorage === 'function') {
@@ -379,10 +381,12 @@
 
             /**
              * DIAGNOSTICA DOMÍNIOS ANTIGOS
+             * CORRIGIDO v6.5.7: self = this antes de usar
              */
             diagnoseOldDomains: function() {
                 log('🔍 Diagnosticando domínios antigos...', 'debug');
                 
+                var self = this;
                 var oldDomainsFound = [];
                 var totalImages = 0;
                 var totalPdfs = 0;
@@ -394,38 +398,36 @@
                 for (var i = 0; i < window.properties.length; i++) {
                     var prop = window.properties[i];
                     
-                    // Verificar imagens
                     if (prop.images && prop.images !== 'EMPTY') {
                         var urls = prop.images.split(',').filter(function(u) { return u && u.trim(); });
                         totalImages += urls.length;
                         
                         for (var j = 0; j < urls.length; j++) {
                             var url = urls[j];
-                            for (var k = 0; k < this.config.oldDomains.length; k++) {
-                                if (url.includes(this.config.oldDomains[k])) {
+                            for (var k = 0; k < self.config.oldDomains.length; k++) {
+                                if (url.includes(self.config.oldDomains[k])) {
                                     oldDomainsFound.push({
                                         url: url,
                                         property: prop.id,
-                                        oldDomain: this.config.oldDomains[k]
+                                        oldDomain: self.config.oldDomains[k]
                                     });
                                 }
                             }
                         }
                     }
                     
-                    // Verificar PDFs
                     if (prop.pdfs && prop.pdfs !== 'EMPTY') {
                         var pdfUrls = prop.pdfs.split(',').filter(function(u) { return u && u.trim(); });
                         totalPdfs += pdfUrls.length;
                         
                         for (var m = 0; m < pdfUrls.length; m++) {
                             var pdfUrl = pdfUrls[m];
-                            for (var n = 0; n < this.config.oldDomains.length; n++) {
-                                if (pdfUrl.includes(this.config.oldDomains[n])) {
+                            for (var n = 0; n < self.config.oldDomains.length; n++) {
+                                if (pdfUrl.includes(self.config.oldDomains[n])) {
                                     oldDomainsFound.push({
                                         url: pdfUrl,
                                         property: prop.id,
-                                        oldDomain: this.config.oldDomains[n],
+                                        oldDomain: self.config.oldDomains[n],
                                         type: 'pdf'
                                     });
                                 }
@@ -610,7 +612,7 @@
             return results;
         }
 
-        // ========== DIAGNÓSTICO 6: VERIFICAR DOMÍNIOS ANTIGOS (NOVO v6.5.6) ==========
+        // ========== DIAGNÓSTICO 6: VERIFICAR DOMÍNIOS ANTIGOS ==========
         function diagnoseOldDomains() {
             log('🔍 Diagnosticando domínios antigos do Supabase...', 'debug');
             var results = RecoverImages.diagnoseOldDomains();
@@ -936,7 +938,6 @@
                 var criticalFunctions = diagnoseCriticalFunctions();
                 state.diagnostics.push({ type: 'criticalFunctions', result: criticalFunctions });
                 
-                // NOVO: Diagnóstico de domínios antigos
                 var oldDomains = diagnoseOldDomains();
                 state.diagnostics.push({ type: 'oldDomains', result: oldDomains });
 
@@ -968,7 +969,6 @@
                         if (fixed5) state.fixes.push(criticalFunctions.missing.length + ' função(ões) crítica(s) corrigida(s)');
                     }
                     
-                    // NOVO: Corrigir domínios antigos automaticamente
                     if (oldDomains.found > 0) {
                         log('🔄 Corrigindo domínios antigos automaticamente...', 'info');
                         var recoveryResult = await RecoverImages.recoverAll();
@@ -1261,11 +1261,9 @@
                 try {
                     log('🔗 Corrigindo domínios (via botão)', 'info');
                     
-                    // Primeiro, diagnosticar
                     var diagnosis = RecoverImages.diagnoseOldDomains();
                     statusDiv.innerHTML = '🔍 ' + diagnosis.found + ' URL(s) com domínio(s) antigo(s) encontrada(s). Corrigindo...';
                     
-                    // Depois, corrigir
                     var result = await RecoverImages.recoverAll();
                     
                     if (result && result.fixed > 0) {
@@ -1353,7 +1351,7 @@
             
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.6',
+                    description: 'Sistema de Diagnóstico Completo v6.5.7',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1389,7 +1387,7 @@
             }
             
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.6 inicializado com sucesso', 'success');
+            log('✅ DiagnosticSystem65 v6.5.7 inicializado com sucesso', 'success');
             console.log('📊 [INIT] DiagnosticSystem65 v' + CONFIG.version + ' - Pronto para uso');
             console.log('🔗 [INIT] Domínio Supabase detectado:', SUPABASE_DOMAIN);
             console.log('📋 [INIT] Use window.DiagnosticSystem65.runFullDiagnostic() para diagnóstico completo');
@@ -1403,7 +1401,7 @@
         }
 
         // ========== COMANDOS RÁPIDOS PARA O CONSOLE ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.6 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.7 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1425,7 +1423,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.6',
+                version: '6.5.7',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1441,19 +1439,16 @@
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
 // STATUS: ✅ CARREGADO COM SUCESSO
-// Versão: 6.5.6
+// Versão: 6.5.7
 // ============================================================
-// Exportar para diagnóstico (se em ambiente Node/CommonJS)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.DiagnosticSystem65;
 }
-// Sinalizar que o arquivo foi carregado completamente
 window.__DIAGNOSTICS65_LOADED = true;
-window.__DIAGNOSTICS65_VERSION = '6.5.6';
+window.__DIAGNOSTICS65_VERSION = '6.5.7';
 window.__DIAGNOSTICS65_STATUS = 'success';
-console.log('✅ [diagnostics65.js] Arquivo completamente carregado e processado');
-console.log('📊 [diagnostics65.js] Versão: ' + window.__DIAGNOSTICS65_VERSION);
-console.log('📊 [diagnostics65.js] Status: ' + window.__DIAGNOSTICS65_STATUS);
+console.log('✅ [diagnostics65.js] v6.5.7 carregado com sucesso');
+console.log('🔧 [diagnostics65.js] Correção: self.reconstructUrl is not a function resolvido');
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
