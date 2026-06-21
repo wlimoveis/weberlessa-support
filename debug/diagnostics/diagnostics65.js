@@ -1,7 +1,7 @@
-// ============================================================
+// ===========================================================
 // debug/diagnostics/diagnostics65.js
 // SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.7
-// ============================================================
+// ===========================================================
 // ✅ CORREÇÃO: self.reconstructUrl is not a function (v6.5.7)
 // ✅ CORREÇÃO: Vinculação de contexto em todas as funções
 // ✅ Detecta e corrige automaticamente:
