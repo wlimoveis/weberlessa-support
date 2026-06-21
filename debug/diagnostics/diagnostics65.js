@@ -1,18 +1,18 @@
 // ============================================================
 // debug/diagnostics/diagnostics65.js
-// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.9
+// SISTEMA DE DIAGNÓSTICO COMPLETO v6.5.10
 // ============================================================
-// ✅ CORREÇÃO DEFINITIVA: Persistência da correção no Supabase
-// ✅ CORREÇÃO: Fallback automático no carregamento
+// ✅ CORREÇÃO DEFINITIVA: Persistência no Supabase via API
+// ✅ CORREÇÃO: Fallback automático no carregamento do Core System
 // ✅ CORREÇÃO: Verificação e correção em lote com persistência
 // ============================================================
 (function() {
     'use strict';
-    console.log('🔧 [DIAGNOSTICS v6.5.9] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
+    console.log('🔧 [DIAGNOSTICS v6.5.10] SISTEMA DE DIAGNÓSTICO COMPLETO CARREGADO');
     try {
         // ========== CONFIGURAÇÃO ==========
         var CONFIG = {
-            version: '6.5.9',
+            version: '6.5.10',
             name: 'Sistema de Diagnóstico Completo',
             autoFix: true,
             logLevel: 'debug',
@@ -58,7 +58,7 @@
             status: 'idle',
             initStatus: null,
             domainFixed: 0,
-            persistedToSupabase: false
+            persistedToSupabase: 0
         };
 
         // ========== UTILITÁRIOS ==========
@@ -81,7 +81,7 @@
             return logMsg;
         }
 
-        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.9) ==========
+        // ========== RECUPERAÇÃO DE IMAGENS E URLs (CORRIGIDO v6.5.10) ==========
         var RecoverImages = {
             config: {
                 supabaseUrl: SUPABASE_URL,
@@ -179,14 +179,13 @@
             },
 
             /**
-             * SALVA PROPRIEDADE NO SUPABASE (NOVO v6.5.9)
+             * SALVA PROPRIEDADE NO SUPABASE (CORRIGIDO v6.5.10)
              */
             savePropertyToSupabase: async function(property) {
                 if (!property || !property.id) return { success: false, error: 'Propriedade inválida' };
                 
                 try {
                     var self = this;
-                    var SUPABASE_URL = self.config.supabaseUrl;
                     var SUPABASE_KEY = window.SUPABASE_CONSTANTS?.KEY || window.SUPABASE_KEY;
                     
                     if (!SUPABASE_KEY) {
@@ -199,13 +198,16 @@
                         return { success: false, error: 'ID inválido' };
                     }
 
+                    // Usar a URL do Supabase com o domínio correto
                     var url = SUPABASE_URL + '/rest/v1/properties?id=eq.' + validId;
+                    
+                    // Preparar payload APENAS com os campos que precisam ser atualizados
                     var payload = {
                         images: property.images || 'EMPTY',
                         pdfs: property.pdfs || 'EMPTY'
                     };
 
-                    log('💾 Salvando imóvel ' + validId + ' no Supabase...', 'debug');
+                    log('💾 Persistindo imóvel ' + validId + ' no Supabase...', 'debug');
 
                     var response = await fetch(url, {
                         method: 'PATCH',
@@ -219,8 +221,9 @@
                     });
 
                     if (response.ok) {
+                        var data = await response.json();
                         log('✅ Imóvel ' + validId + ' atualizado no Supabase', 'success');
-                        return { success: true, id: validId };
+                        return { success: true, id: validId, data: data };
                     } else {
                         var errorText = await response.text();
                         log('❌ Erro ao salvar imóvel ' + validId + ': ' + errorText, 'error');
@@ -233,7 +236,7 @@
             },
 
             /**
-             * RECUPERA TODAS AS PROPRIEDADES COM PERSISTÊNCIA (NOVO v6.5.9)
+             * RECUPERA TODAS AS PROPRIEDADES COM PERSISTÊNCIA (CORRIGIDO v6.5.10)
              */
             recoverAll: async function() {
                 log('🚀 Iniciando recuperação de imagens e URLs...', 'info');
@@ -300,7 +303,6 @@
                                 results.fixed++;
                                 results.errors.push({ property: property.id, url: urls[j] });
                                 log('⚠️ Imagem inválida, usando fallback: ' + urls[j].substring(0, 50) + '...', 'warn');
-                                // Marcar para persistir
                                 if (!propertiesToPersist.includes(property)) {
                                     propertiesToPersist.push(property);
                                 }
@@ -325,7 +327,7 @@
                     }
                 }
 
-                // PERSISTIR NO SUPABASE (NOVO v6.5.9)
+                // PERSISTIR NO SUPABASE (CORRIGIDO v6.5.10)
                 if (propertiesToPersist.length > 0) {
                     log('💾 Persistindo ' + propertiesToPersist.length + ' imóveis no Supabase...', 'info');
                     
@@ -334,9 +336,9 @@
                         var saveResult = await self.savePropertyToSupabase(prop);
                         if (saveResult.success) {
                             results.persisted++;
-                            // Atualizar flag no objeto
                             prop.savedToSupabase = true;
                             prop.syncStatus = 'synced';
+                            log('✅ Imóvel ' + prop.id + ' persistido no Supabase', 'success');
                         } else {
                             results.persistedErrors.push({
                                 id: prop.id,
@@ -345,14 +347,14 @@
                             log('⚠️ Falha ao persistir imóvel ' + prop.id + ': ' + saveResult.error, 'warn');
                         }
                         // Delay para não sobrecarregar a API
-                        await new Promise(function(resolve) { setTimeout(resolve, 300); });
+                        await new Promise(function(resolve) { setTimeout(resolve, 500); });
                     }
 
                     // Salvar novamente após atualizar flags
                     if (typeof window.savePropertiesToStorage === 'function') {
                         window.savePropertiesToStorage();
                     }
-                    state.persistedToSupabase = results.persisted > 0;
+                    state.persistedToSupabase = results.persisted;
                     log('✅ ' + results.persisted + ' imóveis persistidos no Supabase', 'success');
                 } else {
                     log('ℹ️ Nenhum imóvel precisa ser persistido no Supabase', 'info');
@@ -514,34 +516,121 @@
             },
 
             /**
-             * CORRIGE DOMÍNIOS NO CARREGAMENTO (FALLBACK AUTOMÁTICO) (NOVO v6.5.9)
+             * INSTALA CORREÇÃO NO CORE SYSTEM (NOVO v6.5.10)
              */
-            fixOnLoad: async function() {
-                log('🔄 Verificando domínios no carregamento...', 'info');
+            installCoreFix: function() {
+                log('🔧 Instalando correção no Core System...', 'info');
                 
-                var self = this;
-                var needsFix = 0;
-                
-                if (!window.properties || window.properties.length === 0) {
-                    log('ℹ️ Nenhuma propriedade para verificar', 'info');
-                    return { fixed: 0 };
-                }
-
-                for (var i = 0; i < window.properties.length; i++) {
-                    var prop = window.properties[i];
-                    var result = self.fixPropertyUrls(prop);
-                    if (result.fixed) {
-                        needsFix++;
+                try {
+                    // Verificar se a função já existe
+                    if (typeof window.fixAllPropertiesOnLoad === 'function') {
+                        log('✅ Correção já instalada no Core System', 'success');
+                        return true;
                     }
-                }
-
-                if (needsFix > 0) {
-                    log('⚠️ ' + needsFix + ' propriedades precisam de correção. Aplicando...', 'warn');
-                    var fullResult = await self.recoverAll();
-                    return fullResult;
-                } else {
-                    log('✅ Nenhuma propriedade precisa de correção', 'success');
-                    return { fixed: 0 };
+                    
+                    // Injetar a correção
+                    var script = document.createElement('script');
+                    script.textContent = `
+                        // ========== CORREÇÃO AUTOMÁTICA DE URLs ==========
+                        window.fixPropertyUrls = function(property) {
+                            if (!property) return property;
+                            
+                            var SUPABASE_DOMAIN = '${SUPABASE_DOMAIN}';
+                            var SUPABASE_URL = 'https://' + SUPABASE_DOMAIN;
+                            var OLD_DOMAINS = ${JSON.stringify(CONFIG.oldDomains)};
+                            var BUCKET = 'properties';
+                            
+                            function reconstructUrl(url) {
+                                if (!url || typeof url !== 'string') return url;
+                                if (url === 'EMPTY' || url.trim() === '') return url;
+                                if (url.includes(SUPABASE_DOMAIN)) return url;
+                                for (var i = 0; i < OLD_DOMAINS.length; i++) {
+                                    if (url.includes(OLD_DOMAINS[i])) {
+                                        return url.replace(OLD_DOMAINS[i], SUPABASE_DOMAIN);
+                                    }
+                                }
+                                if (!url.startsWith('http') && url.includes('_') && url.includes('.')) {
+                                    return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + url;
+                                }
+                                return url;
+                            }
+                            
+                            var fixed = false;
+                            if (property.images && property.images !== 'EMPTY') {
+                                var urls = property.images.split(',').filter(function(u) { return u && u.trim(); });
+                                var fixedUrls = urls.map(function(u) { return reconstructUrl(u.trim()); });
+                                var newImages = fixedUrls.join(',');
+                                if (newImages !== property.images) {
+                                    property.images = newImages;
+                                    fixed = true;
+                                }
+                            }
+                            if (property.pdfs && property.pdfs !== 'EMPTY') {
+                                var pdfUrls = property.pdfs.split(',').filter(function(u) { return u && u.trim(); });
+                                var fixedPdfUrls = pdfUrls.map(function(u) { return reconstructUrl(u.trim()); });
+                                var newPdfs = fixedPdfUrls.join(',');
+                                if (newPdfs !== property.pdfs) {
+                                    property.pdfs = newPdfs;
+                                    fixed = true;
+                                }
+                            }
+                            return { property: property, fixed: fixed };
+                        };
+                        
+                        window.fixAllPropertiesOnLoad = function() {
+                            console.log('🔄 [FIX] Verificando e corrigindo URLs das propriedades...');
+                            if (!window.properties || window.properties.length === 0) {
+                                console.log('ℹ️ [FIX] Nenhuma propriedade para verificar');
+                                return 0;
+                            }
+                            var fixedCount = 0;
+                            for (var i = 0; i < window.properties.length; i++) {
+                                var prop = window.properties[i];
+                                var result = window.fixPropertyUrls(prop);
+                                if (result.fixed) {
+                                    fixedCount++;
+                                    window.properties[i] = result.property;
+                                }
+                            }
+                            if (fixedCount > 0) {
+                                console.log('✅ [FIX] ' + fixedCount + ' propriedade(s) corrigida(s)');
+                                if (typeof window.savePropertiesToStorage === 'function') {
+                                    window.savePropertiesToStorage();
+                                }
+                                if (typeof window.renderProperties === 'function') {
+                                    window.renderProperties('todos', true);
+                                }
+                            } else {
+                                console.log('✅ [FIX] Nenhuma propriedade precisou ser corrigida');
+                            }
+                            return fixedCount;
+                        };
+                        
+                        // Aplicar correção automaticamente após o carregamento
+                        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                            setTimeout(function() {
+                                if (typeof window.fixAllPropertiesOnLoad === 'function') {
+                                    window.fixAllPropertiesOnLoad();
+                                }
+                            }, 500);
+                        }
+                        
+                        console.log('✅ [FIX] Correção automática de URLs instalada');
+                    `;
+                    document.head.appendChild(script);
+                    
+                    // Executar imediatamente
+                    if (typeof window.fixAllPropertiesOnLoad === 'function') {
+                        setTimeout(function() {
+                            window.fixAllPropertiesOnLoad();
+                        }, 300);
+                    }
+                    
+                    log('✅ Correção instalada no Core System', 'success');
+                    return true;
+                } catch (error) {
+                    log('❌ Erro ao instalar correção: ' + error.message, 'error');
+                    return false;
                 }
             }
         };
@@ -1039,8 +1128,12 @@
                             state.fixes.push(recoveryResult.fixed + ' imóvel(is) corrigido(s) com domínios atualizados');
                             state.fixes.push(recoveryResult.persisted + ' imóvel(is) persistido(s) no Supabase');
                             state.domainFixed = recoveryResult.domainFixed || 0;
+                            state.persistedToSupabase = recoveryResult.persisted || 0;
                         }
                     }
+                    
+                    // INSTALAR CORREÇÃO NO CORE SYSTEM
+                    RecoverImages.installCoreFix();
                     
                     log('✅ ' + state.fixes.length + ' correção(ões) aplicada(s)', 'success');
                 }
@@ -1073,7 +1166,7 @@
                     totalErrors: state.errors.length,
                     totalWarnings: state.warnings.length,
                     domainFixed: state.domainFixed || 0,
-                    persistedToSupabase: state.persistedToSupabase
+                    persistedToSupabase: state.persistedToSupabase || 0
                 },
                 diagnostics: results,
                 fixes: state.fixes,
@@ -1138,6 +1231,9 @@
                 fixedCount++;
             }
             
+            // Instalar correção no Core System
+            RecoverImages.installCoreFix();
+            
             log('✅ ' + fixedCount + ' correção(ões) aplicada(s)', 'success');
             return true;
         }
@@ -1189,7 +1285,7 @@
                     <span style="margin-left: 15px; color: #666;">|</span>
                     <span style="color: #888;">Domínios antigos: ${CONFIG.oldDomains.join(', ')}</span>
                     <span style="margin-left: 15px; color: #666;">|</span>
-                    <span style="color: #888;">Persistência: <strong style="color: #27ae60;">ATIVA</strong></span>
+                    <span style="color: #27ae60;">✅ Core Fix: ATIVO</span>
                 </div>
                 <div id="diagnosticContent" style="margin-top: 10px;">
                     <p style="color: #aaa;">Clique em um dos botões abaixo para executar o diagnóstico.</p>
@@ -1214,6 +1310,10 @@
                     <button id="persistBtn" 
                             style="background: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-database"></i> Persistir no Supabase
+                    </button>
+                    <button id="installCoreFixBtn" 
+                            style="background: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-code"></i> Instalar Core Fix
                     </button>
                     <button id="checkPropertyBtn" 
                             style="background: #1abc9c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
@@ -1256,8 +1356,8 @@
                     if (result) {
                         var domainMsg = result.summary.domainFixed > 0 ? 
                             ` (${result.summary.domainFixed} domínio(s) corrigido(s))` : '';
-                        var persistMsg = result.summary.persistedToSupabase ? 
-                            ` 💾 Persistido no Supabase` : '';
+                        var persistMsg = result.summary.persistedToSupabase > 0 ? 
+                            ` 💾 ${result.summary.persistedToSupabase} persistido(s) no Supabase` : '';
                         statusDiv.innerHTML = '✅ Diagnóstico concluído! ' + result.summary.totalFixes + 
                             ' correções aplicadas.' + domainMsg + persistMsg;
                         statusDiv.style.color = '#27ae60';
@@ -1359,7 +1459,6 @@
                 }
             });
 
-            // NOVO BOTÃO: PERSISTIR NO SUPABASE (v6.5.9)
             document.getElementById('persistBtn').addEventListener('click', async function() {
                 var statusDiv = document.getElementById('diagnosticStatus');
                 statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Persistindo no Supabase...';
@@ -1387,8 +1486,7 @@
                         } else {
                             errors.push({ id: prop.id, error: result.error });
                         }
-                        // Delay para não sobrecarregar
-                        await new Promise(function(resolve) { setTimeout(resolve, 200); });
+                        await new Promise(function(resolve) { setTimeout(resolve, 300); });
                     }
                     
                     if (persisted > 0) {
@@ -1407,6 +1505,30 @@
                     statusDiv.innerHTML = '❌ Erro: ' + error.message;
                     statusDiv.style.color = '#e74c3c';
                     log('❌ Erro na persistência: ' + error.message, 'error');
+                }
+            });
+
+            // NOVO BOTÃO: INSTALAR CORE FIX
+            document.getElementById('installCoreFixBtn').addEventListener('click', function() {
+                var statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Instalando Core Fix...';
+                statusDiv.style.color = '#ffd700';
+                
+                try {
+                    log('🔧 Instalando Core Fix (via botão)', 'info');
+                    var result = RecoverImages.installCoreFix.call(RecoverImages);
+                    
+                    if (result) {
+                        statusDiv.innerHTML = '✅ Core Fix instalado com sucesso! Correção automática ativada.';
+                        statusDiv.style.color = '#27ae60';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Core Fix já estava instalado ou houve erro.';
+                        statusDiv.style.color = '#f39c12';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = '❌ Erro: ' + error.message;
+                    statusDiv.style.color = '#e74c3c';
+                    log('❌ Erro ao instalar Core Fix: ' + error.message, 'error');
                 }
             });
 
@@ -1479,8 +1601,8 @@
             savePropertyToSupabase: function(property) {
                 return RecoverImages.savePropertyToSupabase.call(RecoverImages, property);
             },
-            fixOnLoad: function() {
-                return RecoverImages.fixOnLoad.call(RecoverImages);
+            installCoreFix: function() {
+                return RecoverImages.installCoreFix.call(RecoverImages);
             },
             detectSupabaseDomain: detectSupabaseDomain,
             CONFIG: CONFIG
@@ -1492,7 +1614,7 @@
             
             if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.registerFunction === 'function') {
                 window.DiagnosticRegistry.registerFunction('DiagnosticSystem65', {
-                    description: 'Sistema de Diagnóstico Completo v6.5.9',
+                    description: 'Sistema de Diagnóstico Completo v6.5.10',
                     version: CONFIG.version,
                     functions: [
                         'runFullDiagnostic',
@@ -1503,7 +1625,7 @@
                         'diagnoseOldDomains',
                         'fixPropertyUrls',
                         'savePropertyToSupabase',
-                        'fixOnLoad'
+                        'installCoreFix'
                     ],
                     autoFix: CONFIG.autoFix
                 });
@@ -1526,23 +1648,24 @@
                     }, 1500);
                 }, 2000);
             } else {
-                // EM MODO PRODUÇÃO: executar fallback automático
+                // EM MODO PRODUÇÃO: instalar Core Fix e executar fallback
                 setTimeout(function() {
-                    log('🔧 Executando fallback de domínios em produção...', 'info');
-                    if (typeof window.DiagnosticSystem65.fixOnLoad === 'function') {
-                        window.DiagnosticSystem65.fixOnLoad();
+                    log('🔧 Instalando Core Fix em produção...', 'info');
+                    if (typeof window.DiagnosticSystem65.installCoreFix === 'function') {
+                        window.DiagnosticSystem65.installCoreFix();
                     }
-                }, 3000);
+                }, 1500);
             }
             
             state.initialized = true;
-            log('✅ DiagnosticSystem65 v6.5.9 inicializado com sucesso', 'success');
+            log('✅ DiagnosticSystem65 v6.5.10 inicializado com sucesso', 'success');
             console.log('📊 [INIT] DiagnosticSystem65 v' + CONFIG.version + ' - Pronto para uso');
             console.log('🔗 [INIT] Domínio Supabase detectado:', SUPABASE_DOMAIN);
             console.log('📋 [INIT] Use window.DiagnosticSystem65.runFullDiagnostic() para diagnóstico completo');
             console.log('🔄 [INIT] Use window.DiagnosticSystem65.recoverImages() para corrigir URLs');
             console.log('💾 [INIT] Use window.DiagnosticSystem65.savePropertyToSupabase() para persistir');
-            console.log('🔧 [INIT] CORREÇÃO v6.5.9: Persistência automática no Supabase');
+            console.log('🔧 [INIT] Use window.DiagnosticSystem65.installCoreFix() para instalar correção permanente');
+            console.log('🎯 [INIT] CORREÇÃO DEFINITIVA v6.5.10: Core Fix instalado automaticamente');
         }
 
         if (document.readyState === 'loading') {
@@ -1552,7 +1675,7 @@
         }
 
         // ========== COMANDOS RÁPIDOS ==========
-        console.log('%c🔧 DiagnosticSystem65 v6.5.9 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
+        console.log('%c🔧 DiagnosticSystem65 v6.5.10 Carregado', 'font-size: 16px; font-weight: bold; color: #d4af37;');
         console.log('%cComandos disponíveis:', 'font-weight: bold;');
         console.log('  🔍 window.DiagnosticSystem65.runFullDiagnostic() - Executar diagnóstico completo');
         console.log('  📋 window.DiagnosticSystem65.showPanel() - Mostrar painel de diagnóstico');
@@ -1563,9 +1686,9 @@
         console.log('  🔗 window.DiagnosticSystem65.fixPropertyUrls(property) - Corrigir URLs de uma propriedade');
         console.log('  🔍 window.DiagnosticSystem65.checkPropertyImages(id) - Verificar imagens de um imóvel');
         console.log('  💾 window.DiagnosticSystem65.savePropertyToSupabase(property) - Persistir no Supabase');
-        console.log('  🔧 window.DiagnosticSystem65.fixOnLoad() - Fallback automático no carregamento');
+        console.log('  🔧 window.DiagnosticSystem65.installCoreFix() - Instalar correção permanente no Core');
         console.log('  🔗 Domínio atual:', SUPABASE_DOMAIN);
-        console.log('  🔧 CORREÇÃO v6.5.9: Persistência automática no Supabase');
+        console.log('  🎯 CORREÇÃO DEFINITIVA v6.5.10: Core Fix instalado automaticamente');
 
     } catch (error) {
         console.error('❌ [FATAL] Erro ao carregar DiagnosticSystem65:', error);
@@ -1577,7 +1700,7 @@
         
         if (!window.DiagnosticSystem65) {
             window.DiagnosticSystem65 = {
-                version: '6.5.9',
+                version: '6.5.10',
                 name: 'Sistema de Diagnóstico (Fallback)',
                 status: 'error',
                 error: error.message,
@@ -1593,18 +1716,17 @@
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
 // STATUS: ✅ CARREGADO COM SUCESSO
-// Versão: 6.5.9
+// Versão: 6.5.10
 // ============================================================
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.DiagnosticSystem65;
 }
 window.__DIAGNOSTICS65_LOADED = true;
-window.__DIAGNOSTICS65_VERSION = '6.5.9';
+window.__DIAGNOSTICS65_VERSION = '6.5.10';
 window.__DIAGNOSTICS65_STATUS = 'success';
-console.log('✅ [diagnostics65.js] v6.5.9 carregado com sucesso');
-console.log('🔧 [diagnostics65.js] CORREÇÃO DEFINITIVA: Persistência no Supabase');
-console.log('📋 [diagnostics65.js] Use window.DiagnosticSystem65.recoverImages() para recuperar e persistir');
-console.log('💾 [diagnostics65.js] Use window.DiagnosticSystem65.savePropertyToSupabase() para persistir manualmente');
+console.log('✅ [diagnostics65.js] v6.5.10 carregado com sucesso');
+console.log('🎯 [diagnostics65.js] CORREÇÃO DEFINITIVA: Core Fix instalado automaticamente');
+console.log('🔧 [diagnostics65.js] Use window.DiagnosticSystem65.installCoreFix() para instalar manualmente');
 // ============================================================
 // FIM DO ARQUIVO - diagnostics65.js
 // ============================================================
