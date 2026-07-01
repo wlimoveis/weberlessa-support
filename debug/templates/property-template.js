@@ -131,12 +131,14 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
      * Garante que o Core System continue funcionando autonomamente
      * @private
      */
+    // ========== _generateFallbackImageSection CORRIGIDA ==========
+    // ✅ REMOVIDO: video-indicator - agora gerenciado APENAS pelo gallery.js
     _generateFallbackImageSection(property) {
         const hasImages = property.images && property.images.length > 0 && property.images !== 'EMPTY';
         const imageUrls = hasImages ? property.images.split(',').filter(url => url.trim() !== '') : [];
         const firstImageUrl = imageUrls.length > 0 ? imageUrls[0] : this.imageFallback;
         const imageCount = imageUrls.length;
-        const hasVideo = window.SharedCore?.ensureBooleanVideo?.(property.has_video) ?? false;
+        // ✅ REMOVIDO: hasVideo - não usado mais
         const hasPdfs = property.pdfs && property.pdfs !== 'EMPTY' && property.pdfs.trim() !== '';
         
         return `
@@ -152,12 +154,7 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
                 <!-- Badge do imóvel -->
                 ${property.badge ? `<div class="property-badge ${property.rural ? 'rural-badge' : ''}">${this._escapeHtml(property.badge)}</div>` : ''}
                 
-                <!-- Indicador de vídeo -->
-                ${hasVideo ? `
-                    <div class="video-indicator" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; z-index: 20;">
-                        <i class="fas fa-video"></i> Vídeo
-                    </div>
-                ` : ''}
+                <!-- ✅ INDICADOR DE VÍDEO REMOVIDO - AGORA GERADO APENAS PELO GALLERY.JS -->
                 
                 <!-- Contador de imagens (fallback) -->
                 ${imageCount > 1 ? `
