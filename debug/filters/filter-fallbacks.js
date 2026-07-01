@@ -1,4 +1,4 @@
-// ============================================================
+// ===========================================================
 // weberlessa-support/debug/filters/filter-fallbacks.js
 // FILTROS - FALLBACK MANUAL PARA QUANDO O FILTERMANAGER FALHA
 // ============================================================
