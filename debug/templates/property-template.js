@@ -1,10 +1,10 @@
 // debug/templates/property-template.js
 // Módulo de Templates para Cards de Propriedades
-// Versão: 1.1.0 - Com delegação para gallery.js
+// Versão: 1.2.0 - REMOVIDO video-indicator duplicado
 // Finalidade: Gerar HTML para os cards de imóveis, delegando a galeria para o gallery.js
 // Carregado apenas em modo debug (?debug=true)
 
-console.log('🎨 [SUPPORT] Carregando PropertyTemplateEngine v1.1.0');
+console.log('🎨 [SUPPORT] Carregando PropertyTemplateEngine v1.2.0');
 
 // Namespace para templates
 window.SupportTemplates = window.SupportTemplates || {};
@@ -13,7 +13,12 @@ window.SupportTemplates = window.SupportTemplates || {};
  * PropertyTemplateEngine - Gera HTML para os cards de propriedades
  * Migrado do Core System (properties.js linhas 40-355)
  * 
- * ✅ V1.1.0: Agora delega a criação da galeria para o gallery.js
+ * ✅ V1.2.0: REMOVIDO video-indicator duplicado
+ * - Agora o indicador de vídeo é gerado APENAS pelo gallery.js
+ * - Isso elimina a duplicidade visual na galeria
+ * - Mantém a arquitetura de responsabilidade única
+ * 
+ * ✅ V1.1.0: Delega a criação da galeria para o gallery.js
  * Isso garante que todas as funcionalidades sejam exibidas:
  * - Contador de visualizações (Glassmorphism)
  * - Contador de imagens
@@ -24,12 +29,12 @@ window.SupportTemplates = window.SupportTemplates || {};
 window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
     
     constructor() {
-        this.version = '1.1.0';
+        this.version = '1.2.0';
         this.imageFallback = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
         this.cacheEnabled = true;
         this.templateCache = new Map();
         this.stats = { hits: 0, misses: 0 };
-        console.log('🎨 PropertyTemplateEngine v1.1.0 inicializado');
+        console.log('🎨 PropertyTemplateEngine v1.2.0 inicializado');
     }
     
     /**
@@ -129,6 +134,8 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
     /**
      * Fallback para quando createPropertyGallery não está disponível
      * Garante que o Core System continue funcionando autonomamente
+     * 
+     * ✅ V1.2.0: REMOVIDO video-indicator - agora gerenciado APENAS pelo gallery.js
      * @private
      */
     _generateFallbackImageSection(property) {
@@ -136,7 +143,7 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
         const imageUrls = hasImages ? property.images.split(',').filter(url => url.trim() !== '') : [];
         const firstImageUrl = imageUrls.length > 0 ? imageUrls[0] : this.imageFallback;
         const imageCount = imageUrls.length;
-        const hasVideo = window.SharedCore?.ensureBooleanVideo?.(property.has_video) ?? false;
+        // ✅ REMOVIDO: hasVideo - não usado mais (indicador gerado pelo gallery.js)
         const hasPdfs = property.pdfs && property.pdfs !== 'EMPTY' && property.pdfs.trim() !== '';
         
         return `
@@ -152,12 +159,8 @@ window.SupportTemplates.PropertyTemplateEngine = class PropertyTemplateEngine {
                 <!-- Badge do imóvel -->
                 ${property.badge ? `<div class="property-badge ${property.rural ? 'rural-badge' : ''}">${this._escapeHtml(property.badge)}</div>` : ''}
                 
-                <!-- Indicador de vídeo -->
-                ${hasVideo ? `
-                    <div class="video-indicator" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; z-index: 20;">
-                        <i class="fas fa-video"></i> Vídeo
-                    </div>
-                ` : ''}
+                <!-- ✅ INDICADOR DE VÍDEO REMOVIDO - AGORA GERADO APENAS PELO GALLERY.JS -->
+                <!-- O gallery.js é o único responsável por gerenciar o indicador de vídeo -->
                 
                 <!-- Contador de imagens (fallback) -->
                 ${imageCount > 1 ? `
@@ -426,8 +429,8 @@ if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.register === '
             'templates',
             {
                 isSafe: true,
-                version: '1.1.0',
-                description: 'Engine de templates para cards de propriedades com delegação para gallery.js'
+                version: '1.2.0',
+                description: 'Engine de templates para cards de propriedades com delegação para gallery.js (video-indicator removido)'
             }
         );
         console.log('📋 [property-template] Registrado no DiagnosticRegistry');
@@ -439,10 +442,11 @@ if (window.DiagnosticRegistry && typeof window.DiagnosticRegistry.register === '
 // ========== HEALTH CHECK AUTOMÁTICO ==========
 if (window.location.search.includes('debug=true')) {
     setTimeout(() => {
-        console.group('🎨 [property-template] HEALTH CHECK v1.1.0');
+        console.group('🎨 [property-template] HEALTH CHECK v1.2.0');
         console.log('✅ Módulo carregado:', !!window.SupportTemplates.PropertyTemplateEngine);
         console.log('✅ createPropertyGallery disponível:', typeof window.createPropertyGallery === 'function');
         console.log('✅ SharedCore disponível:', !!window.SharedCore);
+        console.log('✅ video-indicator removido do fallback');
         
         // Teste rápido
         const engine = new window.SupportTemplates.PropertyTemplateEngine();
@@ -459,10 +463,19 @@ if (window.location.search.includes('debug=true')) {
         console.log(`✅ Template gerado: ${testHtml.length} caracteres`);
         console.log(`📊 Cache stats:`, engine.getCacheStats());
         
+        // Verificar se NÃO há video-indicator no HTML gerado
+        const hasVideoIndicator = testHtml.includes('video-indicator');
+        if (!hasVideoIndicator) {
+            console.log('✅ video-indicator NÃO está presente no fallback (CORRETO)');
+        } else {
+            console.warn('⚠️ video-indicator AINDA está presente no fallback!');
+        }
+        
         console.groupEnd();
     }, 1000);
 }
 
-console.log('✅ [SUPPORT] property-template.js v1.1.0 carregado');
+console.log('✅ [SUPPORT] property-template.js v1.2.0 carregado');
 console.log('📝 Objeto disponível: window.SupportTemplates.PropertyTemplateEngine');
 console.log('🎯 Integração com gallery.js:', typeof window.createPropertyGallery === 'function' ? '✅ Disponível' : '⚠️ Aguardando carregamento');
+console.log('🎯 video-indicator removido do fallback - gerenciado APENAS pelo gallery.js');
